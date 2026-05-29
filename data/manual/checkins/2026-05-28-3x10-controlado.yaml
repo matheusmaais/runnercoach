@@ -1,0 +1,36 @@
+schema_version: 1
+date: 2026-05-28
+activity_match:
+  activity_id: garmin-20260528T161736-7p47km-3039s-17b463bc
+  garmin_title: Santo Ângelo - 3x10min
+  garmin_datetime: "2026-05-28 16:17:36"
+session:
+  planned_type: quality_controlled
+  actual_type: cruise_intervals
+  shared_run: true
+bruna:
+  avg_hr: null
+  max_hr: null
+  pse: 7
+  symptoms: []
+  sleep_quality: regular
+  volleyball_previous_day: true
+  gym_previous_day: false
+  lower_body_load_previous_day: volleyball
+  subjective: Cansada pelo vôlei, mas controlou bem.
+  could_repeat_last_block: false
+matheus:
+  achilles_morning: 0
+  achilles_after: 0
+  role: pacer
+  subjective: Aquiles silencioso.
+attachments:
+  bruna_hr_screenshot: null
+  bruna_hr_screenshot_sha256: null
+  bruna_hr_extraction:
+    extracted_avg_hr: null
+    extracted_max_hr: null
+    extraction_method: not_applicable
+    extraction_confidence: null
+coach_notes:
+  decision_after_workout: Manter polimento, evitar buscar 5:50/km como treino contínuo.

@@ -1,0 +1,15 @@
+schema_version: 1
+timezone: America/Sao_Paulo
+current_phase: ten_k_polish
+current_week_number: 1
+target:
+  name: Meia forte janeiro 2027
+  date_window: 2027-01-24/2027-01-31
+weekly_baseline:
+  monday: strength
+  tuesday: run
+  wednesday: volleyball
+  thursday: run
+  friday: strength
+  saturday: optional_strength
+  sunday: run_or_race_or_long_run

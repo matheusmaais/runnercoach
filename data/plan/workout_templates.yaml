@@ -1,0 +1,17 @@
+schema_version: 1
+templates:
+  easy_run:
+    purpose: Aerobic maintenance and recovery.
+    allowed_intensity_range: easy
+    contraindications: ["red_flag"]
+    science_tags: ["easy_run", "load_management"]
+  controlled_quality:
+    purpose: Strong controlled aerobic/threshold stimulus.
+    allowed_intensity_range: strong_controlled
+    contraindications: ["red_flag", "achilles_ge_3", "poor_sleep", "volleyball_previous_day_max"]
+    science_tags: ["threshold", "load_management"]
+  diagnostic_race_10k:
+    purpose: 10K benchmark for pacing and calibration.
+    allowed_intensity_range: controlled_aggressive
+    contraindications: ["red_flag"]
+    science_tags: ["race_calibration", "threshold"]

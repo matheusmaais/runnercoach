@@ -1,0 +1,3 @@
+planned_workout_id,week_number,date,phase,slot,intended_category,purpose,primary_athlete,planned_distance_or_duration,planned_intensity_range,allowed_fallbacks,contraindications,status
+plan-20260531-10k,1,2026-05-31,ten_k_polish,sunday,race,10K diagnostic race,bruna,10 km,6:15-6:20/km,"[""replace_with_easy"",""replace_with_off""]","[""red_flag""]",planned
+plan-20260602-recovery,2,2026-06-02,post_ten_k_recovery,tuesday,easy_run,Post-race recovery,bruna,30-45 min,easy,"[""replace_with_off""]","[""red_flag"",""severe_fatigue""]",planned
