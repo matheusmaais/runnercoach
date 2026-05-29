@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import date
 from pathlib import Path
 
@@ -7,6 +8,9 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from running_coach.models import SourceType
+
+
+DOI_PATTERN = re.compile(r"^10\.\d{4,9}/\S+$")
 
 
 class ScienceRef(BaseModel):
@@ -34,7 +38,13 @@ class ScienceRef(BaseModel):
         value = value.strip()
         if not value:
             raise ValueError("doi_or_url must be non-empty")
-        return value
+        if value.startswith(("http://", "https://")):
+            return value
+        if value.startswith("doi:10."):
+            return value
+        if DOI_PATTERN.match(value):
+            return value
+        raise ValueError("doi_or_url must be an http URL or DOI")
 
     @field_validator("tags")
     @classmethod

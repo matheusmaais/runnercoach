@@ -69,6 +69,23 @@ def test_science_ref_requires_doi_or_url():
         science_ref(doi_or_url="")
 
 
+def test_science_ref_rejects_non_doi_or_url():
+    with pytest.raises(ValidationError, match="doi_or_url must be an http URL or DOI"):
+        science_ref(doi_or_url="not-a-doi-or-url")
+
+
+def test_science_ref_accepts_url():
+    ref = science_ref(doi_or_url=" https://doi.org/10.1136/bjsports-2016-096581 ")
+
+    assert ref.doi_or_url == "https://doi.org/10.1136/bjsports-2016-096581"
+
+
+def test_science_ref_accepts_doi():
+    ref = science_ref(doi_or_url="10.1136/bjsports-2016-096581")
+
+    assert ref.doi_or_url == "10.1136/bjsports-2016-096581"
+
+
 def test_unknown_source_type_rejected():
     with pytest.raises(ValidationError):
         science_ref(source_type="blog")
