@@ -42,7 +42,7 @@ def test_red_flag_suppresses_performance():
     assert result.confidence == Confidence.HIGH
     assert result.decision == DecisionType.RECOVER
     assert result.selected_fallback == RecommendationAction.REPLACE_WITH_OFF
-    assert result.science_refs == []
+    assert result.science_refs == result.rule_refs
     assert result.rule_refs
     assert result.reasons
 
@@ -82,7 +82,7 @@ def test_combined_pse_nine_and_achilles_five_prioritizes_bruna_recovery():
     assert result.selected_fallback == RecommendationAction.REPLACE_WITH_EASY
     assert "bruna_pse_ge_9" in result.reasons
     assert "matheus_achilles_ge_5" in result.reasons
-    assert result.science_refs == []
+    assert result.science_refs == result.rule_refs
     assert result.rule_refs == [
         "load-management-recovery",
         "achilles-tendinopathy-load",
@@ -110,7 +110,7 @@ def test_volleyball_previous_day_reduces_next_workout():
 
     assert result.action == RecommendationAction.REDUCE_NEXT_WORKOUT
     assert result.decision == DecisionType.REDUCE
-    assert result.science_refs == []
+    assert result.science_refs == result.rule_refs
     assert result.rule_refs == ["volleyball-neuromuscular-load"]
 
 
@@ -119,7 +119,7 @@ def test_poor_sleep_reduces_next_workout():
 
     assert result.action == RecommendationAction.REDUCE_NEXT_WORKOUT
     assert result.decision == DecisionType.REDUCE
-    assert result.science_refs == []
+    assert result.science_refs == result.rule_refs
     assert result.rule_refs == ["sleep-fatigue-load-management"]
 
 
@@ -128,7 +128,7 @@ def test_all_out_race_reduces_next_workout():
 
     assert result.action == RecommendationAction.REDUCE_NEXT_WORKOUT
     assert result.decision == DecisionType.RECOVER
-    assert result.science_refs == []
+    assert result.science_refs == result.rule_refs
     assert result.rule_refs == ["sleep-fatigue-load-management"]
 
 
@@ -161,7 +161,7 @@ def test_output_includes_phase_week_and_planned_workout_id():
     dumped = result.model_dump()
     assert dumped["decision"] == DecisionType.MAINTAIN
     assert dumped["selected_fallback"] is None
-    assert dumped["science_refs"] == []
+    assert dumped["science_refs"] == ["training-consistency-principle"]
     assert dumped["rule_refs"] == ["training-consistency-principle"]
 
 
@@ -173,7 +173,7 @@ def test_maintain_planned_action_has_no_selected_fallback():
     assert result.action == RecommendationAction.MAINTAIN_NEXT_WORKOUT
     assert result.decision == DecisionType.MAINTAIN
     assert result.selected_fallback is None
-    assert result.science_refs == []
+    assert result.science_refs == result.rule_refs
     assert result.rule_refs == ["training-consistency-principle"]
 
 

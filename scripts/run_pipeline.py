@@ -22,6 +22,7 @@ def main() -> None:
         garmin_csv=Path(args.garmin),
         repo_root=REPO_ROOT,
         after_workout=args.after_workout,
+        monthly_report=args.monthly_report,
     )
 
 

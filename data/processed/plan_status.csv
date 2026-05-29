@@ -1,0 +1,3 @@
+planned_workout_id,week_number,date,phase,intended_category,planned_status,derived_status,matched_workout_id,related_decision,evidence,missing_evidence
+plan-20260531-10k,1,2026-05-31,ten_k_polish,diagnostic_race_10k,planned,planned,,,future_or_pending,[]
+plan-20260602-recovery,2,2026-06-02,post_ten_k_recovery,easy_run,planned,planned,,,future_or_pending,[]

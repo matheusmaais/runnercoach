@@ -165,6 +165,7 @@ def test_pipeline_writes_core_outputs(tmp_path):
         repo_root / "data/processed/activities.csv",
         repo_root / "data/processed/workouts.csv",
         repo_root / "data/processed/decisions.csv",
+        repo_root / "data/processed/plan_status.csv",
         repo_root / "data/processed/science_refs.csv",
         repo_root / "docs/state.md",
         repo_root / "docs/decisions.md",
@@ -292,3 +293,48 @@ def test_pipeline_derived_science_refs_from_registry(tmp_path):
     assert science_refs[0]["science_ref_id"] == "source-1"
     assert science_refs[0]["approved"] == "true"
     assert json.loads(science_refs[0]["tags"]) == ["threshold"]
+
+
+def test_pipeline_writes_rich_state_decisions_plan_status_and_monthly_report(tmp_path):
+    garmin_csv = tmp_path / "Activities.csv"
+    repo_root = tmp_path / "repo"
+    write_garmin_csv(garmin_csv)
+    (repo_root / "data/plan").mkdir(parents=True)
+    (repo_root / "data/plan/cycle.yaml").write_text(
+        "current_phase: ten_k_polish\ncurrent_week_number: 1\n",
+        encoding="utf-8",
+    )
+    (repo_root / "data/plan/planned_workouts.csv").write_text(
+        "planned_workout_id,week_number,date,phase,intended_category,status\n"
+        "plan-1,1,2026-05-31,ten_k_polish,diagnostic_race_10k,planned\n",
+        encoding="utf-8",
+    )
+
+    run_pipeline(
+        garmin_csv=garmin_csv,
+        repo_root=repo_root,
+        after_workout=True,
+        monthly_report=True,
+    )
+
+    state = (repo_root / "docs/state.md").read_text(encoding="utf-8")
+    decisions = (repo_root / "docs/decisions.md").read_text(encoding="utf-8")
+    plan_status = read_csv(repo_root / "data/processed/plan_status.csv")
+    monthly = (repo_root / "reports/monthly/latest.md").read_text(encoding="utf-8")
+
+    for heading in [
+        "## Last Update",
+        "## Current Phase",
+        "## Current Paces",
+        "## Current Risks",
+        "## Next Milestones",
+        "## Active Decisions",
+    ]:
+        assert heading in state
+    assert "ten_k_polish" in state
+    assert "## Decision Log" in decisions
+    assert "workout-garmin-" in decisions
+    assert plan_status[0]["planned_workout_id"] == "plan-1"
+    assert plan_status[0]["derived_status"] == "planned"
+    assert "## Period" in monthly
+    assert "## Next 30 Days" in monthly

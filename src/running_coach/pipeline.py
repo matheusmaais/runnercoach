@@ -66,6 +66,20 @@ WORKOUT_FIELDS = [
     "match_confidence",
 ]
 
+PLAN_STATUS_FIELDS = [
+    "planned_workout_id",
+    "week_number",
+    "date",
+    "phase",
+    "intended_category",
+    "planned_status",
+    "derived_status",
+    "matched_workout_id",
+    "related_decision",
+    "evidence",
+    "missing_evidence",
+]
+
 DECISION_FIELDS = [
     "date",
     "local_date",
@@ -116,7 +130,12 @@ class CheckInLoadError(PipelineError):
     pass
 
 
-def run_pipeline(garmin_csv: Path, repo_root: Path, after_workout: bool) -> None:
+def run_pipeline(
+    garmin_csv: Path,
+    repo_root: Path,
+    after_workout: bool,
+    monthly_report: bool = False,
+) -> None:
     garmin_csv = Path(garmin_csv)
     repo_root = Path(repo_root)
 
@@ -129,6 +148,7 @@ def run_pipeline(garmin_csv: Path, repo_root: Path, after_workout: bool) -> None
         for activity in activities
     ]
     decisions = [_decision_from_workout(workout) for workout in workouts]
+    plan_status = _build_plan_status(repo_root, workouts, decisions)
     science_refs = _load_science_refs(repo_root)
 
     processed_dir = repo_root / "data/processed"
@@ -139,13 +159,23 @@ def run_pipeline(garmin_csv: Path, repo_root: Path, after_workout: bool) -> None
         [_workout_csv_row(workout) for workout in workouts],
     )
     _write_csv(processed_dir / "decisions.csv", DECISION_FIELDS, decisions)
+    _write_csv(processed_dir / "plan_status.csv", PLAN_STATUS_FIELDS, plan_status)
     _write_csv(
         processed_dir / "science_refs.csv",
         SCIENCE_REF_FIELDS,
         [_science_ref_csv_row(ref) for ref in science_refs.values()],
     )
 
-    _write_reports(repo_root, activities, workouts, decisions, science_refs, after_workout)
+    _write_reports(
+        repo_root,
+        activities,
+        workouts,
+        decisions,
+        science_refs,
+        plan_status,
+        after_workout,
+        monthly_report,
+    )
 
 
 def _load_checkins(repo_root: Path) -> dict[str, CheckIn]:
@@ -313,6 +343,61 @@ def _decision_from_workout(workout: WorkoutRecord) -> dict[str, Any]:
     }
 
 
+def _build_plan_status(
+    repo_root: Path,
+    workouts: list[WorkoutRecord],
+    decisions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    planned_path = repo_root / "data/plan/planned_workouts.csv"
+    if not planned_path.exists():
+        return []
+
+    with planned_path.open(encoding="utf-8", newline="") as handle:
+        planned_rows = list(csv.DictReader(handle))
+
+    workouts_by_plan = {
+        workout.planned_workout_id: workout
+        for workout in workouts
+        if workout.planned_workout_id
+    }
+    decisions_by_workout = {
+        decision["workout_id"]: decision
+        for decision in decisions
+        if decision.get("workout_id")
+    }
+    latest_date = max((workout.local_date for workout in workouts), default="")
+    rows: list[dict[str, Any]] = []
+    for planned in planned_rows:
+        planned_id = planned.get("planned_workout_id", "")
+        matched = workouts_by_plan.get(planned_id)
+        related_decision = decisions_by_workout.get(matched.workout_id, {}) if matched else {}
+        if matched:
+            derived_status = "completed_with_evidence"
+            evidence = "matched_workout"
+        elif planned.get("date", "") <= latest_date:
+            derived_status = "needs_manual_resolution"
+            evidence = "planned_without_matched_workout"
+        else:
+            derived_status = "planned"
+            evidence = "future_or_pending"
+        rows.append(
+            {
+                "planned_workout_id": planned_id,
+                "week_number": planned.get("week_number", ""),
+                "date": planned.get("date", ""),
+                "phase": planned.get("phase", ""),
+                "intended_category": planned.get("intended_category", ""),
+                "planned_status": planned.get("status", ""),
+                "derived_status": derived_status,
+                "matched_workout_id": matched.workout_id if matched else "",
+                "related_decision": related_decision.get("decision", ""),
+                "evidence": evidence,
+                "missing_evidence": encode_json_cell(matched.missing_evidence) if matched else "[]",
+            }
+        )
+    return rows
+
+
 def _load_science_refs(repo_root: Path) -> dict[str, ScienceRef]:
     registry = repo_root / "data/knowledge/science_refs.yaml"
     if not registry.exists():
@@ -342,30 +427,79 @@ def _write_reports(
     workouts: list[WorkoutRecord],
     decisions: list[dict[str, Any]],
     science_refs: dict[str, ScienceRef],
+    plan_status: list[dict[str, Any]],
     after_workout: bool,
+    monthly_report: bool,
 ) -> None:
     missing_checkins = sum("checkin" in workout.missing_evidence for workout in workouts)
     mode = "after-workout" if after_workout else "analysis"
+    latest_workout = max(workouts, key=lambda workout: workout.local_datetime or "", default=None)
+    shared_workouts = [
+        workout
+        for workout in workouts
+        if workout.athlete_context == "shared_run_with_manual_checkin"
+    ]
+    latest_shared = max(
+        shared_workouts, key=lambda workout: workout.local_datetime or "", default=None
+    )
+    cycle = _load_cycle(repo_root)
+    approved_science_count = sum(ref.approved for ref in science_refs.values())
+    next_plans = [row for row in plan_status if row.get("derived_status") == "planned"][:3]
 
     write_text_report(
         repo_root / "docs/state.md",
         "Running Coach State",
         [
+            "## Last Update",
+            "",
             f"- Mode: {mode}",
+            f"- Latest Garmin activity: {_workout_label(latest_workout)}",
+            f"- Latest shared coaching evidence: {_workout_label(latest_shared)}",
             f"- Activities processed: {len(activities)}",
             f"- Workouts modeled: {len(workouts)}",
             f"- Missing check-in evidence: {missing_checkins}",
-            f"- Approved science refs available: {sum(ref.approved for ref in science_refs.values())}",
+            f"- Approved science refs available: {approved_science_count}",
+            "",
+            "## Current Phase",
+            "",
+            f"- Phase: {cycle.get('current_phase', 'unknown')}",
+            f"- Week number: {cycle.get('current_week_number', 'unknown')}",
+            "- Weekly rhythm: run Tuesday, Thursday, Sunday; strength Monday/Friday and sometimes Saturday; volleyball Wednesday.",
+            "",
+            "## Current Paces",
+            "",
+            "- Bruna easy/long run estimate: 6:40-7:00/km.",
+            "- Bruna strong sustainable estimate: 6:10-6:20/km.",
+            "- Bruna threshold estimate: around 6:00/km when recovered.",
+            "- Bruna short all-out ceiling from recent rustic race: around 5:50/km; not continuous training pace.",
+            "- Matheus recent solo residual speed: 1.33 km at 4:22/km; not used as Bruna evolution evidence.",
+            "",
+            "## Current Risks",
+            "",
+            f"- Missing check-ins: {missing_checkins}.",
+            "- Matheus Achilles remains the strategic limiter.",
+            "- Volleyball counts as neuromuscular load before Thursday sessions.",
+            "- Poor sleep, high PSE, strong symptoms, or heavy legs reduce the next workout.",
+            "",
+            "## Next Milestones",
+            "",
+            *[
+                f"- {row.get('date')}: {row.get('intended_category')} ({row.get('phase')}) -> {row.get('derived_status')}"
+                for row in next_plans
+            ],
+            "",
+            "## Active Decisions",
+            "",
+            "- Do not compensate missed workouts with volume.",
+            "- Keep long runs easy.",
+            "- Treat Matheus Garmin physiology as Matheus-only.",
+            "- Use shared pace for Bruna only when check-in confirms shared run and Bruna presence.",
         ],
     )
     write_text_report(
         repo_root / "docs/decisions.md",
         "Running Coach Decisions",
-        [
-            f"- Decisions written: {len(decisions)}",
-            "- Current V1 decision policy: request manual resolution when check-in evidence is missing.",
-            "- Confidence is intentionally low until subjective athlete state is captured.",
-        ],
+        _decision_doc_lines(decisions),
     )
     write_text_report(
         repo_root / "reports/latest-summary.md",
@@ -373,6 +507,105 @@ def _write_reports(
         [
             f"- Activities: {len(activities)}",
             f"- Workouts missing check-in evidence: {missing_checkins}",
-            "- Confidence: low when check-in evidence is absent.",
+            f"- Latest shared evidence: {_workout_label(latest_shared)}",
+            f"- Current phase: {cycle.get('current_phase', 'unknown')} week {cycle.get('current_week_number', 'unknown')}",
+            f"- Plan status rows: {len(plan_status)}",
+            "- Confidence remains low when check-in evidence is absent.",
         ],
     )
+    if monthly_report:
+        _write_monthly_report(repo_root, workouts, decisions, plan_status)
+
+
+def _load_cycle(repo_root: Path) -> dict[str, Any]:
+    path = repo_root / "data/plan/cycle.yaml"
+    if not path.exists():
+        return {}
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+
+def _workout_label(workout: WorkoutRecord | None) -> str:
+    if workout is None:
+        return "none"
+    return (
+        f"{workout.local_date} {workout.activity_id} "
+        f"{workout.distance_km or ''}km @{workout.avg_pace or 'no pace'}"
+    )
+
+
+def _decision_doc_lines(decisions: list[dict[str, Any]]) -> list[str]:
+    lines = [
+        "## Summary",
+        "",
+        f"- Decisions written: {len(decisions)}",
+        "- Current V1 decision policy: request manual resolution when check-in evidence is missing.",
+        "- Confidence is intentionally low until subjective athlete state is captured.",
+        "",
+        "## Decision Log",
+        "",
+        "| Date | Event | Evidence | Decision | Impact | Related Workout | Missing Evidence |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for decision in decisions:
+        lines.append(
+            "| {date} | {event} | {evidence} | {decision} | {impact} | {workout} | {missing} |".format(
+                date=decision.get("date", ""),
+                event=decision.get("event", ""),
+                evidence=decision.get("evidence", ""),
+                decision=decision.get("decision", ""),
+                impact=decision.get("impact", ""),
+                workout=decision.get("related_workout_id", ""),
+                missing=decision.get("missing_evidence", "[]"),
+            )
+        )
+    return lines
+
+
+def _write_monthly_report(
+    repo_root: Path,
+    workouts: list[WorkoutRecord],
+    decisions: list[dict[str, Any]],
+    plan_status: list[dict[str, Any]],
+) -> None:
+    latest_date = max((workout.local_date for workout in workouts), default="unknown")
+    month = latest_date[:7] if latest_date != "unknown" else "unknown"
+    recent = [workout for workout in workouts if workout.local_date.startswith(month)]
+    volume = sum(workout.distance_km or 0 for workout in recent)
+    long_runs = sum((workout.distance_km or 0) >= 8 for workout in recent)
+    quality = sum(
+        any(token in (workout.category or "") for token in ["cruise", "quality", "race", "threshold"])
+        for workout in recent
+    )
+    missing_checkins = sum("checkin" in workout.missing_evidence for workout in recent)
+    lines = [
+        "## Period",
+        "",
+        f"- Month: {month}",
+        f"- Workouts: {len(recent)}",
+        "",
+        "## Consistency",
+        "",
+        f"- Total volume: {volume:.2f} km",
+        f"- Long runs: {long_runs}",
+        f"- Quality/race-like sessions: {quality}",
+        "",
+        "## Fatigue And Risk",
+        "",
+        f"- Workouts missing check-in: {missing_checkins}",
+        "- Treat missing subjective evidence as low confidence, not as readiness.",
+        "",
+        "## Decisions",
+        "",
+        f"- Decisions this dataset: {len(decisions)}",
+        f"- Plan status rows: {len(plan_status)}",
+        "",
+        "## Next 30 Days",
+        "",
+        "- Keep long runs easy.",
+        "- Keep quality controlled and linked to recovery.",
+        "- Do not compensate missed sessions with extra volume.",
+        "- Preserve Matheus Achilles guardrails.",
+    ]
+    monthly_dir = repo_root / "reports/monthly"
+    write_text_report(monthly_dir / f"{month}.md", "Monthly Running Coach Report", lines)
+    write_text_report(monthly_dir / "latest.md", "Monthly Running Coach Report", lines)

@@ -89,7 +89,18 @@ A cada 30 dias, gere pipeline e dashboard, depois revise:
 - Sintomas de Bruna e qualquer sinal do Aquiles de Matheus.
 - Aderencia ao roadmap ate a meia de janeiro de 2027.
 
-O V1 ainda nao cria um relatorio mensal narrativo separado. A fonte mensal e a combinacao de `reports/latest-summary.md`, `reports/dashboard.xlsx`, `docs/state.md`, `docs/decisions.md` e CSVs processados.
+Para gerar o relatorio mensal narrativo:
+
+```bash
+python scripts/run_pipeline.py --garmin data/raw/garmin/Activities.csv --after-workout --monthly-report
+```
+
+Saidas:
+
+- `reports/monthly/latest.md`
+- `reports/monthly/YYYY-MM.md`
+
+O relatorio mensal deve ser lido junto com `reports/dashboard.xlsx`, `docs/state.md`, `docs/decisions.md` e CSVs processados.
 
 ## Failure Modes
 

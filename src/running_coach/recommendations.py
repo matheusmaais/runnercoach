@@ -61,6 +61,7 @@ def recommend_next_action(input_data: RecommendationInput) -> RecommendationResu
     if _is_high_confidence_hard_stop(action, blocked_by_red_flag):
         confidence = Confidence.HIGH
 
+    science_refs = _rule_refs_for(reasons)
     return RecommendationResult(
         action=action,
         decision=_decision_for(action, reasons),
@@ -68,8 +69,8 @@ def recommend_next_action(input_data: RecommendationInput) -> RecommendationResu
         confidence=confidence,
         blocked_by_red_flag=blocked_by_red_flag,
         reasons=reasons,
-        science_refs=[],
-        rule_refs=_rule_refs_for(reasons),
+        science_refs=science_refs,
+        rule_refs=science_refs,
         missing_evidence=missing_evidence,
         assumptions=assumptions,
         phase=input_data.phase,

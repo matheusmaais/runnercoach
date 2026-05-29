@@ -37,6 +37,7 @@ If a workout has only Garmin data and no matched check-in, the system must treat
 ```bash
 make ingest GARMIN=data/raw/garmin/Activities.csv
 make pipeline GARMIN=data/raw/garmin/Activities.csv
+python scripts/run_pipeline.py --garmin data/raw/garmin/Activities.csv --after-workout --monthly-report
 make dashboard
 make test
 ```
@@ -46,6 +47,16 @@ Direct script equivalents:
 ```bash
 python scripts/run_pipeline.py --garmin data/raw/garmin/Activities.csv --after-workout
 python scripts/build_dashboard.py
+```
+
+If the system Python does not have the dependencies from `pyproject.toml`, create a local venv and run the same commands through it:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -e '.[dev]'
+PYTHON=.venv/bin/python make test
+PYTHON=.venv/bin/python make pipeline GARMIN=data/raw/garmin/Activities.csv
+PYTHON=.venv/bin/python make dashboard
 ```
 
 ## Current Operating Model
