@@ -6,7 +6,11 @@ import yaml
 from pydantic import ValidationError
 
 from running_coach.checkins import CheckIn, compute_sha256
-from running_coach.plan import PlanLoadError, load_planned_workouts
+from running_coach.plan import (
+    PlanLoadError,
+    load_planned_workouts,
+    load_workout_template_keys,
+)
 
 
 def valid_checkin_payload(**overrides):
@@ -189,13 +193,34 @@ def test_load_planned_workouts_rejects_unknown_phase_or_status(
         load_planned_workouts(csv_path)
 
 
-def test_seed_plan_categories_exist_in_workout_templates():
-    planned_rows = load_planned_workouts(Path("data/plan/planned_workouts.csv"))
-    templates = yaml.safe_load(
-        Path("data/plan/workout_templates.yaml").read_text(encoding="utf-8")
-    )["templates"]
+def test_load_planned_workouts_rejects_unknown_intended_category(
+    tmp_path: Path,
+):
+    csv_path = tmp_path / "planned.csv"
+    csv_path.write_text(
+        "planned_workout_id,week_number,date,phase,slot,intended_category,purpose,"
+        "primary_athlete,planned_distance_or_duration,planned_intensity_range,"
+        "allowed_fallbacks,contraindications,status\n"
+        "plan-1,1,2026-05-31,ten_k_polish,sunday,missing_category,"
+        "10K diagnostic,bruna,10 km,6:15-6:20/km,"
+        '"[""replace_with_easy""]","[""red_flag""]",planned\n',
+        encoding="utf-8",
+    )
 
-    assert {row["intended_category"] for row in planned_rows} <= set(templates)
+    with pytest.raises(PlanLoadError) as error:
+        load_planned_workouts(csv_path, allowed_categories={"easy_run"})
+
+    assert "unknown intended category" in str(error.value)
+
+
+def test_seed_plan_categories_exist_in_workout_templates():
+    template_keys = load_workout_template_keys(Path("data/plan/workout_templates.yaml"))
+    planned_rows = load_planned_workouts(
+        Path("data/plan/planned_workouts.csv"),
+        allowed_categories=template_keys,
+    )
+
+    assert {row["intended_category"] for row in planned_rows} <= template_keys
 
 
 def test_seed_checkin_references_existing_activity_id():

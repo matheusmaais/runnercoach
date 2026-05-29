@@ -5,6 +5,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
+import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from running_coach.csv_utils import decode_json_cell
@@ -106,7 +107,15 @@ def _decode_string_list_cell(
     return decoded
 
 
-def load_planned_workouts(path: Path) -> list[dict[str, Any]]:
+def load_workout_template_keys(path: Path) -> set[str]:
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    templates = data["templates"]
+    return set(templates)
+
+
+def load_planned_workouts(
+    path: Path, allowed_categories: set[str] | None = None
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     with path.open(encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
@@ -147,5 +156,16 @@ def load_planned_workouts(path: Path) -> list[dict[str, Any]]:
                     parsed.get(field),
                     first_error["msg"],
                 ) from error
+            if (
+                allowed_categories is not None
+                and workout.intended_category not in allowed_categories
+            ):
+                raise PlanLoadError(
+                    path,
+                    row_number,
+                    "intended_category",
+                    workout.intended_category,
+                    "unknown intended category",
+                )
             rows.append(workout.model_dump(mode="json"))
     return rows
