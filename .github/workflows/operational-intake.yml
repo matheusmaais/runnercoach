@@ -23,9 +23,11 @@ on:
 permissions:
   contents: write
   actions: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: "operational-intake"
+  group: "github-pages"
   cancel-in-progress: false
 
 jobs:
@@ -120,3 +122,14 @@ jobs:
             git commit -m "chore: process frontend intake"
             git push
           fi
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+      - name: Deploy Pages
+        uses: actions/deploy-pages@v4
