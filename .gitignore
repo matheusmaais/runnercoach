@@ -14,3 +14,8 @@ reports/charts/*.png
 .env
 .DS_Store
 logs/
+
+web/node_modules/
+web/dist/
+web/playwright-report/
+web/test-results/

@@ -1,6 +1,6 @@
 # Running Coach System
 
-Sistema pessoal de acompanhamento, analise e recomendacao conservadora de treinos de corrida para Matheus e Bruna, com Git como fonte oficial e dashboard operacional em planilha.
+Sistema pessoal de acompanhamento, analise e recomendacao conservadora de treinos de corrida para Matheus e Bruna, com Git como fonte oficial, frontend GitHub Pages como interface principal e dashboard operacional em planilha como apoio.
 
 O V1 foca em contratos confiaveis: importar Garmin, preservar a verdade de propriedade dos dados, capturar feedback manual, gerar dados processados, registrar decisoes auditaveis, atualizar relatorios e construir `reports/dashboard.xlsx`.
 
@@ -8,6 +8,11 @@ Dashboard Google Sheets persistente:
 
 - [Projeto Meia Forte Janeiro 2027 — Matheus & Bruna](https://docs.google.com/spreadsheets/d/1NYrPxauwysUgE4Hm0Kt-F7Kc9OkziGablhC6zHXDM4o)
 - Detalhes de sync: `docs/google-sheets.md`
+
+Frontend principal:
+
+- `web/`: Performance Lab estatico para GitHub Pages.
+- `web/public/data/app-data.json`: payload versionado gerado pelo pipeline.
 
 ## V1 Workflow
 
@@ -21,12 +26,14 @@ Dashboard Google Sheets persistente:
 make pipeline GARMIN=data/raw/garmin/Activities.csv
 make coach
 make dashboard
+make frontend
 ```
 
 5. Revise:
 
 - `reports/latest-summary.md`
 - `reports/dashboard.xlsx`
+- `web/public/data/app-data.json`
 - `docs/state.md`
 - `docs/decisions.md`
 
@@ -46,6 +53,8 @@ make pipeline GARMIN=data/raw/garmin/Activities.csv
 python scripts/run_pipeline.py --garmin data/raw/garmin/Activities.csv --after-workout --monthly-report
 make coach
 make dashboard
+make frontend-data
+make frontend-build
 make test
 ```
 
@@ -55,6 +64,7 @@ Direct script equivalents:
 python scripts/run_pipeline.py --garmin data/raw/garmin/Activities.csv --after-workout
 python scripts/generate_recommendation.py
 python scripts/build_dashboard.py
+python scripts/build_frontend_data.py
 ```
 
 If the system Python does not have the dependencies from `pyproject.toml`, create a local venv and run the same commands through it:
@@ -66,7 +76,57 @@ PYTHON=.venv/bin/python make test
 PYTHON=.venv/bin/python make pipeline GARMIN=data/raw/garmin/Activities.csv
 PYTHON=.venv/bin/python make coach
 PYTHON=.venv/bin/python make dashboard
+PYTHON=.venv/bin/python make frontend-data
 ```
+
+## Frontend Workflow
+
+V1.5 adiciona o Performance Lab, uma interface estatica moderna para consultar o sistema sem abrir a planilha.
+
+Gerar apenas os dados do frontend:
+
+```bash
+PYTHON=.venv/bin/python make frontend-data
+```
+
+Instalar dependencias web e gerar build local:
+
+```bash
+cd web
+npm install
+npm run build
+```
+
+Ou rode tudo pelo Makefile:
+
+```bash
+PYTHON=.venv/bin/python make frontend
+```
+
+Rodar localmente:
+
+```bash
+cd web
+npm run dev
+```
+
+O frontend le apenas `web/public/data/app-data.json`. Toda regra de seguranca, separacao Matheus/Bruna e normalizacao de evidencia deve vir do Python antes da UI renderizar.
+
+Contrato V1.5:
+
+- O frontend e a interface principal de leitura.
+- Ele nao edita dados, nao faz upload de Garmin, nao chama LLM direto do browser e nao comita no repo.
+- A chave de LLM nunca deve ficar no GitHub Pages.
+
+Proximo passo recomendado:
+
+- V1.6 deve transformar o frontend em interface operacional usando GitHub Actions como backend seguro.
+- O browser coleta check-in/upload, dispara workflow, o Actions roda Python + LLM com secrets, valida a resposta, commita os artefatos e republica o Pages.
+
+Publicacao:
+
+- `.github/workflows/pages.yml` gera o payload, compila `web/` e publica `web/dist` no GitHub Pages.
+- Em GitHub Pages, configure a origem como "GitHub Actions".
 
 ## LLM Coach Workflow
 
@@ -112,5 +172,6 @@ Only validated responses produce `reports/llm/latest-recommendation.md`.
 - `reports/`: latest summary, charts, and generated dashboard workbook.
 - `reports/llm/`: auditable LLM request and validated recommendation artifacts.
 - `docs/google-sheets.md`: persistent Google Sheets dashboard ID and sync notes.
+- `web/`: GitHub Pages frontend.
 - `scripts/`: re-runnable command entrypoints.
 - `src/running_coach/`: typed models, Garmin ingestion, pipeline, science registry, recommendations, and dashboard generation.

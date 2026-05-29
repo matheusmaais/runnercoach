@@ -1,0 +1,1111 @@
+{
+  "generated_at": "2026-05-28 17:14:17",
+  "mission": {
+    "name": "Meia Forte Janeiro 2027",
+    "target_race_window": "late January 2027",
+    "primary_objective": "Correr uma meia maratona forte sem elevar risco de lesão desnecessariamente.",
+    "short_term_focus": "Maximizar 10K com pacing conservador, recuperação e decisões auditáveis.",
+    "interface_role": "Interface principal de leitura gerada a partir dos dados versionados do repositório."
+  },
+  "athletes": {
+    "matheus": {
+      "age": 39,
+      "role": "pacemaker saudável com velocidade residual",
+      "strategic_limit": "left_achilles",
+      "data_sources": {
+        "physiology": "garmin_watch",
+        "pace": "garmin_or_shared_run",
+        "injury_risk": "manual_achilles_checkin"
+      },
+      "current_training_state": {
+        "residual_speed": "alta",
+        "latest_speed_signal": "1,33 km @ 4:22/km com Aquiles silencioso",
+        "coaching_bias": "evitar máxima velocidade frequente; proteger Aquiles primeiro"
+      }
+    },
+    "bruna": {
+      "age": 32,
+      "role": "atleta principal de performance",
+      "strategic_limit": "progressão segura de 5K/10K para meia forte",
+      "data_sources": {
+        "pace": "shared_run",
+        "heart_rate": "manual_galaxy_watch_when_provided",
+        "subjective": "manual_pse_symptoms_recovery"
+      },
+      "current_training_state": {
+        "easy_long": "6:40-7:00/km",
+        "strong_sustainable": "6:10-6:20/km",
+        "estimated_threshold": "~6:00/km",
+        "short_max_current": "~5:50/km",
+        "current_10k_projection": "6:10-6:20/km depending on course, weather, and pacing"
+      }
+    }
+  },
+  "current_state": {
+    "phase": "ten_k_polish",
+    "status": "on_track_with_conservative_guardrails",
+    "latest_shared_workout": {
+      "workout_id": "workout-garmin-20260528T161736-7p47km-3039s-17b463bc",
+      "activity_id": "garmin-20260528T161736-7p47km-3039s-17b463bc",
+      "local_date": "2026-05-28",
+      "local_datetime": "2026-05-28 16:17:36",
+      "athlete_context": "shared_run_with_manual_checkin",
+      "participants": [
+        "matheus",
+        "bruna"
+      ],
+      "shared_run": true,
+      "bruna_present": true,
+      "distance_km": "7.47",
+      "avg_pace": "6:47",
+      "bruna_pse": "7",
+      "bruna_symptoms": [],
+      "matheus_achilles_after": "0",
+      "volleyball_previous_day": "true",
+      "missing_evidence": [
+        "bruna_hr_screenshot",
+        "bruna_avg_hr",
+        "bruna_max_hr"
+      ],
+      "bruna_evidence": "available",
+      "evidence_confidence": "medium",
+      "display_context": "Pace compartilhado informa Bruna apenas com contexto manual/PSE."
+    },
+    "latest_matheus_solo": {
+      "workout_id": "workout-garmin-20260528T171417-1p33km-349s-245ee321",
+      "activity_id": "garmin-20260528T171417-1p33km-349s-245ee321",
+      "local_date": "2026-05-28",
+      "local_datetime": "2026-05-28 17:14:17",
+      "athlete_context": "matheus_garmin_only",
+      "participants": [
+        "matheus"
+      ],
+      "shared_run": false,
+      "bruna_present": false,
+      "distance_km": "1.33",
+      "avg_pace": "4:22",
+      "bruna_pse": "",
+      "bruna_symptoms": [],
+      "matheus_achilles_after": "",
+      "volleyball_previous_day": "",
+      "missing_evidence": [
+        "checkin"
+      ],
+      "bruna_evidence": "not_applicable",
+      "evidence_confidence": "low",
+      "display_context": "Esforço Garmin apenas do Matheus; não usar como evolução da Bruna."
+    },
+    "summary_markdown": "# Running Coach State\n\n## Last Update\n\n- Mode: after-workout\n- Latest Garmin activity: 2026-05-28 garmin-20260528T171417-1p33km-349s-245ee321 1.33km @4:22\n- Latest shared coaching evidence: 2026-05-28 garmin-20260528T161736-7p47km-3039s-17b463bc 7.47km @6:47\n- Activities processed: 20\n- Workouts modeled: 20\n- Missing check-in evidence: 19\n- Approved science refs available: 9\n\n## Current Phase\n\n- Phase: ten_k_polish\n- Week number: 1\n- Weekly rhythm: run Tuesday, Thursday, Sunday; strength Monday/Friday and sometimes Saturday; volleyball Wednesday.\n\n## Current Paces\n\n- Bruna easy/long run estimate: 6:40-7:00/km.\n- Bruna strong sustainable estimate: 6:10-6:20/km.\n- Bruna threshold estimate: around 6:00/km when recovered.\n- Bruna short all-out ceiling from recent rustic race: around 5:50/km; not continuous training pace.\n- Matheus recent solo residual speed: 1.33 km at 4:22/km; not used as Bruna evolution evidence.\n\n## Current Risks\n\n- Missing check-ins: 19.\n- Matheus Achilles remains the strategic limiter.\n- Volleyball counts as neuromuscular load before Thursday sessions.\n- Poor sleep, high PSE, strong symptoms, or heavy legs reduce the next workout.\n\n## Next Milestones\n\n- 2026-05-31: diagnostic_race_10k (ten_k_polish) -> planned\n- 2026-06-02: easy_run (post_ten_k_recovery) -> planned\n\n## Active Decisions\n\n- Do not compensate missed workouts with volume.\n- Keep long runs easy.\n- Treat Matheus Garmin physiology as Matheus-only.\n- Use shared pace for Bruna only when check-in confirms shared run and Bruna presence.\n",
+    "risk_level": "moderate"
+  },
+  "next_workouts": [
+    {
+      "planned_workout_id": "plan-20260531-10k",
+      "week_number": "1",
+      "date": "2026-05-31",
+      "phase": "ten_k_polish",
+      "intended_category": "diagnostic_race_10k",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Usar como prova diagnóstica forte, depois proteger os próximos 2-4 dias para recuperação.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "do_not_chase_pace_if_heat_or_course_raise_risk"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-20260602-recovery",
+      "week_number": "2",
+      "date": "2026-06-02",
+      "phase": "post_ten_k_recovery",
+      "intended_category": "easy_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Restaurar consistência e sinal aeróbico depois da prova sem compensar volume.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    }
+  ],
+  "recent_workouts": [
+    {
+      "workout_id": "workout-garmin-20260528T171417-1p33km-349s-245ee321",
+      "date": "2026-05-28",
+      "datetime": "2026-05-28 17:14:17",
+      "athlete_context": "matheus_garmin_only",
+      "activity_type": "Corrida",
+      "category": "",
+      "distance_km": 1.33,
+      "duration_seconds": 348.7,
+      "avg_pace": "4:22",
+      "matheus_avg_hr": "189",
+      "matheus_max_hr": "192",
+      "bruna_avg_hr": "",
+      "bruna_max_hr": "",
+      "bruna_pse": "",
+      "missing_evidence": [
+        "checkin"
+      ],
+      "evidence_level": "low",
+      "evidence_confidence": "low",
+      "recommendation_action": "request_manual_resolution",
+      "decision_after_workout": "",
+      "shared_run": false,
+      "bruna_present": false,
+      "badges": [
+        "garmin_matheus"
+      ],
+      "bruna_usage": "not_bruna_evidence"
+    },
+    {
+      "workout_id": "workout-garmin-20260528T161736-7p47km-3039s-17b463bc",
+      "date": "2026-05-28",
+      "datetime": "2026-05-28 16:17:36",
+      "athlete_context": "shared_run_with_manual_checkin",
+      "activity_type": "Corrida",
+      "category": "cruise_intervals",
+      "distance_km": 7.47,
+      "duration_seconds": 3039.0,
+      "avg_pace": "6:47",
+      "matheus_avg_hr": "147",
+      "matheus_max_hr": "164",
+      "bruna_avg_hr": "",
+      "bruna_max_hr": "",
+      "bruna_pse": "7",
+      "missing_evidence": [
+        "bruna_hr_screenshot",
+        "bruna_avg_hr",
+        "bruna_max_hr"
+      ],
+      "evidence_level": "low",
+      "evidence_confidence": "low",
+      "recommendation_action": "request_manual_resolution",
+      "decision_after_workout": "Manter polimento, evitar buscar 5:50/km como treino contínuo.",
+      "shared_run": true,
+      "bruna_present": true,
+      "badges": [
+        "shared_pace",
+        "bruna_pse",
+        "bruna_hr_missing",
+        "volleyball_load"
+      ],
+      "bruna_usage": "shared_pace_with_manual_context"
+    },
+    {
+      "workout_id": "workout-garmin-20260526T171134-6p17km-2445s-3da74ec2",
+      "date": "2026-05-26",
+      "datetime": "2026-05-26 17:11:34",
+      "athlete_context": "matheus_garmin_only",
+      "activity_type": "Corrida",
+      "category": "",
+      "distance_km": 6.17,
+      "duration_seconds": 2445.0,
+      "avg_pace": "6:36",
+      "matheus_avg_hr": "150",
+      "matheus_max_hr": "174",
+      "bruna_avg_hr": "",
+      "bruna_max_hr": "",
+      "bruna_pse": "",
+      "missing_evidence": [
+        "checkin"
+      ],
+      "evidence_level": "low",
+      "evidence_confidence": "low",
+      "recommendation_action": "request_manual_resolution",
+      "decision_after_workout": "",
+      "shared_run": false,
+      "bruna_present": false,
+      "badges": [
+        "garmin_matheus"
+      ],
+      "bruna_usage": "not_bruna_evidence"
+    },
+    {
+      "workout_id": "workout-garmin-20260526T002509-0p00km-6s-63df559b",
+      "date": "2026-05-26",
+      "datetime": "2026-05-26 00:25:09",
+      "athlete_context": "matheus_garmin_only",
+      "activity_type": "Corrida",
+      "category": "",
+      "distance_km": 0.0,
+      "duration_seconds": 5.8,
+      "avg_pace": "",
+      "matheus_avg_hr": "80",
+      "matheus_max_hr": "81",
+      "bruna_avg_hr": "",
+      "bruna_max_hr": "",
+      "bruna_pse": "",
+      "missing_evidence": [
+        "checkin"
+      ],
+      "evidence_level": "low",
+      "evidence_confidence": "low",
+      "recommendation_action": "request_manual_resolution",
+      "decision_after_workout": "",
+      "shared_run": false,
+      "bruna_present": false,
+      "badges": [
+        "garmin_matheus"
+      ],
+      "bruna_usage": "not_bruna_evidence"
+    },
+    {
+      "workout_id": "workout-garmin-20260524T161830-5p24km-1833s-5d178a73",
+      "date": "2026-05-24",
+      "datetime": "2026-05-24 16:18:30",
+      "athlete_context": "matheus_garmin_only",
+      "activity_type": "Corrida",
+      "category": "",
+      "distance_km": 5.24,
+      "duration_seconds": 1833.0,
+      "avg_pace": "5:50",
+      "matheus_avg_hr": "162",
+      "matheus_max_hr": "180",
+      "bruna_avg_hr": "",
+      "bruna_max_hr": "",
+      "bruna_pse": "",
+      "missing_evidence": [
+        "checkin"
+      ],
+      "evidence_level": "low",
+      "evidence_confidence": "low",
+      "recommendation_action": "request_manual_resolution",
+      "decision_after_workout": "",
+      "shared_run": false,
+      "bruna_present": false,
+      "badges": [
+        "garmin_matheus"
+      ],
+      "bruna_usage": "not_bruna_evidence"
+    },
+    {
+      "workout_id": "workout-garmin-20260521T151657-8p85km-3736s-48b5a434",
+      "date": "2026-05-21",
+      "datetime": "2026-05-21 15:16:57",
+      "athlete_context": "matheus_garmin_only",
+      "activity_type": "Corrida",
+      "category": "",
+      "distance_km": 8.85,
+      "duration_seconds": 3736.0,
+      "avg_pace": "7:02",
+      "matheus_avg_hr": "158",
+      "matheus_max_hr": "185",
+      "bruna_avg_hr": "",
+      "bruna_max_hr": "",
+      "bruna_pse": "",
+      "missing_evidence": [
+        "checkin"
+      ],
+      "evidence_level": "low",
+      "evidence_confidence": "low",
+      "recommendation_action": "request_manual_resolution",
+      "decision_after_workout": "",
+      "shared_run": false,
+      "bruna_present": false,
+      "badges": [
+        "garmin_matheus"
+      ],
+      "bruna_usage": "not_bruna_evidence"
+    },
+    {
+      "workout_id": "workout-garmin-20260518T160125-6p17km-2426s-c25e77d9",
+      "date": "2026-05-18",
+      "datetime": "2026-05-18 16:01:25",
+      "athlete_context": "matheus_garmin_only",
+      "activity_type": "Corrida",
+      "category": "",
+      "distance_km": 6.17,
+      "duration_seconds": 2426.0,
+      "avg_pace": "6:33",
+      "matheus_avg_hr": "155",
+      "matheus_max_hr": "171",
+      "bruna_avg_hr": "",
+      "bruna_max_hr": "",
+      "bruna_pse": "",
+      "missing_evidence": [
+        "checkin"
+      ],
+      "evidence_level": "low",
+      "evidence_confidence": "low",
+      "recommendation_action": "request_manual_resolution",
+      "decision_after_workout": "",
+      "shared_run": false,
+      "bruna_present": false,
+      "badges": [
+        "garmin_matheus"
+      ],
+      "bruna_usage": "not_bruna_evidence"
+    },
+    {
+      "workout_id": "workout-garmin-20260513T131552-7p33km-3049s-4f641c6f",
+      "date": "2026-05-13",
+      "datetime": "2026-05-13 13:15:52",
+      "athlete_context": "matheus_garmin_only",
+      "activity_type": "Corrida",
+      "category": "",
+      "distance_km": 7.33,
+      "duration_seconds": 3049.0,
+      "avg_pace": "6:56",
+      "matheus_avg_hr": "148",
+      "matheus_max_hr": "175",
+      "bruna_avg_hr": "",
+      "bruna_max_hr": "",
+      "bruna_pse": "",
+      "missing_evidence": [
+        "checkin"
+      ],
+      "evidence_level": "low",
+      "evidence_confidence": "low",
+      "recommendation_action": "request_manual_resolution",
+      "decision_after_workout": "",
+      "shared_run": false,
+      "bruna_present": false,
+      "badges": [
+        "garmin_matheus"
+      ],
+      "bruna_usage": "not_bruna_evidence"
+    },
+    {
+      "workout_id": "workout-garmin-20260510T154238-9p01km-3581s-04ec4a36",
+      "date": "2026-05-10",
+      "datetime": "2026-05-10 15:42:38",
+      "athlete_context": "matheus_garmin_only",
+      "activity_type": "Corrida",
+      "category": "",
+      "distance_km": 9.01,
+      "duration_seconds": 3581.0,
+      "avg_pace": "6:37",
+      "matheus_avg_hr": "151",
+      "matheus_max_hr": "176",
+      "bruna_avg_hr": "",
+      "bruna_max_hr": "",
+      "bruna_pse": "",
+      "missing_evidence": [
+        "checkin"
+      ],
+      "evidence_level": "low",
+      "evidence_confidence": "low",
+      "recommendation_action": "request_manual_resolution",
+      "decision_after_workout": "",
+      "shared_run": false,
+      "bruna_present": false,
+      "badges": [
+        "garmin_matheus"
+      ],
+      "bruna_usage": "not_bruna_evidence"
+    },
+    {
+      "workout_id": "workout-garmin-20260507T154001-7p07km-2939s-c562a182",
+      "date": "2026-05-07",
+      "datetime": "2026-05-07 15:40:01",
+      "athlete_context": "matheus_garmin_only",
+      "activity_type": "Corrida",
+      "category": "",
+      "distance_km": 7.07,
+      "duration_seconds": 2939.0,
+      "avg_pace": "6:56",
+      "matheus_avg_hr": "145",
+      "matheus_max_hr": "162",
+      "bruna_avg_hr": "",
+      "bruna_max_hr": "",
+      "bruna_pse": "",
+      "missing_evidence": [
+        "checkin"
+      ],
+      "evidence_level": "low",
+      "evidence_confidence": "low",
+      "recommendation_action": "request_manual_resolution",
+      "decision_after_workout": "",
+      "shared_run": false,
+      "bruna_present": false,
+      "badges": [
+        "garmin_matheus"
+      ],
+      "bruna_usage": "not_bruna_evidence"
+    },
+    {
+      "workout_id": "workout-garmin-20260505T175234-5p36km-2294s-3884a25e",
+      "date": "2026-05-05",
+      "datetime": "2026-05-05 17:52:34",
+      "athlete_context": "matheus_garmin_only",
+      "activity_type": "Corrida",
+      "category": "",
+      "distance_km": 5.36,
+      "duration_seconds": 2294.0,
+      "avg_pace": "7:08",
+      "matheus_avg_hr": "149",
+      "matheus_max_hr": "159",
+      "bruna_avg_hr": "",
+      "bruna_max_hr": "",
+      "bruna_pse": "",
+      "missing_evidence": [
+        "checkin"
+      ],
+      "evidence_level": "low",
+      "evidence_confidence": "low",
+      "recommendation_action": "request_manual_resolution",
+      "decision_after_workout": "",
+      "shared_run": false,
+      "bruna_present": false,
+      "badges": [
+        "garmin_matheus"
+      ],
+      "bruna_usage": "not_bruna_evidence"
+    },
+    {
+      "workout_id": "workout-garmin-20260503T155018-8p01km-3269s-1ab13585",
+      "date": "2026-05-03",
+      "datetime": "2026-05-03 15:50:18",
+      "athlete_context": "matheus_garmin_only",
+      "activity_type": "Corrida",
+      "category": "",
+      "distance_km": 8.01,
+      "duration_seconds": 3269.0,
+      "avg_pace": "6:48",
+      "matheus_avg_hr": "145",
+      "matheus_max_hr": "158",
+      "bruna_avg_hr": "",
+      "bruna_max_hr": "",
+      "bruna_pse": "",
+      "missing_evidence": [
+        "checkin"
+      ],
+      "evidence_level": "low",
+      "evidence_confidence": "low",
+      "recommendation_action": "request_manual_resolution",
+      "decision_after_workout": "",
+      "shared_run": false,
+      "bruna_present": false,
+      "badges": [
+        "garmin_matheus"
+      ],
+      "bruna_usage": "not_bruna_evidence"
+    }
+  ],
+  "weekly_summary": [
+    {
+      "week": "2026-W16",
+      "runs": 3,
+      "distance_km": 9.56,
+      "quality_runs": 0,
+      "shared_runs": 0
+    },
+    {
+      "week": "2026-W17",
+      "runs": 3,
+      "distance_km": 19.27,
+      "quality_runs": 0,
+      "shared_runs": 0
+    },
+    {
+      "week": "2026-W18",
+      "runs": 3,
+      "distance_km": 19.27,
+      "quality_runs": 0,
+      "shared_runs": 0
+    },
+    {
+      "week": "2026-W19",
+      "runs": 3,
+      "distance_km": 21.44,
+      "quality_runs": 0,
+      "shared_runs": 0
+    },
+    {
+      "week": "2026-W20",
+      "runs": 1,
+      "distance_km": 7.33,
+      "quality_runs": 0,
+      "shared_runs": 0
+    },
+    {
+      "week": "2026-W21",
+      "runs": 3,
+      "distance_km": 20.26,
+      "quality_runs": 0,
+      "shared_runs": 0
+    },
+    {
+      "week": "2026-W22",
+      "runs": 4,
+      "distance_km": 14.97,
+      "quality_runs": 0,
+      "shared_runs": 1
+    }
+  ],
+  "trends": {
+    "pace": [
+      {
+        "date": "2026-04-13",
+        "pace_seconds": 465,
+        "avg_pace": "7:45",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-04-19",
+        "pace_seconds": 434,
+        "avg_pace": "7:14",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-04-21",
+        "pace_seconds": 421,
+        "avg_pace": "7:01",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-04-25",
+        "pace_seconds": 440,
+        "avg_pace": "7:20",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-04-26",
+        "pace_seconds": 435,
+        "avg_pace": "7:15",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-04-28",
+        "pace_seconds": 416,
+        "avg_pace": "6:56",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-05-01",
+        "pace_seconds": 420,
+        "avg_pace": "7:00",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-05-03",
+        "pace_seconds": 408,
+        "avg_pace": "6:48",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-05-05",
+        "pace_seconds": 428,
+        "avg_pace": "7:08",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-05-07",
+        "pace_seconds": 416,
+        "avg_pace": "6:56",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-05-10",
+        "pace_seconds": 397,
+        "avg_pace": "6:37",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-05-13",
+        "pace_seconds": 416,
+        "avg_pace": "6:56",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-05-18",
+        "pace_seconds": 393,
+        "avg_pace": "6:33",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-05-21",
+        "pace_seconds": 422,
+        "avg_pace": "7:02",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-05-24",
+        "pace_seconds": 350,
+        "avg_pace": "5:50",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-05-26",
+        "pace_seconds": 396,
+        "avg_pace": "6:36",
+        "context": "matheus_garmin_only"
+      },
+      {
+        "date": "2026-05-28",
+        "pace_seconds": 407,
+        "avg_pace": "6:47",
+        "context": "shared_run_with_manual_checkin"
+      },
+      {
+        "date": "2026-05-28",
+        "pace_seconds": 262,
+        "avg_pace": "4:22",
+        "context": "matheus_garmin_only"
+      }
+    ],
+    "long_runs": [
+      {
+        "date": "2026-04-26",
+        "distance_km": 8.01,
+        "avg_pace": "7:15"
+      },
+      {
+        "date": "2026-05-03",
+        "distance_km": 8.01,
+        "avg_pace": "6:48"
+      },
+      {
+        "date": "2026-05-10",
+        "distance_km": 9.01,
+        "avg_pace": "6:37"
+      },
+      {
+        "date": "2026-05-21",
+        "distance_km": 8.85,
+        "avg_pace": "7:02"
+      }
+    ],
+    "strong_sustainable": [],
+    "risk": [
+      {
+        "date": "2026-04-13",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-04-14",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-04-19",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-04-21",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-04-25",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-04-26",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-04-28",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-05-01",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-05-03",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-05-05",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-05-07",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-05-10",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-05-13",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-05-18",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-05-21",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-05-24",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-05-26",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-05-26",
+        "score": 1,
+        "reasons": []
+      },
+      {
+        "date": "2026-05-28",
+        "score": 2,
+        "reasons": [
+          "volleyball_previous_day"
+        ]
+      },
+      {
+        "date": "2026-05-28",
+        "score": 1,
+        "reasons": []
+      }
+    ]
+  },
+  "decisions": [
+    {
+      "date": "2026-05-28",
+      "event": "pipeline_after_workout",
+      "decision": "defer",
+      "reason": "Manual check-in evidence is missing; confidence remains low.",
+      "impact": "No automatic workout change in Task 7; preserve audit trail for recommendation engine.",
+      "confidence": "low",
+      "evidence": "garmin_only",
+      "science_refs": [],
+      "recommendation_action": "request_manual_resolution",
+      "related_workout_id": "workout-garmin-20260528T171417-1p33km-349s-245ee321"
+    },
+    {
+      "date": "2026-05-28",
+      "event": "pipeline_after_workout",
+      "decision": "defer",
+      "reason": "Manual check-in matched; recommendation remains deferred until adaptive engine consumes full context.",
+      "impact": "No automatic workout change in Task 7; preserve audit trail for recommendation engine.",
+      "confidence": "low",
+      "evidence": "manual_checkin",
+      "science_refs": [],
+      "recommendation_action": "request_manual_resolution",
+      "related_workout_id": "workout-garmin-20260528T161736-7p47km-3039s-17b463bc"
+    },
+    {
+      "date": "2026-05-26",
+      "event": "pipeline_after_workout",
+      "decision": "defer",
+      "reason": "Manual check-in evidence is missing; confidence remains low.",
+      "impact": "No automatic workout change in Task 7; preserve audit trail for recommendation engine.",
+      "confidence": "low",
+      "evidence": "garmin_only",
+      "science_refs": [],
+      "recommendation_action": "request_manual_resolution",
+      "related_workout_id": "workout-garmin-20260526T171134-6p17km-2445s-3da74ec2"
+    },
+    {
+      "date": "2026-05-26",
+      "event": "pipeline_after_workout",
+      "decision": "defer",
+      "reason": "Manual check-in evidence is missing; confidence remains low.",
+      "impact": "No automatic workout change in Task 7; preserve audit trail for recommendation engine.",
+      "confidence": "low",
+      "evidence": "garmin_only",
+      "science_refs": [],
+      "recommendation_action": "request_manual_resolution",
+      "related_workout_id": "workout-garmin-20260526T002509-0p00km-6s-63df559b"
+    },
+    {
+      "date": "2026-05-24",
+      "event": "pipeline_after_workout",
+      "decision": "defer",
+      "reason": "Manual check-in evidence is missing; confidence remains low.",
+      "impact": "No automatic workout change in Task 7; preserve audit trail for recommendation engine.",
+      "confidence": "low",
+      "evidence": "garmin_only",
+      "science_refs": [],
+      "recommendation_action": "request_manual_resolution",
+      "related_workout_id": "workout-garmin-20260524T161830-5p24km-1833s-5d178a73"
+    },
+    {
+      "date": "2026-05-21",
+      "event": "pipeline_after_workout",
+      "decision": "defer",
+      "reason": "Manual check-in evidence is missing; confidence remains low.",
+      "impact": "No automatic workout change in Task 7; preserve audit trail for recommendation engine.",
+      "confidence": "low",
+      "evidence": "garmin_only",
+      "science_refs": [],
+      "recommendation_action": "request_manual_resolution",
+      "related_workout_id": "workout-garmin-20260521T151657-8p85km-3736s-48b5a434"
+    },
+    {
+      "date": "2026-05-18",
+      "event": "pipeline_after_workout",
+      "decision": "defer",
+      "reason": "Manual check-in evidence is missing; confidence remains low.",
+      "impact": "No automatic workout change in Task 7; preserve audit trail for recommendation engine.",
+      "confidence": "low",
+      "evidence": "garmin_only",
+      "science_refs": [],
+      "recommendation_action": "request_manual_resolution",
+      "related_workout_id": "workout-garmin-20260518T160125-6p17km-2426s-c25e77d9"
+    },
+    {
+      "date": "2026-05-13",
+      "event": "pipeline_after_workout",
+      "decision": "defer",
+      "reason": "Manual check-in evidence is missing; confidence remains low.",
+      "impact": "No automatic workout change in Task 7; preserve audit trail for recommendation engine.",
+      "confidence": "low",
+      "evidence": "garmin_only",
+      "science_refs": [],
+      "recommendation_action": "request_manual_resolution",
+      "related_workout_id": "workout-garmin-20260513T131552-7p33km-3049s-4f641c6f"
+    },
+    {
+      "date": "2026-05-10",
+      "event": "pipeline_after_workout",
+      "decision": "defer",
+      "reason": "Manual check-in evidence is missing; confidence remains low.",
+      "impact": "No automatic workout change in Task 7; preserve audit trail for recommendation engine.",
+      "confidence": "low",
+      "evidence": "garmin_only",
+      "science_refs": [],
+      "recommendation_action": "request_manual_resolution",
+      "related_workout_id": "workout-garmin-20260510T154238-9p01km-3581s-04ec4a36"
+    },
+    {
+      "date": "2026-05-07",
+      "event": "pipeline_after_workout",
+      "decision": "defer",
+      "reason": "Manual check-in evidence is missing; confidence remains low.",
+      "impact": "No automatic workout change in Task 7; preserve audit trail for recommendation engine.",
+      "confidence": "low",
+      "evidence": "garmin_only",
+      "science_refs": [],
+      "recommendation_action": "request_manual_resolution",
+      "related_workout_id": "workout-garmin-20260507T154001-7p07km-2939s-c562a182"
+    }
+  ],
+  "science_refs": [
+    {
+      "science_ref_id": "safety-red-flag-conservative",
+      "title": "Prevention, diagnosis, and treatment of the overtraining syndrome: joint consensus statement of the European College of Sport Science and the American College of Sports Medicine",
+      "authors": "[\"Romain Meeusen\",\"Martine Duclos\",\"Carl Foster\",\"Andrew Fry\",\"Michael Gleeson\",\"David Nieman\",\"John Raglin\",\"Gerard Rietjens\",\"Juergen Steinacker\",\"Axel Urhausen\"]",
+      "year": "2013",
+      "journal_or_publisher": "Medicine & Science in Sports & Exercise",
+      "doi_or_url": "https://doi.org/10.1249/MSS.0b013e318279a10a",
+      "finding": "Persistent fatigue, performance decrement, sleep disturbance, mood change, and illness/injury signs require conservative management and exclusion of medical causes.",
+      "practical_application": "Treat red-flag symptom clusters as a reason to stop performance-seeking recommendations and bias toward recovery or medical evaluation.",
+      "limits": "Consensus guidance for overtraining syndrome, not a diagnostic engine for acute injury or illness.",
+      "tags": [
+        "safety",
+        "red_flag",
+        "load_management",
+        "sleep_recovery"
+      ]
+    },
+    {
+      "science_ref_id": "load-management-recovery",
+      "title": "International Olympic Committee consensus statement on load in sport and risk of injury: how much is too much?",
+      "authors": "[\"Torbjoern Soligard\",\"Martin Schwellnus\",\"Juan-M. Alonso\",\"Roald Bahr\",\"Ben Clarsen\",\"H. Paul Dijkstra\",\"Tim Gabbett\",\"Michael Gleeson\",\"Martin Hagglund\",\"Mark R. Hutchinson\",\"Christa Janse van Rensburg\",\"Karim M. Khan\",\"Romain Meeusen\",\"John W. Orchard\",\"Babette M. Pluim\",\"Martin Raftery\",\"Richard Budgett\",\"Lars Engebretsen\"]",
+      "year": "2016",
+      "journal_or_publisher": "British Journal of Sports Medicine",
+      "doi_or_url": "https://doi.org/10.1136/bjsports-2016-096581",
+      "finding": "Injury risk is related to both external and internal load, with rapid load changes and inadequate recovery increasing risk.",
+      "practical_application": "Reduce or defer load after unusually hard efforts, high perceived exertion, or stacked stressors instead of adding quality work.",
+      "limits": "Broad multi-sport consensus; individual thresholds require athlete-specific history.",
+      "tags": [
+        "load_management",
+        "recovery",
+        "easy_run",
+        "long_run"
+      ]
+    },
+    {
+      "science_ref_id": "achilles-tendinopathy-load",
+      "title": "Continued sports activity, using a pain-monitoring model, during rehabilitation in patients with Achilles tendinopathy: a randomized controlled study",
+      "authors": "[\"Karin Graevare Silbernagel\",\"Roland Thomee\",\"Bengt I. Eriksson\",\"Jon Karlsson\"]",
+      "year": "2007",
+      "journal_or_publisher": "American Journal of Sports Medicine",
+      "doi_or_url": "https://doi.org/10.1177/0363546506298279",
+      "finding": "Achilles loading activity during rehab did not show negative effects when governed by a pain-monitoring model.",
+      "practical_application": "Use Achilles symptom severity to gate pacing and quality workouts; controlled loading may continue only inside conservative pain limits.",
+      "limits": "Clinical tendinopathy population; does not authorize ignoring worsening pain, red flags, or professional evaluation.",
+      "tags": [
+        "achilles",
+        "load_management",
+        "injury_modification"
+      ]
+    },
+    {
+      "science_ref_id": "sleep-fatigue-load-management",
+      "title": "Sleep Interventions Designed to Improve Athletic Performance and Recovery: A Systematic Review of Current Approaches",
+      "authors": "[\"Daniel Bonnar\",\"Kate Bartel\",\"Naomi Kakoschke\",\"Christin Lang\"]",
+      "year": "2018",
+      "journal_or_publisher": "Sports Medicine",
+      "doi_or_url": "https://doi.org/10.1007/s40279-017-0832-x",
+      "finding": "Sleep is important for aspects of athletic performance and recovery, although intervention evidence varies by population and protocol.",
+      "practical_application": "Treat poor sleep as a load-management input and reduce the next workout when paired with fatigue or hard prior efforts.",
+      "limits": "Systematic review notes heterogeneous methods and incomplete guidance for all athlete groups.",
+      "tags": [
+        "sleep_recovery",
+        "load_management",
+        "recovery"
+      ]
+    },
+    {
+      "science_ref_id": "volleyball-neuromuscular-load",
+      "title": "Training stress, neuromuscular fatigue and well-being in volleyball: a systematic review",
+      "authors": "[\"André Rebelo\",\"João R. Pereira\",\"Paulo Cunha\",\"Manuel J. Coelho-e-Silva\",\"João Valente-dos-Santos\"]",
+      "year": "2024",
+      "journal_or_publisher": "BMC Sports Science, Medicine and Rehabilitation",
+      "doi_or_url": "https://doi.org/10.1186/s13102-024-00807-7",
+      "finding": "Volleyball monitoring literature links training stress measures with neuromuscular fatigue and well-being assessments, including daily internal load and jump-based external load monitoring.",
+      "practical_application": "Treat volleyball or jumping exposure as a neuromuscular load signal to consider alongside athlete-reported fatigue, soreness, and readiness; it does not quantify next-day running risk by itself.",
+      "limits": "Systematic review of volleyball monitoring studies; does not quantify next-day running risk or prescribe running-specific recovery thresholds.",
+      "tags": [
+        "volleyball",
+        "neuromuscular_load",
+        "load_management"
+      ]
+    },
+    {
+      "science_ref_id": "training-consistency-principle",
+      "title": "American College of Sports Medicine position stand. Quantity and quality of exercise for developing and maintaining cardiorespiratory, musculoskeletal, and neuromotor fitness in apparently healthy adults",
+      "authors": "[\"Carol Ewing Garber\",\"Bryan Blissmer\",\"Michael R. Deschenes\",\"Barry A. Franklin\",\"Michael J. Lamonte\",\"I-Min Lee\",\"David C. Nieman\",\"David P. Swain\"]",
+      "year": "2011",
+      "journal_or_publisher": "Medicine & Science in Sports & Exercise",
+      "doi_or_url": "https://doi.org/10.1249/MSS.0b013e318213fefb",
+      "finding": "Regular cardiorespiratory and resistance exercise supports maintenance and improvement of physical fitness.",
+      "practical_application": "When guardrails are clear, maintain the planned easy or long aerobic work rather than adding unnecessary complexity.",
+      "limits": "General adult prescription guidance, not runner-specific periodization.",
+      "tags": [
+        "training_consistency",
+        "easy_run",
+        "long_run",
+        "strength"
+      ]
+    },
+    {
+      "science_ref_id": "seiler-intensity-distribution",
+      "title": "Quantifying training intensity distribution in elite endurance athletes: is there evidence for an optimal distribution?",
+      "authors": "[\"K. Stephen Seiler\",\"Glenn Oevrevik Kjerland\"]",
+      "year": "2006",
+      "journal_or_publisher": "Scandinavian Journal of Medicine & Science in Sports",
+      "doi_or_url": "https://doi.org/10.1111/j.1600-0838.2004.00418.x",
+      "finding": "Observed endurance training was organized with most sessions below the first ventilatory threshold and a smaller share of high-intensity work.",
+      "practical_application": "Keep most weekly running easy and avoid turning easy or long runs into threshold work.",
+      "limits": "Descriptive evidence from elite skiers; not a universal prescription for recreational runners.",
+      "tags": [
+        "polarized",
+        "easy_run",
+        "long_run",
+        "intensity_distribution"
+      ]
+    },
+    {
+      "science_ref_id": "threshold-training-lactate",
+      "title": "Effect of training on lactate/ventilatory thresholds: a meta-analysis",
+      "authors": "[\"D. A. Londeree\"]",
+      "year": "1997",
+      "journal_or_publisher": "Medicine & Science in Sports & Exercise",
+      "doi_or_url": "https://doi.org/10.1097/00005768-199706000-00016",
+      "finding": "Training near lactate or ventilatory threshold can improve thresholds, with conditioned athletes often needing higher intensities.",
+      "practical_application": "Use threshold work as a bounded quality stimulus, and defer it when recovery or injury guardrails are active.",
+      "limits": "Meta-analysis spans mixed populations and protocols; pace prescriptions still need individual calibration.",
+      "tags": [
+        "threshold",
+        "race_calibration",
+        "intensity_distribution"
+      ]
+    },
+    {
+      "science_ref_id": "strength-running-economy",
+      "title": "Effects of Strength Training on Running Economy in Highly Trained Runners: A Systematic Review With Meta-Analysis of Controlled Trials",
+      "authors": "[\"Carlos Balsalobre-Fernández\",\"Jordan Santos-Concejero\",\"Gerasimos V. Grivas\"]",
+      "year": "2016",
+      "journal_or_publisher": "Journal of Strength and Conditioning Research",
+      "doi_or_url": "https://doi.org/10.1519/JSC.0000000000001316",
+      "finding": "Strength training programs can improve running economy in trained runners.",
+      "practical_application": "Include strength as supportive training, while avoiding heavy strength work when recovery flags suggest load reduction.",
+      "limits": "Focused on trained runners and controlled trials; transfer depends on exercise selection and recovery management.",
+      "tags": [
+        "strength",
+        "running_economy",
+        "load_management"
+      ]
+    }
+  ],
+  "llm_context": {
+    "generated_at": "2026-05-28 17:14:17",
+    "data_contract": "Garmin physiology is Matheus-only. Shared pace/distance/time can be used for Bruna only when shared_run=true and bruna_present=true.",
+    "forbidden_claims": [
+      "Do not use Matheus solo pace as Bruna evolution",
+      "Do not infer Bruna heart rate from Garmin heart rate",
+      "Do not prescribe all-out speed when evidence is missing",
+      "Do not cite science outside approved_science_refs",
+      "Do not diagnose injury or medical conditions"
+    ],
+    "required_response_schema": {
+      "athlete_scope": "shared_run|bruna|matheus|both",
+      "confidence": "high|medium|low",
+      "decision_type": "DecisionType enum value",
+      "evidence_used": "workout_id or document ids used",
+      "missing_evidence": "missing evidence list",
+      "next_workout": "specific next workout recommendation",
+      "next_workout_action": "RecommendationAction enum value",
+      "recommendation_id": "stable string id",
+      "risk_assessment": "risk and fatigue assessment",
+      "schema_version": "integer, must be 1",
+      "science_refs": "approved science_ref_id list",
+      "summary": "short coaching summary",
+      "what_workout_showed": "evidence-based interpretation"
+    },
+    "approved_science_ref_count": 9
+  },
+  "evidence_contracts": {
+    "garmin_owner": "matheus",
+    "shared_data": [
+      "pace",
+      "distance",
+      "elapsed_time"
+    ],
+    "bruna_manual_data": [
+      "heart_rate_screenshot",
+      "pse",
+      "symptoms",
+      "sleep",
+      "recovery"
+    ],
+    "hard_rules": [
+      "Se Bruna PSE >= 9 em treino, próxima sessão deve ser leve ou off.",
+      "Se Bruna tiver sintomas fortes, reduzir intensidade.",
+      "Se Aquiles do Matheus > 3/10, remover velocidade, subidas e descidas.",
+      "Se teve vôlei no dia anterior, evitar trabalho máximo.",
+      "Nunca compensar treino perdido com volume extra."
+    ]
+  },
+  "presentation_warnings": [
+    "Pace solo do Matheus não pode ser renderizado como evolução da Bruna.",
+    "FC, cadência, potência, contato com solo e passada do Garmin são apenas do Matheus.",
+    "Zonas da Bruna são faixas conservadoras até aumentar evidência manual de FC/PSE.",
+    "Treino perdido não deve ser compensado com volume extra."
+  ]
+}

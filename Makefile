@@ -1,4 +1,4 @@
-.PHONY: test ingest analyze recommend dashboard pipeline coach
+.PHONY: test ingest analyze recommend dashboard pipeline coach frontend-data frontend-build frontend
 
 GARMIN ?= data/raw/garmin/Activities.csv
 PYTHON ?= python3
@@ -23,3 +23,11 @@ pipeline:
 
 coach:
 	$(PYTHON) scripts/generate_recommendation.py
+
+frontend-data:
+	$(PYTHON) scripts/build_frontend_data.py
+
+frontend-build: frontend-data
+	cd web && npm install && npm run build
+
+frontend: frontend-build
