@@ -4,15 +4,15 @@
   "next_workout_action": "reduce_next_workout",
   "decision_type": "race_strategy",
   "confidence": "medium",
-  "summary": "Treino compartilhado de 28/05 concluído sem sintomas, mas com carga neuromuscular de vôlei no dia anterior e sono regular. Para o 10k diagnóstico de 31/05, a estratégia é largada conservadora com progressão controlada — não é momento de all-out desde o km 1. Matheus só corre se Aquiles estiver em 0 na manhã da prova. Recuperação pós-prova em 02/06 mantida como easy run conforme plano.",
-  "what_workout_showed": "O treino compartilhado de 7.47km a 6:47/km com PSE 7, realizado após vôlei na véspera e com sono regular, indica que Bruna completou o volume dentro da faixa easy/long run estimada (6:40-7:00/km) sem sintomas. A PSE 7 em pace easy sugere que a carga neuromuscular do vôlei e/ou o sono regular elevaram o esforço percebido acima do esperado para esse ritmo. Sem dados de FC, não é possível confirmar resposta cardiovascular. O pace solo de Matheus (4:22/km em 1.33km) é dado Garmin exclusivo de Matheus e não é usado como evidência de evolução de Bruna.",
-  "risk_assessment": "Risco moderado para Bruna: treino de 28/05 foi realizado com volleyball no dia anterior (carga neuromuscular acumulada), sono regular e PSE 7 em 7.47km a 6:47/km — ritmo dentro da faixa easy/long run, sem sintomas reportados. A ausência de dados de FC impede avaliação de carga cardiovascular real. Janela de recuperação de 3 dias até a prova é adequada mas não abundante. Risco para Matheus: Aquiles permanece como limitador estratégico; pace solo de 4:22/km em 1.33km sem check-in não pode ser interpretado como sinal de prontidão para prova. Risco sistêmico: 19 check-ins ausentes reduzem confiança geral no modelo de carga acumulada.",
-  "next_workout": "2026-05-31 diagnostic_race_10k: Bruna deve correr o 10k com estratégia conservadora de largada. Alvo de pace nos primeiros 3km: 6:20-6:30/km para não queimar glicogênio cedo. Nos km 4-7 manter 6:10-6:20/km se sensação permitir. Km 8-10 progressão livre dentro da capacidade do dia. Não tentar bater pace de treino de qualidade nos primeiros 2km. Matheus: decisão de participação condicionada a check-in de Aquiles na manhã de 31/05 — se dor > 0, substituir por acompanhamento sem correr ou corrida simbólica de baixíssima intensidade. Ambos: sem compensação de volume pós-prova.",
+  "summary": "Treino compartilhado de 7,47km concluído com PSE 7 e sono regular, dia após vôlei. Guardrail confirma redução de carga para a corrida diagnóstica de 10k em 31/05. Bruna deve correr de forma controlada sem tentar bater teto de velocidade. Matheus condiciona participação ao Aquiles em 0 na manhã do evento.",
+  "what_workout_showed": "O treino compartilhado de 2026-05-28 (7,47km a 6:47/km, PSE 7, vôlei no dia anterior, sono regular) confirma que ambos completaram volume operacional dentro da faixa de ritmo fácil-moderado de Bruna (6:40-7:00/km). A PSE 7 com sono regular e carga de vôlei prévia indica que o esforço percebido foi elevado para o ritmo executado, sinalizando fadiga neuromuscular residual. O segmento solo de Matheus (1,33km a 4:22/km) é dado exclusivo de fisiologia Matheus e não é utilizado como evidência de evolução de Bruna. Ausência de HR de Bruna impede validação da zona de intensidade cardiovascular.",
+  "risk_assessment": "Risco moderado. Volleyball na quarta-feira (dia anterior ao treino de quinta) gerou carga neuromuscular adicional confirmada pelo check-in. O treino compartilhado de 7,47km a 6:47/km com PSE 7 e sono regular indica fadiga residual acumulada. Ausência de dados de frequência cardíaca de Bruna impede avaliação precisa da carga cardiovascular real. Aquiles de Matheus em 0 é positivo, mas permanece como limitador estratégico para o dia da corrida. Sem check-in de sono e PSE para 2026-05-31, a confiança na prescrição de intensidade máxima é reduzida. Guardrail determinístico confirma redução como ação prioritária.",
+  "next_workout": "Corrida diagnóstica 10k em 2026-05-31. Bruna deve iniciar em ritmo conservador de 6:20-6:30/km nos primeiros 3km, mantendo percepção de esforço controlada (PSE alvo 7-8). Não tentar superar o teto de 5:50/km registrado na corrida rústica. Matheus deve gerenciar o esforço respeitando o tendão de Aquiles; ritmo de corrida compartilhada somente se Aquiles estiver em 0 na manhã do evento. Caso Aquiles apresente qualquer desconforto matinal, aplicar decisão bruna_without_matheus. Não compensar volume ou intensidade em função dos treinos perdidos anteriores.",
   "science_refs": [
     "volleyball-neuromuscular-load",
     "load-management-recovery",
-    "threshold-training-lactate",
     "achilles-tendinopathy-load",
+    "sleep-fatigue-load-management",
     "training-consistency-principle"
   ],
   "evidence_used": [
@@ -23,12 +23,8 @@
     "bruna_avg_hr",
     "bruna_max_hr",
     "bruna_hr_screenshot",
-    "bruna_checkin_2026-05-29",
-    "bruna_checkin_2026-05-30",
-    "bruna_checkin_2026-05-31_pre_race",
-    "matheus_achilles_checkin_2026-05-31",
-    "sleep_quality_2026-05-29",
-    "sleep_quality_2026-05-30",
+    "bruna_checkin_2026-05-31",
+    "matheus_achilles_morning_2026-05-31",
     "sleep_quality_2026-05-31"
   ],
   "athlete_scope": "shared_run"
