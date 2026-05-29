@@ -116,11 +116,11 @@ refs:
   - science_ref_id: volleyball-neuromuscular-load
     title: "Training stress, neuromuscular fatigue and well-being in volleyball: a systematic review"
     authors:
-      - Andre Rebelo
-      - Joao R. Pereira
+      - André Rebelo
+      - João R. Pereira
       - Paulo Cunha
       - Manuel J. Coelho-e-Silva
-      - Joao Valente-dos-Santos
+      - João Valente-dos-Santos
     year: 2024
     source_type: peer_reviewed_study
     journal_or_publisher: "BMC Sports Science, Medicine and Rehabilitation"
@@ -210,7 +210,7 @@ refs:
   - science_ref_id: strength-running-economy
     title: "Effects of Strength Training on Running Economy in Highly Trained Runners: A Systematic Review With Meta-Analysis of Controlled Trials"
     authors:
-      - Carlos Balsalobre-Fernandez
+      - Carlos Balsalobre-Fernández
       - Jordan Santos-Concejero
       - Gerasimos V. Grivas
     year: 2016

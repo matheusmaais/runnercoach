@@ -97,14 +97,14 @@ def test_strength_source_identity_is_internally_coherent():
         "Runners: A Systematic Review With Meta-Analysis of Controlled Trials"
     )
     assert ref.authors == [
-        "Carlos Balsalobre-Fernandez",
+        "Carlos Balsalobre-Fernández",
         "Jordan Santos-Concejero",
         "Gerasimos V. Grivas",
     ]
     assert ref.year == 2016
     assert "Journal of Strength and Conditioning Research" in ref.journal_or_publisher
     assert ref.doi_or_url == "https://doi.org/10.1519/JSC.0000000000001316"
-    assert any("Balsalobre-Fernandez" in author for author in ref.authors)
+    assert any("Balsalobre-Fernández" in author for author in ref.authors)
     assert any("Santos-Concejero" in author for author in ref.authors)
     assert any("Grivas" in author for author in ref.authors)
 
@@ -118,11 +118,11 @@ def test_volleyball_source_caveats_next_day_running_risk():
         "a systematic review"
     )
     assert ref.authors == [
-        "Andre Rebelo",
-        "Joao R. Pereira",
+        "André Rebelo",
+        "João R. Pereira",
         "Paulo Cunha",
         "Manuel J. Coelho-e-Silva",
-        "Joao Valente-dos-Santos",
+        "João Valente-dos-Santos",
     ]
     assert ref.year == 2024
     assert "BMC Sports Science, Medicine and Rehabilitation" in (
