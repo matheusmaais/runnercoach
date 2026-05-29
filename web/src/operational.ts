@@ -46,6 +46,35 @@ export type GithubSettings = {
   token: string;
 };
 
+export type OperationalStepKey = "commit" | "workflow" | "llm" | "publish";
+
+export type OperationalStepState = "pending" | "active" | "done" | "failed";
+
+export type OperationalStep = {
+  key: OperationalStepKey;
+  label: string;
+  state: OperationalStepState;
+  detail: string;
+};
+
+export function defaultOperationalSteps(): OperationalStep[] {
+  return [
+    { key: "commit", label: "Commit/payload", state: "pending", detail: "Aguardando envio do intake." },
+    { key: "workflow", label: "Workflow", state: "pending", detail: "Aguardando dispatch no GitHub Actions." },
+    { key: "llm", label: "LLM/validação", state: "pending", detail: "Roda apenas no Actions com secrets do repositório." },
+    { key: "publish", label: "Publicação", state: "pending", detail: "Aguardando atualização do app-data.json." },
+  ];
+}
+
+export function updateOperationalStep(
+  steps: OperationalStep[],
+  key: OperationalStepKey,
+  state: OperationalStepState,
+  detail: string,
+) {
+  return steps.map((step) => (step.key === key ? { ...step, state, detail } : step));
+}
+
 export function defaultOperationalForm(): OperationalFormState {
   const today = new Date().toISOString().slice(0, 10);
   return {

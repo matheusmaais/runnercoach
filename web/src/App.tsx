@@ -9,6 +9,7 @@ import {
   Brain,
   CalendarDays,
   Gauge,
+  History,
   HeartPulse,
   LineChart as LineChartIcon,
   Rocket,
@@ -30,16 +31,25 @@ import {
   YAxis,
 } from "recharts";
 import { loadPayload } from "./data";
-import { commitFileToGithub, dispatchOperationalWorkflow, latestOperationalRun } from "./github";
+import {
+  WorkflowRunFailedError,
+  WorkflowRunTimeoutError,
+  commitFileToGithub,
+  dispatchOperationalWorkflow,
+  pollOperationalWorkflow,
+} from "./github";
 import {
   buildIntakePayload,
   defaultGithubSettings,
   defaultOperationalForm,
+  defaultOperationalSteps,
   deriveGarminActivityFromCsv,
   intakePath,
+  updateOperationalStep,
   validateOperationalForm,
   type GithubSettings,
   type OperationalFormState,
+  type OperationalStep,
 } from "./operational";
 import type { FrontendPayload, PlannedWorkout, ScienceRef, Workout } from "./types";
 
@@ -62,6 +72,11 @@ export function App() {
   useEffect(() => {
     loadPayload().then(setPayload).catch((err: Error) => setError(err.message));
   }, []);
+
+  async function reloadPayload() {
+    const nextPayload = await loadPayload({ cacheBust: true });
+    setPayload(nextPayload);
+  }
 
   if (error) {
     return <EmptyState message={error} />;
@@ -94,7 +109,9 @@ export function App() {
 
       <main>
         {activeView === "cockpit" && <Cockpit payload={payload} />}
-        {activeView === "operate" && <OperateView />}
+        {activeView === "operate" && (
+          <OperateView onOpenCoach={() => setActiveView("coach")} onPayloadReloaded={reloadPayload} />
+        )}
         {activeView === "timeline" && <Timeline payload={payload} />}
         {activeView === "plan" && <PlanView payload={payload} />}
         {activeView === "coach" && <CoachRoom payload={payload} />}
@@ -121,6 +138,8 @@ function Cockpit({ payload }: { payload: FrontendPayload }) {
   const next = payload.next_workouts[0];
   const latestShared = payload.current_state.latest_shared_workout;
   const latestSolo = payload.current_state.latest_matheus_solo;
+  const riskTone = riskSignalTone(payload.current_state.risk_level);
+  const riskDrivers = extractRiskDrivers(payload);
 
   return (
     <section className="view cockpit" aria-label="Cockpit">
@@ -131,8 +150,19 @@ function Cockpit({ payload }: { payload: FrontendPayload }) {
           <p>{payload.mission.primary_objective}</p>
           <div className="signal-row">
             <Signal label="Status" value="Evoluindo" tone="good" />
-            <Signal label="Risco" value={riskLabel(payload.current_state.risk_level)} tone="warn" />
+            <Signal label="Risco" value={riskLabel(payload.current_state.risk_level)} tone={riskTone} />
             <Signal label="Fase" value={formatToken(payload.current_state.phase)} tone="neutral" />
+          </div>
+          <div className={`risk-card ${riskTone}`} aria-label="Drivers de risco do cockpit">
+            <div>
+              <p className="eyebrow">Risco atual</p>
+              <h3>{riskLabel(payload.current_state.risk_level)}</h3>
+            </div>
+            <ul>
+              {riskDrivers.map((driver) => (
+                <li key={driver}>{driver}</li>
+              ))}
+            </ul>
           </div>
         </div>
         <NextWorkoutCard workout={next} />
@@ -170,29 +200,47 @@ function Cockpit({ payload }: { payload: FrontendPayload }) {
       </div>
 
       <div className="chart-grid">
-        <ChartPanel title="Pace médio" icon={<LineChartIcon />}>
+        <ChartPanel title="Pace médio (min/km)" subtitle="Ritmo médio em minutos por quilômetro." icon={<LineChartIcon />}>
           <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={payload.trends.pace}>
+            <LineChart data={payload.trends.pace} margin={{ left: 10, right: 10 }}>
               <CartesianGrid stroke="#213047" strokeDasharray="3 3" />
               <XAxis dataKey="date" tick={{ fill: "#9aa8bc", fontSize: 11 }} />
               <YAxis
                 tickFormatter={formatSeconds}
                 tick={{ fill: "#9aa8bc", fontSize: 11 }}
                 domain={["dataMin - 20", "dataMax + 20"]}
+                label={{ value: "min/km", angle: -90, position: "insideLeft", fill: "#9aa8bc", fontSize: 11 }}
               />
               <Tooltip content={<PaceTooltip />} />
               <Line type="monotone" dataKey="pace_seconds" stroke="#2dd4bf" strokeWidth={3} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </ChartPanel>
-        <ChartPanel title="Volume semanal" icon={<CalendarDays />}>
+        <ChartPanel title="Volume semanal (km)" subtitle="Distância semanal em km." icon={<CalendarDays />}>
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={payload.weekly_summary}>
+            <BarChart data={payload.weekly_summary} margin={{ left: 10, right: 10 }}>
               <CartesianGrid stroke="#213047" strokeDasharray="3 3" />
               <XAxis dataKey="week" tick={{ fill: "#9aa8bc", fontSize: 11 }} />
-              <YAxis tick={{ fill: "#9aa8bc", fontSize: 11 }} />
-              <Tooltip />
+              <YAxis
+                tick={{ fill: "#9aa8bc", fontSize: 11 }}
+                label={{ value: "km", angle: -90, position: "insideLeft", fill: "#9aa8bc", fontSize: 11 }}
+              />
+              <Tooltip formatter={(value: number) => [`${value.toFixed(1)} km`, "Distância"]} />
               <Bar dataKey="distance_km" fill="#22c55e" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartPanel>
+        <ChartPanel title="Qualidade semanal (treinos)" subtitle="Treinos de qualidade por semana." icon={<BadgeCheck />}>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={payload.weekly_summary} margin={{ left: 10, right: 10 }}>
+              <CartesianGrid stroke="#213047" strokeDasharray="3 3" />
+              <XAxis dataKey="week" tick={{ fill: "#9aa8bc", fontSize: 11 }} />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fill: "#9aa8bc", fontSize: 11 }}
+                label={{ value: "treinos", angle: -90, position: "insideLeft", fill: "#9aa8bc", fontSize: 11 }}
+              />
+              <Tooltip formatter={(value: number) => [`${value}`, "Treinos de qualidade"]} />
               <Bar dataKey="quality_runs" fill="#f59e0b" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -255,11 +303,19 @@ function NextWorkoutCard({ workout }: { workout?: PlannedWorkout }) {
   );
 }
 
-function OperateView() {
+function OperateView({
+  onOpenCoach,
+  onPayloadReloaded,
+}: {
+  onOpenCoach: () => void;
+  onPayloadReloaded: () => Promise<void>;
+}) {
   const [form, setForm] = useState<OperationalFormState>(() => defaultOperationalForm());
   const [settings, setSettings] = useState<GithubSettings>(() => defaultGithubSettings());
   const [status, setStatus] = useState<string>("Pronto para montar intake.");
+  const [steps, setSteps] = useState<OperationalStep[]>(() => defaultOperationalSteps());
   const [workflowUrl, setWorkflowUrl] = useState<string>("");
+  const [coachReady, setCoachReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const errors = validateOperationalForm(form);
   const payload = buildIntakePayload(form);
@@ -306,6 +362,10 @@ function OperateView() {
       return;
     }
     setBusy(true);
+    setWorkflowUrl("");
+    setCoachReady(false);
+    setSteps(updateOperationalStep(defaultOperationalSteps(), "commit", "active", `Commitando intake em ${path}.`));
+    const startedAfter = new Date(Date.now() - 60_000).toISOString();
     try {
       await commitFileToGithub({
         settings,
@@ -313,17 +373,84 @@ function OperateView() {
         content: JSON.stringify(payload, null, 2) + "\n",
         message: `chore: add frontend intake ${form.date}`,
       });
-      await dispatchOperationalWorkflow(settings, path);
-      await new Promise((resolve) => window.setTimeout(resolve, 1800));
-      const run = await latestOperationalRun(settings);
-      setWorkflowUrl(run?.html_url ?? "");
-      setStatus(
-        run
-          ? `Intake commitado em ${path}. Workflow ${run.status} disparado.`
-          : `Intake commitado em ${path}. Workflow disparado; abra Actions para acompanhar.`,
+      setSteps((current) =>
+        updateOperationalStep(
+          updateOperationalStep(current, "commit", "done", `Payload commitado em ${path}.`),
+          "workflow",
+          "active",
+          "Dispatch enviado; aguardando run aparecer no GitHub Actions.",
+        ),
       );
+      await dispatchOperationalWorkflow(settings, path);
+
+      const run = await pollOperationalWorkflow(settings, {
+        startedAfter,
+        intervalMs: 1_000,
+        onWaiting: () => {
+          setStatus("Workflow dispatch recebido; aguardando run do Actions aparecer.");
+        },
+        onUpdate: (run) => {
+          setWorkflowUrl(run.html_url);
+          if (run.status === "queued") {
+            setStatus("Workflow em fila no GitHub Actions.");
+            setSteps((current) =>
+              updateOperationalStep(current, "workflow", "active", "Workflow em fila no GitHub Actions."),
+            );
+          } else if (run.status === "in_progress") {
+            setStatus("Workflow rodando: LLM, validação e publicação em andamento.");
+            setSteps((current) =>
+              updateOperationalStep(
+                updateOperationalStep(current, "workflow", "done", "Workflow iniciado."),
+                "llm",
+                "active",
+                "LLM e validações determinísticas rodando no Actions.",
+              ),
+            );
+          }
+        },
+      });
+
+      setWorkflowUrl(run.html_url);
+      setSteps((current) =>
+        updateOperationalStep(
+          updateOperationalStep(
+            updateOperationalStep(current, "workflow", "done", "Workflow concluído pelo GitHub Actions."),
+            "llm",
+            "done",
+            "LLM e validações concluídas com sucesso.",
+          ),
+          "publish",
+          "active",
+          "Recarregando app-data.json publicado.",
+        ),
+      );
+      await onPayloadReloaded();
+      setSteps((current) =>
+        updateOperationalStep(current, "publish", "done", "app-data.json recarregado; recomendação pronta."),
+      );
+      setCoachReady(true);
+      setStatus("Workflow concluído com sucesso.");
     } catch (err) {
-      setStatus(err instanceof Error ? err.message : "Falha operacional desconhecida.");
+      if (err instanceof WorkflowRunFailedError) {
+        setWorkflowUrl(err.run.html_url);
+        setStatus(`Workflow falhou: ${err.run.conclusion ?? "conclusão desconhecida"}. Abra o run no GitHub Actions para ver logs e rerun.`);
+        setSteps((current) =>
+          updateOperationalStep(current, "llm", "failed", "Falha no workflow. Verifique logs, secrets e validações no run."),
+        );
+      } else if (err instanceof WorkflowRunTimeoutError) {
+        if (err.run?.html_url) {
+          setWorkflowUrl(err.run.html_url);
+        }
+        setStatus("Workflow não completou dentro do limite. Abra o run no GitHub Actions e confirme se ficou preso ou sem runner.");
+        setSteps((current) =>
+          updateOperationalStep(current, "workflow", "failed", "Timeout aguardando conclusão do GitHub Actions."),
+        );
+      } else {
+        setStatus(err instanceof Error ? err.message : "Falha operacional desconhecida.");
+        setSteps((current) =>
+          updateOperationalStep(current, "commit", "failed", "Falha antes de concluir commit, dispatch ou polling."),
+        );
+      }
     } finally {
       setBusy(false);
     }
@@ -419,20 +546,92 @@ function OperateView() {
           <button className="primary-action" disabled={busy || errors.length > 0} onClick={commitAndDispatch} type="button">
             {busy ? "Enviando..." : "Commitar intake e analisar"}
           </button>
+          <OperationalProgress steps={steps} />
           <p className="helper">{status}</p>
           {workflowUrl && (
             <a className="run-link" href={workflowUrl} target="_blank" rel="noreferrer">
-              Acompanhar workflow no GitHub
+              Abrir run no GitHub Actions
             </a>
+          )}
+          {coachReady && (
+            <button className="secondary-action" onClick={onOpenCoach} type="button">
+              Ir para Coach Room
+            </button>
           )}
         </article>
         <article className="operate-panel">
-          <h3>Preview do intake</h3>
-          <pre className="payload-preview">{JSON.stringify(payload, null, 2)}</pre>
+          <h3>Revisão legível</h3>
+          <IntakeReview form={form} path={path} />
         </article>
       </div>
     </section>
   );
+}
+
+function IntakeReview({ form, path }: { form: OperationalFormState; path: string }) {
+  const selected = form.garminActivity;
+  return (
+    <div className="review-summary">
+      <div>
+        <p className="eyebrow">Atividade</p>
+        <h4>{form.garminTitle || selected?.title || "Atividade ainda não selecionada"}</h4>
+        <p>
+          {form.garminDatetime || selected?.local_datetime || form.date}
+          {selected?.distance_km ? ` · ${selected.distance_km.toFixed(2)} km` : ""}
+          {selected?.avg_pace ? ` · ${selected.avg_pace}/km` : ""}
+        </p>
+      </div>
+      <div>
+        <p className="eyebrow">Bruna</p>
+        <p>
+          PSE {form.brunaPse || "não informado"} · Sono {formatToken(form.brunaSleep)}
+          {form.brunaAvgHr || form.brunaMaxHr ? ` · FC ${form.brunaAvgHr || "?"}/${form.brunaMaxHr || "?"}` : " · FC manual ausente"}
+        </p>
+        <p>{form.brunaSubjective || "Sem relato subjetivo ainda."}</p>
+      </div>
+      <div>
+        <p className="eyebrow">Matheus</p>
+        <p>
+          Aquiles {form.achillesMorning || "0"}/10 manhã · {form.achillesAfter || "0"}/10 depois · {formatToken(form.matheusRole)}
+        </p>
+        <p>{form.matheusSubjective || "Sem relato subjetivo ainda."}</p>
+      </div>
+      <div>
+        <p className="eyebrow">Carga e segurança</p>
+        <div className="badge-row">
+          <span className={`badge ${form.sharedRun ? "teal" : "neutral"}`}>{form.sharedRun ? "corrida conjunta" : "Matheus-only"}</span>
+          {form.volleyballPreviousDay && <span className="badge amber">vôlei anterior</span>}
+          {form.gymPreviousDay && <span className="badge amber">academia anterior</span>}
+          {form.couldRepeatLastBlock && <span className="badge teal">Bruna repetiria bloco</span>}
+        </div>
+      </div>
+      <p className="helper">Será versionado em {path}. O CSV bruto não entra no Git.</p>
+    </div>
+  );
+}
+
+function OperationalProgress({ steps }: { steps: OperationalStep[] }) {
+  return (
+    <ol className="operational-progress" aria-label="Progresso operacional">
+      {steps.map((step) => (
+        <li className={step.state} key={step.key}>
+          <span>{step.label}</span>
+          <strong>{stepStateLabel(step.state)}</strong>
+          <p>{step.detail}</p>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function stepStateLabel(state: OperationalStep["state"]) {
+  const labels: Record<OperationalStep["state"], string> = {
+    pending: "Pendente",
+    active: "Em andamento",
+    done: "Concluído",
+    failed: "Falhou",
+  };
+  return labels[state];
 }
 
 function TextInput({
@@ -537,6 +736,7 @@ function PlanView({ payload }: { payload: FrontendPayload }) {
 
 function CoachRoom({ payload }: { payload: FrontendPayload }) {
   const recommendation = payload.latest_llm_recommendation;
+  const history = payload.recommendation_history ?? [];
 
   return (
     <section className="view" aria-label="Coach Room">
@@ -545,6 +745,83 @@ function CoachRoom({ payload }: { payload: FrontendPayload }) {
         title="Coach Room"
         copy="A IA interpreta um pacote já preparado. A fronteira de segurança continua no pipeline determinístico."
       />
+      {recommendation ? (
+        <article className="coach-panel recommendation-panel">
+          <div className="panel-title">
+            <Rocket />
+            <div>
+              <h3>Recomendação validada</h3>
+              <p>
+                Gerada em {recommendation.generated_at || payload.llm_context.generated_at}
+                {recommendation.timestamp_source ? ` · ${formatToken(recommendation.timestamp_source)}` : ""}
+              </p>
+            </div>
+          </div>
+          <div className="signal-row">
+            <Signal label="Ação" value={formatToken(recommendation.next_workout_action)} tone="good" />
+            <Signal label="Decisão" value={formatToken(recommendation.decision_type)} tone="neutral" />
+            <Signal label="Confiança" value={formatToken(recommendation.confidence)} tone="warn" />
+          </div>
+          <p>{recommendation.summary}</p>
+          <div className="recommendation-grid">
+            <div>
+              <p className="eyebrow">Próximo treino</p>
+              <p>{recommendation.next_workout}</p>
+            </div>
+            <div>
+              <p className="eyebrow">Risco</p>
+              <p>{recommendation.risk_assessment}</p>
+            </div>
+          </div>
+          <div className="recommendation-grid evidence-grid">
+            <EvidenceList title="Evidência usada" items={recommendation.evidence_used} empty="Nenhuma evidência estruturada registrada." />
+            <EvidenceList
+              title="Evidência faltante"
+              items={recommendation.missing_evidence}
+              empty="Sem lacunas críticas registradas."
+              tone={recommendation.missing_evidence.length ? "warn" : "good"}
+            />
+          </div>
+          <div className="rule-list">
+            {recommendation.science_refs.slice(0, 6).map((ref) => (
+              <span key={ref}>{formatToken(ref)}</span>
+            ))}
+          </div>
+        </article>
+      ) : (
+        <article className="coach-panel recommendation-panel">
+          <div className="panel-title">
+            <ShieldAlert />
+            <h3>Sem recomendação validada</h3>
+          </div>
+          <p>Dispare uma análise pelo Operar para gerar `reports/llm/latest-recommendation.json`.</p>
+        </article>
+      )}
+      <article className="coach-panel recommendation-history">
+        <div className="panel-title">
+          <History />
+          <div>
+            <h3>Histórico de recomendações</h3>
+            <p>Série auditável para comparar ação, confiança e data própria da recomendação.</p>
+          </div>
+        </div>
+        {history.length ? (
+          <div className="history-list">
+            {history.slice(0, 6).map((item) => (
+              <div className="history-item" key={item.recommendation_id || `${item.generated_at}-${item.decision_type}`}>
+                <div>
+                  <p className="date-line">{item.generated_at || item.source_modified_at || "sem timestamp"}</p>
+                  <strong>{formatToken(item.next_workout_action)}</strong>
+                </div>
+                <span className="badge neutral">{formatToken(item.confidence)}</span>
+                <p>{item.summary}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p>Sem histórico publicado ainda. A próxima análise validada cria a primeira entrada.</p>
+        )}
+      </article>
       <div className="coach-grid">
         <article className="coach-panel">
           <Brain />
@@ -568,49 +845,39 @@ function CoachRoom({ payload }: { payload: FrontendPayload }) {
           <p>Sem ciência aprovada, recomendação vira rascunho, não decisão.</p>
         </article>
       </div>
-      {recommendation ? (
-        <article className="coach-panel recommendation-panel">
-          <div className="panel-title">
-            <Rocket />
-            <h3>Recomendação validada</h3>
-          </div>
-          <div className="signal-row">
-            <Signal label="Ação" value={formatToken(recommendation.next_workout_action)} tone="good" />
-            <Signal label="Decisão" value={formatToken(recommendation.decision_type)} tone="neutral" />
-            <Signal label="Confiança" value={formatToken(recommendation.confidence)} tone="warn" />
-          </div>
-          <p>{recommendation.summary}</p>
-          <div className="recommendation-grid">
-            <div>
-              <p className="eyebrow">Próximo treino</p>
-              <p>{recommendation.next_workout}</p>
-            </div>
-            <div>
-              <p className="eyebrow">Risco</p>
-              <p>{recommendation.risk_assessment}</p>
-            </div>
-          </div>
-          <div className="rule-list">
-            {recommendation.science_refs.slice(0, 6).map((ref) => (
-              <span key={ref}>{formatToken(ref)}</span>
-            ))}
-          </div>
-        </article>
-      ) : (
-        <article className="coach-panel recommendation-panel">
-          <div className="panel-title">
-            <ShieldAlert />
-            <h3>Sem recomendação validada</h3>
-          </div>
-          <p>Dispare uma análise pelo Operar para gerar `reports/llm/latest-recommendation.json`.</p>
-        </article>
-      )}
       <div className="warning-board">
         {payload.presentation_warnings.map((warning) => (
           <p key={warning}>{warning}</p>
         ))}
       </div>
     </section>
+  );
+}
+
+function EvidenceList({
+  title,
+  items,
+  empty,
+  tone = "neutral",
+}: {
+  title: string;
+  items: string[];
+  empty: string;
+  tone?: "neutral" | "warn" | "good";
+}) {
+  return (
+    <div className={`evidence-box ${tone}`}>
+      <p className="eyebrow">{title}</p>
+      {items.length ? (
+        <ul>
+          {items.slice(0, 6).map((item) => (
+            <li key={item}>{formatToken(item)}</li>
+          ))}
+        </ul>
+      ) : (
+        <p>{empty}</p>
+      )}
+    </div>
   );
 }
 
@@ -688,7 +955,9 @@ function MetricCard({
   );
 }
 
-function Signal({ label, value, tone }: { label: string; value: string; tone: "good" | "warn" | "neutral" }) {
+type SignalTone = "good" | "warn" | "danger" | "neutral";
+
+function Signal({ label, value, tone }: { label: string; value: string; tone: SignalTone }) {
   return (
     <div className={`signal ${tone}`}>
       <span>{label}</span>
@@ -697,12 +966,25 @@ function Signal({ label, value, tone }: { label: string; value: string; tone: "g
   );
 }
 
-function ChartPanel({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
+function ChartPanel({
+  title,
+  subtitle,
+  icon,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <article className="chart-panel">
       <div className="panel-title">
         {icon}
-        <h3>{title}</h3>
+        <div>
+          <h3>{title}</h3>
+          {subtitle && <p>{subtitle}</p>}
+        </div>
       </div>
       {children}
     </article>
@@ -717,7 +999,7 @@ function PaceTooltip({ active, payload }: { active?: boolean; payload?: { payloa
   return (
     <div className="tooltip">
       <strong>{data.date}</strong>
-      <span>{data.avg_pace}</span>
+      <span>{data.avg_pace} min/km</span>
       <small>{formatToken(data.context)}</small>
     </div>
   );
@@ -744,6 +1026,35 @@ function riskLabel(value: string) {
   if (value === "low") return "Baixo";
   if (value === "moderate") return "Moderado";
   return "Atenção";
+}
+
+function riskSignalTone(value: string): SignalTone {
+  if (value === "low") return "good";
+  if (value === "moderate") return "warn";
+  return "danger";
+}
+
+function extractRiskDrivers(payload: FrontendPayload) {
+  const structuredDrivers = payload.current_state.risk_drivers
+    .map((driver) => driver.label)
+    .filter(Boolean);
+  if (structuredDrivers.length) {
+    return structuredDrivers.slice(0, 5);
+  }
+  const trendReasons = payload.trends.risk.flatMap((entry) => entry.reasons).filter(Boolean).map(formatToken);
+  const currentRiskLines = currentRisksFromMarkdown(payload.current_state.summary_markdown);
+  const drivers = [...trendReasons, ...currentRiskLines];
+  return [...new Set(drivers)].slice(0, 5);
+}
+
+function currentRisksFromMarkdown(markdown: string) {
+  const section = markdown.split("## Current Risks")[1]?.split("\n## ")[0] ?? "";
+  return section
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("- "))
+    .map((line) => line.slice(2).trim())
+    .filter(Boolean);
 }
 
 function formatSeconds(value: number) {

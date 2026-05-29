@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 import json
 from collections import defaultdict
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -17,15 +17,26 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
     science_refs = _read_csv(root / "data/processed/science_refs.csv")
     plan_status = _read_csv(root / "data/processed/plan_status.csv")
     llm_request = _read_json(root / "reports/llm/latest-request.json")
-    latest_recommendation = _read_json(root / "reports/llm/latest-recommendation.json")
+    latest_recommendation_path = root / "reports/llm/latest-recommendation.json"
+    latest_recommendation = _read_json(latest_recommendation_path)
 
     recent_workouts = [_present_workout(row) for row in _latest_rows(workouts, 12)]
     next_workouts = [_present_plan(row) for row in plan_status if row.get("planned_status") == "planned"]
     latest_shared = _normalize_llm_workout(llm_request.get("latest_shared_workout", {}))
     latest_solo = _normalize_llm_workout(llm_request.get("latest_matheus_solo", {}))
+    trends = _trends(workouts)
+    risk_level = _risk_level(latest_shared, latest_solo)
+    risk_summary = _risk_summary(risk_level, trends["risk"])
+    request_generated_at = llm_request.get("generated_at") or _fallback_generated_at(workouts)
+    presented_latest_recommendation = _present_llm_recommendation(
+        latest_recommendation,
+        latest_recommendation_path,
+        root,
+        request_generated_at,
+    )
 
     return {
-        "generated_at": llm_request.get("generated_at") or _fallback_generated_at(workouts),
+        "generated_at": request_generated_at,
         "mission": {
             "name": "Meia Forte Janeiro 2027",
             "target_race_window": "late January 2027",
@@ -40,16 +51,24 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
             "latest_shared_workout": latest_shared,
             "latest_matheus_solo": latest_solo,
             "summary_markdown": llm_request.get("current_state", ""),
-            "risk_level": _risk_level(latest_shared, latest_solo),
+            "risk_level": risk_level,
+            "risk_drivers": risk_summary["drivers"],
+            "risk_summary": risk_summary,
         },
         "next_workouts": next_workouts,
         "recent_workouts": recent_workouts,
         "weekly_summary": _weekly_summary(workouts),
-        "trends": _trends(workouts),
+        "trends": trends,
         "decisions": [_present_decision(row) for row in _latest_rows(decisions, 10)],
         "science_refs": [_present_science_ref(row) for row in science_refs if _truthy(row.get("approved"))],
         "llm_context": _llm_context(llm_request),
-        "latest_llm_recommendation": _present_llm_recommendation(latest_recommendation),
+        "latest_llm_recommendation": presented_latest_recommendation,
+        "recommendation_history": _recommendation_history(
+            root / "reports/llm",
+            root,
+            presented_latest_recommendation,
+            request_generated_at,
+        ),
         "evidence_contracts": _evidence_contracts(),
         "presentation_warnings": [
             "Pace solo do Matheus não pode ser renderizado como evolução da Bruna.",
@@ -313,6 +332,7 @@ def _risk_trend(workouts: list[dict[str, str]]) -> list[dict[str, Any]]:
         trend.append(
             {
                 "date": row.get("local_date") or row.get("date", ""),
+                "workout_id": row.get("workout_id", ""),
                 "score": min(score, 5),
                 "reasons": reasons,
             }
@@ -330,11 +350,27 @@ def _llm_context(llm_request: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _present_llm_recommendation(recommendation: dict[str, Any]) -> dict[str, Any] | None:
+def _present_llm_recommendation(
+    recommendation: dict[str, Any],
+    source_path: Path | None = None,
+    repo_root: Path | None = None,
+    fallback_generated_at: str = "",
+) -> dict[str, Any] | None:
     if not recommendation:
         return None
+    source_modified_at = _source_modified_at(source_path)
+    generated_at = recommendation.get("generated_at") or source_modified_at or fallback_generated_at
+    timestamp_source = "payload_generated_at"
+    if not recommendation.get("generated_at") and source_modified_at:
+        timestamp_source = "source_modified_at"
+    elif not recommendation.get("generated_at"):
+        timestamp_source = "fallback_generated_at"
     return {
         "recommendation_id": recommendation.get("recommendation_id", ""),
+        "generated_at": generated_at,
+        "timestamp_source": timestamp_source,
+        "source_path": _relative_source_path(source_path, repo_root),
+        "source_modified_at": source_modified_at,
         "decision_type": recommendation.get("decision_type", ""),
         "next_workout_action": recommendation.get("next_workout_action", ""),
         "confidence": recommendation.get("confidence", ""),
@@ -346,6 +382,54 @@ def _present_llm_recommendation(recommendation: dict[str, Any]) -> dict[str, Any
         "evidence_used": _as_list(recommendation.get("evidence_used")),
         "missing_evidence": _as_list(recommendation.get("missing_evidence")),
     }
+
+
+def _recommendation_history(
+    llm_dir: Path,
+    repo_root: Path,
+    latest_recommendation: dict[str, Any] | None,
+    fallback_generated_at: str,
+) -> list[dict[str, Any]]:
+    history = []
+    if llm_dir.exists():
+        for path in sorted(llm_dir.glob("*.json")):
+            recommendation = _read_json(path)
+            if not recommendation.get("recommendation_id"):
+                continue
+            presented = _present_llm_recommendation(
+                recommendation,
+                path,
+                repo_root,
+                fallback_generated_at,
+            )
+            if presented:
+                history.append(presented)
+
+    if latest_recommendation and latest_recommendation not in history:
+        history.append(latest_recommendation)
+
+    return sorted(
+        history,
+        key=lambda item: (item.get("generated_at", ""), item.get("source_path", "")),
+        reverse=True,
+    )
+
+
+def _source_modified_at(path: Path | None) -> str:
+    if path is None or not path.exists():
+        return ""
+    return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).isoformat()
+
+
+def _relative_source_path(path: Path | None, repo_root: Path | None) -> str:
+    if path is None:
+        return ""
+    if repo_root is None:
+        return path.as_posix()
+    try:
+        return path.relative_to(repo_root).as_posix()
+    except ValueError:
+        return path.as_posix()
 
 
 def _evidence_contracts() -> dict[str, Any]:
@@ -382,6 +466,37 @@ def _risk_level(latest_shared: dict[str, Any], latest_solo: dict[str, Any]) -> s
     if latest_shared.get("volleyball_previous_day") in {True, "true", "True"}:
         return "moderate"
     return "low"
+
+
+def _risk_summary(risk_level: str, risk_trend: list[dict[str, Any]]) -> dict[str, Any]:
+    source = next((item for item in reversed(risk_trend) if item.get("reasons")), risk_trend[-1] if risk_trend else {})
+    drivers = [
+        _risk_driver(code, source)
+        for code in source.get("reasons", [])
+    ]
+    return {
+        "level": risk_level,
+        "latest_score": source.get("score", 1),
+        "source": "trends.risk",
+        "source_date": source.get("date", ""),
+        "source_workout_id": source.get("workout_id", ""),
+        "drivers": drivers,
+    }
+
+
+def _risk_driver(code: str, source: dict[str, Any]) -> dict[str, str]:
+    labels = {
+        "volleyball_previous_day": "Vôlei no dia anterior aumenta carga neuromuscular; evitar trabalho máximo.",
+        "bruna_high_pse": "PSE da Bruna em 9/10 ou mais exige redução da próxima sessão.",
+        "achilles_above_3": "Aquiles do Matheus acima de 3/10 remove velocidade, subidas e descidas.",
+        "sleep_risk": "Sono ruim aumenta risco de fadiga; reduzir volume ou intensidade.",
+    }
+    return {
+        "code": code,
+        "label": labels.get(code, code.replace("_", " ")),
+        "source_date": source.get("date", ""),
+        "source_workout_id": source.get("workout_id", ""),
+    }
 
 
 def _decision_basis(category: str) -> str:

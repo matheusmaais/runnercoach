@@ -15,6 +15,8 @@ export type FrontendPayload = {
     phase: string;
     status: string;
     risk_level: string;
+    risk_drivers: RiskDriver[];
+    risk_summary: RiskSummary;
     latest_shared_workout: Workout;
     latest_matheus_solo: Workout;
     summary_markdown: string;
@@ -37,6 +39,7 @@ export type FrontendPayload = {
     approved_science_ref_count: number;
   };
   latest_llm_recommendation: LlmRecommendation | null;
+  recommendation_history: LlmRecommendation[];
   evidence_contracts: {
     garmin_owner: string;
     shared_data: string[];
@@ -48,6 +51,10 @@ export type FrontendPayload = {
 
 export type LlmRecommendation = {
   recommendation_id: string;
+  generated_at: string;
+  timestamp_source: string;
+  source_path: string;
+  source_modified_at: string;
   decision_type: string;
   next_workout_action: string;
   confidence: string;
@@ -128,8 +135,25 @@ export type LongRunTrend = {
 
 export type RiskTrend = {
   date: string;
+  workout_id: string;
   score: number;
   reasons: string[];
+};
+
+export type RiskDriver = {
+  code: string;
+  label: string;
+  source_date: string;
+  source_workout_id: string;
+};
+
+export type RiskSummary = {
+  level: string;
+  latest_score: number;
+  source: string;
+  source_date: string;
+  source_workout_id: string;
+  drivers: RiskDriver[];
 };
 
 export type Decision = {

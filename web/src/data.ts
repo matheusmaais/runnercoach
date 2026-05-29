@@ -1,8 +1,14 @@
 import type { FrontendPayload } from "./types";
 
-export async function loadPayload(): Promise<FrontendPayload> {
-  const response = await fetch(`${import.meta.env.BASE_URL}data/app-data.json`, {
+type LoadPayloadOptions = {
+  cacheBust?: boolean;
+};
+
+export async function loadPayload(options: LoadPayloadOptions = {}): Promise<FrontendPayload> {
+  const cacheKey = options.cacheBust ? `?ts=${Date.now()}` : "";
+  const response = await fetch(`${import.meta.env.BASE_URL}data/app-data.json${cacheKey}`, {
     headers: { Accept: "application/json" },
+    cache: options.cacheBust ? "no-store" : "default",
   });
 
   if (!response.ok) {

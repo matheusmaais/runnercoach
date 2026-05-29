@@ -53,9 +53,49 @@ export async function dispatchOperationalWorkflow(settings: GithubSettings, inta
   }
 }
 
-export async function latestOperationalRun(settings: GithubSettings) {
+export type OperationalWorkflowRun = {
+  id: number;
+  html_url: string;
+  status: "queued" | "in_progress" | "completed" | string;
+  conclusion: "success" | "failure" | "cancelled" | "timed_out" | "skipped" | string | null;
+  created_at: string;
+};
+
+type LatestOperationalRunOptions = {
+  createdAfter?: string;
+};
+
+type PollOperationalWorkflowOptions = {
+  startedAfter?: string;
+  timeoutMs?: number;
+  intervalMs?: number;
+  onUpdate?: (run: OperationalWorkflowRun) => void;
+  onWaiting?: () => void;
+};
+
+export class WorkflowRunFailedError extends Error {
+  run: OperationalWorkflowRun;
+
+  constructor(run: OperationalWorkflowRun) {
+    super(`Workflow falhou: ${run.conclusion ?? "conclusão desconhecida"}`);
+    this.name = "WorkflowRunFailedError";
+    this.run = run;
+  }
+}
+
+export class WorkflowRunTimeoutError extends Error {
+  run?: OperationalWorkflowRun;
+
+  constructor(run?: OperationalWorkflowRun) {
+    super("Workflow não completou dentro do limite operacional.");
+    this.name = "WorkflowRunTimeoutError";
+    this.run = run;
+  }
+}
+
+export async function latestOperationalRun(settings: GithubSettings, options: LatestOperationalRunOptions = {}) {
   const response = await fetch(
-    `https://api.github.com/repos/${settings.owner}/${settings.repo}/actions/workflows/operational-intake.yml/runs?branch=${encodeURIComponent(settings.branch)}&event=workflow_dispatch&per_page=1`,
+    `https://api.github.com/repos/${settings.owner}/${settings.repo}/actions/workflows/operational-intake.yml/runs?branch=${encodeURIComponent(settings.branch)}&event=workflow_dispatch&per_page=5`,
     {
       headers: githubHeaders(settings.token),
     },
@@ -66,15 +106,47 @@ export async function latestOperationalRun(settings: GithubSettings) {
   }
 
   const payload = await response.json();
-  return payload.workflow_runs?.[0] as
-    | {
-        id: number;
-        html_url: string;
-        status: string;
-        conclusion: string | null;
-        created_at: string;
+  const runs = (payload.workflow_runs ?? []) as OperationalWorkflowRun[];
+  if (!options.createdAfter) {
+    return runs[0];
+  }
+
+  const cutoff = Date.parse(options.createdAfter);
+  return runs.find((run) => Date.parse(run.created_at) >= cutoff);
+}
+
+export async function pollOperationalWorkflow(
+  settings: GithubSettings,
+  options: PollOperationalWorkflowOptions = {},
+): Promise<OperationalWorkflowRun> {
+  const timeoutMs = options.timeoutMs ?? 8 * 60_000;
+  const intervalMs = options.intervalMs ?? 2_500;
+  const deadline = Date.now() + timeoutMs;
+  let lastRun: OperationalWorkflowRun | undefined;
+
+  while (Date.now() <= deadline) {
+    const run = await latestOperationalRun(settings, { createdAfter: options.startedAfter });
+    if (run) {
+      lastRun = run;
+      options.onUpdate?.(run);
+      if (run.status === "completed") {
+        if (run.conclusion === "success") {
+          return run;
+        }
+        throw new WorkflowRunFailedError(run);
       }
-    | undefined;
+    } else {
+      options.onWaiting?.();
+    }
+
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      break;
+    }
+    await wait(Math.min(intervalMs, remainingMs));
+  }
+
+  throw new WorkflowRunTimeoutError(lastRun);
 }
 
 function githubHeaders(token: string) {
@@ -88,4 +160,8 @@ function githubHeaders(token: string) {
 
 function encodeURIComponentPath(path: string) {
   return path.split("/").map(encodeURIComponent).join("/");
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }

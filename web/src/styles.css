@@ -204,6 +204,49 @@ main {
   color: #f59e0b;
 }
 
+.signal.danger strong {
+  color: #ef4444;
+}
+
+.risk-card {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  max-width: 760px;
+  padding: 14px;
+}
+
+.risk-card.good {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.risk-card.warn {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.risk-card.danger {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.28);
+}
+
+.risk-card h3 {
+  color: #f8fafc;
+  margin: 0;
+}
+
+.risk-card ul {
+  color: #cbd5e1;
+  display: grid;
+  gap: 7px;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: 18px;
+}
+
 .next-card,
 .metric-card,
 .chart-panel,
@@ -297,14 +340,26 @@ main {
 }
 
 .panel-title {
-  align-items: center;
+  align-items: flex-start;
   display: flex;
   gap: 10px;
   margin-bottom: 16px;
 }
 
+.panel-title svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
 .panel-title h3 {
   margin: 0;
+}
+
+.panel-title p {
+  color: #98a9bd;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin: 4px 0 0;
 }
 
 .tooltip {
@@ -414,6 +469,62 @@ main {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.evidence-grid {
+  align-items: stretch;
+}
+
+.evidence-box {
+  background: rgba(7, 13, 24, 0.58);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+  color: #cbd5e1;
+  padding: 14px;
+}
+
+.evidence-box.good {
+  border-color: rgba(34, 197, 94, 0.34);
+}
+
+.evidence-box.warn {
+  border-color: rgba(245, 158, 11, 0.42);
+}
+
+.evidence-box ul {
+  line-height: 1.55;
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.recommendation-history {
+  display: grid;
+  gap: 14px;
+  grid-column: 1 / -1;
+}
+
+.history-list {
+  display: grid;
+  gap: 10px;
+}
+
+.history-item {
+  align-items: start;
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(160px, 0.6fr) auto minmax(0, 1fr);
+  padding: 12px;
+}
+
+.history-item strong {
+  color: #f8fafc;
+}
+
+.history-item p {
+  margin: 0;
+}
+
 .form-grid {
   display: grid;
   gap: 12px;
@@ -493,6 +604,77 @@ main {
   opacity: 0.48;
 }
 
+.secondary-action {
+  background: rgba(45, 212, 191, 0.1);
+  border: 1px solid rgba(94, 234, 212, 0.45);
+  border-radius: 8px;
+  color: #ccfbf1;
+  cursor: pointer;
+  display: block;
+  font-weight: 850;
+  margin-top: 12px;
+  min-height: 42px;
+  padding: 10px 14px;
+}
+
+.operational-progress {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+}
+
+.operational-progress li {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-left: 4px solid #64748b;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.operational-progress li.active {
+  border-left-color: #38bdf8;
+}
+
+.operational-progress li.done {
+  border-left-color: #22c55e;
+}
+
+.operational-progress li.failed {
+  border-left-color: #ef4444;
+}
+
+.operational-progress span {
+  color: #f8fafc;
+  font-weight: 850;
+}
+
+.operational-progress strong {
+  color: #94a3b8;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+}
+
+.operational-progress li.active strong {
+  color: #7dd3fc;
+}
+
+.operational-progress li.done strong {
+  color: #86efac;
+}
+
+.operational-progress li.failed strong {
+  color: #fca5a5;
+}
+
+.operational-progress p {
+  color: #9fb0c5;
+  line-height: 1.45;
+  margin: 0;
+}
+
 .error-list {
   color: #fca5a5;
   line-height: 1.6;
@@ -505,17 +687,27 @@ main {
   margin: 0;
 }
 
-.payload-preview {
-  background: #070d18;
-  border: 1px solid rgba(148, 163, 184, 0.16);
+.review-summary {
+  display: grid;
+  gap: 12px;
+}
+
+.review-summary > div {
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.14);
   border-radius: 8px;
-  color: #b8c5d6;
-  font-size: 0.72rem;
-  margin: 0;
-  max-height: 430px;
-  overflow: auto;
+  display: grid;
+  gap: 6px;
   padding: 12px;
-  white-space: pre-wrap;
+}
+
+.review-summary h4,
+.review-summary p {
+  margin: 0;
+}
+
+.review-summary h4 {
+  color: #f8fafc;
 }
 
 .science-card {
@@ -567,6 +759,10 @@ main {
   }
 
   .recommendation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .history-item {
     grid-template-columns: 1fr;
   }
 }

@@ -22,6 +22,7 @@ def test_frontend_payload_has_required_sections() -> None:
         "science_refs",
         "llm_context",
         "latest_llm_recommendation",
+        "recommendation_history",
         "evidence_contracts",
         "presentation_warnings",
     }.issubset(payload)
@@ -81,6 +82,42 @@ def test_frontend_payload_exposes_latest_llm_recommendation() -> None:
     assert recommendation["next_workout_action"] == "reduce_next_workout"
     assert recommendation["summary"]
     assert recommendation["science_refs"]
+    assert recommendation["generated_at"]
+    assert recommendation["source_path"] == "reports/llm/latest-recommendation.json"
+    assert recommendation["timestamp_source"] in {
+        "payload_generated_at",
+        "source_modified_at",
+    }
+    assert "workout-garmin-20260528T161736-7p47km-3039s-17b463bc" in recommendation["evidence_used"]
+    assert "bruna_avg_hr" in recommendation["missing_evidence"]
+    assert "load-management-recovery" in recommendation["science_refs"]
+
+
+def test_frontend_payload_exposes_recommendation_history_from_llm_artifacts() -> None:
+    payload = build_frontend_payload(Path("."))
+
+    history = payload["recommendation_history"]
+
+    assert history
+    assert history[0]["recommendation_id"]
+    assert all(item["source_path"].startswith("reports/llm/") for item in history)
+    assert payload["latest_llm_recommendation"] in history
+
+
+def test_frontend_payload_exposes_readable_risk_drivers() -> None:
+    payload = build_frontend_payload(Path("."))
+
+    current_state = payload["current_state"]
+    risk_summary = current_state["risk_summary"]
+
+    assert risk_summary["level"] == current_state["risk_level"]
+    assert risk_summary["drivers"] == current_state["risk_drivers"]
+    assert risk_summary["drivers"]
+    assert any(
+        driver["code"] == "volleyball_previous_day"
+        and "vôlei" in driver["label"].lower()
+        for driver in risk_summary["drivers"]
+    )
 
 
 def test_write_frontend_payload_creates_json(tmp_path: Path) -> None:
