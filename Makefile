@@ -1,4 +1,4 @@
-.PHONY: test ingest analyze recommend dashboard pipeline
+.PHONY: test ingest analyze recommend dashboard pipeline coach
 
 GARMIN ?= data/raw/garmin/Activities.csv
 PYTHON ?= python3
@@ -20,3 +20,6 @@ dashboard:
 
 pipeline:
 	$(PYTHON) scripts/run_pipeline.py --garmin "$(GARMIN)" --after-workout
+
+coach:
+	$(PYTHON) scripts/generate_recommendation.py

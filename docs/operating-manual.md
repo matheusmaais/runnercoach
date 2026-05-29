@@ -84,6 +84,35 @@ Revise nesta ordem:
 
 Uma decisao so deve ser tratada como acionavel quando a evidencia do treino estiver coerente com o contrato de dados. Treino Garmin solo do Matheus nao deve virar sinal positivo de evolucao da Bruna.
 
+## LLM Coach Workflow
+
+V1.4 adiciona uma camada LLM auditavel por pacote de contexto. O sistema nao chama uma API automaticamente e nao permite que a LLM substitua os guardrails deterministas.
+
+Gere o pacote:
+
+```bash
+PYTHON=.venv/bin/python make coach
+```
+
+Arquivos gerados:
+
+- `reports/llm/latest-request.md`
+- `reports/llm/latest-request.json`
+
+Use `latest-request.md` como prompt para Codex ou outra LLM. A resposta precisa ser JSON estruturado e passar pela validacao:
+
+```bash
+PYTHON=.venv/bin/python scripts/generate_recommendation.py --response path/to/response.json
+```
+
+O validador rejeita:
+
+- campos desconhecidos;
+- fontes cientificas fora de `data/knowledge/science_refs.yaml`;
+- uso de treino solo de Matheus como evidencia de Bruna;
+- resposta sem campos obrigatorios;
+- valores fora dos enums de acao, decisao e confianca.
+
 ## Monthly Report
 
 A cada 30 dias, gere pipeline e dashboard, depois revise:

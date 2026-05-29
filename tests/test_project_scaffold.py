@@ -56,4 +56,6 @@ def test_makefile_uses_configurable_python_interpreter():
     makefile = Path("Makefile").read_text()
     assert "PYTHON ?= python3" in makefile
     assert "$(PYTHON) -m pytest -q" in makefile
+    assert "coach:" in makefile
+    assert "$(PYTHON) scripts/generate_recommendation.py" in makefile
     assert "\n\tpython " not in makefile

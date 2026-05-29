@@ -19,6 +19,7 @@ Dashboard Google Sheets persistente:
 
 ```bash
 make pipeline GARMIN=data/raw/garmin/Activities.csv
+make coach
 make dashboard
 ```
 
@@ -43,6 +44,7 @@ If a workout has only Garmin data and no matched check-in, the system must treat
 make ingest GARMIN=data/raw/garmin/Activities.csv
 make pipeline GARMIN=data/raw/garmin/Activities.csv
 python scripts/run_pipeline.py --garmin data/raw/garmin/Activities.csv --after-workout --monthly-report
+make coach
 make dashboard
 make test
 ```
@@ -51,6 +53,7 @@ Direct script equivalents:
 
 ```bash
 python scripts/run_pipeline.py --garmin data/raw/garmin/Activities.csv --after-workout
+python scripts/generate_recommendation.py
 python scripts/build_dashboard.py
 ```
 
@@ -61,8 +64,32 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -e '.[dev]'
 PYTHON=.venv/bin/python make test
 PYTHON=.venv/bin/python make pipeline GARMIN=data/raw/garmin/Activities.csv
+PYTHON=.venv/bin/python make coach
 PYTHON=.venv/bin/python make dashboard
 ```
+
+## LLM Coach Workflow
+
+V1.4 adds an auditable LLM context package. It does not blindly call an API or let an LLM override safety guardrails.
+
+Run:
+
+```bash
+PYTHON=.venv/bin/python make coach
+```
+
+Review:
+
+- `reports/llm/latest-request.md`
+- `reports/llm/latest-request.json`
+
+Use `latest-request.md` as the prompt/context for Codex or another LLM. If an LLM returns structured JSON, validate it with:
+
+```bash
+PYTHON=.venv/bin/python scripts/generate_recommendation.py --response path/to/response.json
+```
+
+Only validated responses produce `reports/llm/latest-recommendation.md`.
 
 ## Current Operating Model
 
@@ -83,6 +110,7 @@ PYTHON=.venv/bin/python make dashboard
 - `data/processed/`: generated CSV outputs.
 - `docs/`: state, decisions, roadmap, operating manual, principles, athlete profiles, science basis.
 - `reports/`: latest summary, charts, and generated dashboard workbook.
+- `reports/llm/`: auditable LLM request and validated recommendation artifacts.
 - `docs/google-sheets.md`: persistent Google Sheets dashboard ID and sync notes.
 - `scripts/`: re-runnable command entrypoints.
 - `src/running_coach/`: typed models, Garmin ingestion, pipeline, science registry, recommendations, and dashboard generation.
