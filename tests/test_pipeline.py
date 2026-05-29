@@ -2,13 +2,119 @@ import csv
 import json
 from pathlib import Path
 
+from running_coach.garmin import make_activity_id
 from running_coach.pipeline import run_pipeline
+
+
+REQUIRED_WORKOUT_COLUMNS = {
+    "date",
+    "local_date",
+    "local_datetime",
+    "timezone",
+    "workout_id",
+    "activity_id",
+    "planned_workout_id",
+    "athlete_context",
+    "participants",
+    "shared_run",
+    "bruna_present",
+    "matheus_role",
+    "activity_type",
+    "category",
+    "distance_km",
+    "duration",
+    "avg_pace",
+    "best_pace",
+    "matheus_avg_hr",
+    "matheus_max_hr",
+    "matheus_cadence",
+    "matheus_power",
+    "matheus_ground_contact",
+    "matheus_stride_length",
+    "bruna_avg_hr",
+    "bruna_max_hr",
+    "bruna_pse",
+    "bruna_symptoms",
+    "matheus_achilles_morning",
+    "matheus_achilles_after",
+    "sleep_quality",
+    "volleyball_previous_day",
+    "gym_previous_day",
+    "notes",
+    "decision_after_workout",
+    "recommendation_action",
+    "confidence",
+    "missing_evidence",
+    "evidence_level",
+    "match_confidence",
+}
+
+REQUIRED_DECISION_COLUMNS = {
+    "date",
+    "event",
+    "decision",
+    "reason",
+    "impact",
+    "related_workout_id",
+    "evidence",
+    "confidence",
+    "science_refs",
+    "decision_type",
+    "blocked_by_red_flag",
+    "missing_evidence",
+}
 
 
 def write_garmin_csv(path: Path) -> None:
     path.write_text(
         "Tipo de atividade,Data,Título,Distância,Tempo,FC Média,FC máxima\n"
         "Corrida,2026-05-28 16:17:36,Santo Angelo Corrida,7.47,00:50:39,147,164\n",
+        encoding="utf-8",
+    )
+
+
+def write_matching_checkin(path: Path, activity_id: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f"schema_version: 1\n"
+        f"date: 2026-05-28\n"
+        f"confidence: low\n"
+        f"missing_evidence:\n"
+        f"  - bruna_hr_screenshot\n"
+        f"  - bruna_avg_hr\n"
+        f"  - bruna_max_hr\n"
+        f"activity_match:\n"
+        f"  activity_id: {activity_id}\n"
+        f"  garmin_title: Santo Angelo Corrida\n"
+        f"  garmin_datetime: '2026-05-28 16:17:36'\n"
+        f"session:\n"
+        f"  planned_type: quality_controlled\n"
+        f"  actual_type: cruise_intervals\n"
+        f"  shared_run: true\n"
+        f"bruna:\n"
+        f"  avg_hr: null\n"
+        f"  max_hr: null\n"
+        f"  pse: 7\n"
+        f"  symptoms: []\n"
+        f"  sleep_quality: regular\n"
+        f"  volleyball_previous_day: true\n"
+        f"  gym_previous_day: false\n"
+        f"  subjective: Cansada pelo volei, mas controlou bem.\n"
+        f"matheus:\n"
+        f"  achilles_morning: 0\n"
+        f"  achilles_after: 0\n"
+        f"  role: pacer\n"
+        f"  subjective: Aquiles silencioso.\n"
+        f"attachments:\n"
+        f"  bruna_hr_screenshot: null\n"
+        f"  bruna_hr_screenshot_sha256: null\n"
+        f"  bruna_hr_extraction:\n"
+        f"    extracted_avg_hr: null\n"
+        f"    extracted_max_hr: null\n"
+        f"    extraction_method: not_applicable\n"
+        f"    extraction_confidence: null\n"
+        f"coach_notes:\n"
+        f"  decision_after_workout: Manter polimento conservador.\n",
         encoding="utf-8",
     )
 
@@ -86,6 +192,47 @@ def test_pipeline_marks_missing_checkin_evidence(tmp_path):
     workouts = read_csv(repo_root / "data/processed/workouts.csv")
     assert workouts[0]["confidence"] == "low"
     assert "checkin" in json.loads(workouts[0]["missing_evidence"])
+
+
+def test_pipeline_matches_existing_checkin_by_activity_id(tmp_path):
+    garmin_csv = tmp_path / "Activities.csv"
+    repo_root = tmp_path / "repo"
+    write_garmin_csv(garmin_csv)
+    activity_id = make_activity_id(
+        "2026-05-28 16:17:36", 7.47, 3039.0, "Santo Angelo Corrida"
+    )
+    write_matching_checkin(
+        repo_root / "data/manual/checkins/2026-05-28-quality.yaml", activity_id
+    )
+
+    run_pipeline(garmin_csv=garmin_csv, repo_root=repo_root, after_workout=True)
+
+    workouts = read_csv(repo_root / "data/processed/workouts.csv")
+    missing_evidence = json.loads(workouts[0]["missing_evidence"])
+    assert "checkin" not in missing_evidence
+    assert {"bruna_avg_hr", "bruna_max_hr", "bruna_hr_screenshot"}.issubset(
+        missing_evidence
+    )
+    assert json.loads(workouts[0]["participants"]) == ["matheus", "bruna"]
+    assert workouts[0]["shared_run"] == "True"
+    assert workouts[0]["bruna_present"] == "True"
+    assert workouts[0]["matheus_role"] == "pacer"
+    assert workouts[0]["bruna_pse"] == "7"
+    assert workouts[0]["volleyball_previous_day"] == "True"
+    assert workouts[0]["decision_after_workout"] == "Manter polimento conservador."
+
+
+def test_workouts_and_decisions_have_required_contract_columns(tmp_path):
+    garmin_csv = tmp_path / "Activities.csv"
+    repo_root = tmp_path / "repo"
+    write_garmin_csv(garmin_csv)
+
+    run_pipeline(garmin_csv=garmin_csv, repo_root=repo_root, after_workout=True)
+
+    workouts = read_csv(repo_root / "data/processed/workouts.csv")
+    decisions = read_csv(repo_root / "data/processed/decisions.csv")
+    assert REQUIRED_WORKOUT_COLUMNS.issubset(workouts[0].keys())
+    assert REQUIRED_DECISION_COLUMNS.issubset(decisions[0].keys())
 
 
 def test_pipeline_derived_science_refs_from_registry(tmp_path):

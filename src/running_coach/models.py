@@ -86,16 +86,40 @@ class ExtractionMethod(StrEnum):
 
 
 class WorkoutRecord(BaseModel):
+    date: str | None = None
     local_date: str
     local_datetime: str | None = None
     timezone: Literal["America/Sao_Paulo"]
     workout_id: str
     activity_id: str
     planned_workout_id: str | None = None
+    athlete_context: str | None = None
     participants: list[str]
     shared_run: StrictBool
     bruna_present: StrictBool
     matheus_role: MatheusRole
+    activity_type: str | None = None
+    category: str | None = None
+    distance_km: float | None = None
+    duration: float | None = None
+    avg_pace: str | None = None
+    best_pace: str | None = None
+    matheus_avg_hr: int | None = None
+    matheus_max_hr: int | None = None
+    matheus_cadence: int | None = None
+    matheus_power: int | None = None
+    matheus_ground_contact: float | None = None
+    matheus_stride_length: float | None = None
+    bruna_avg_hr: int | None = None
+    bruna_max_hr: int | None = None
+    bruna_pse: int | None = None
+    matheus_achilles_morning: int | None = None
+    matheus_achilles_after: int | None = None
+    sleep_quality: str | None = None
+    volleyball_previous_day: bool | None = None
+    gym_previous_day: bool | None = None
+    notes: str | None = None
+    decision_after_workout: str | None = None
     confidence: Confidence
     evidence_level: Confidence
     match_confidence: Confidence = Confidence.HIGH
