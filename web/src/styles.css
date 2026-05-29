@@ -84,6 +84,18 @@ main {
   gap: 22px;
 }
 
+.view > *,
+.mission-grid > *,
+.dashboard-grid > *,
+.chart-grid > *,
+.coach-grid > *,
+.science-grid > *,
+.plan-grid > *,
+.operate-grid > *,
+.form-grid > * {
+  min-width: 0;
+}
+
 .mission-grid,
 .dashboard-grid,
 .chart-grid,
@@ -314,6 +326,7 @@ main {
 
 .section-header {
   max-width: 900px;
+  width: 100%;
 }
 
 .section-header h2 {
