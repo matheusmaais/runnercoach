@@ -145,6 +145,7 @@ export function validateOperationalForm(form: OperationalFormState): string[] {
   const errors: string[] = [];
   if (!form.date) errors.push("Data do treino é obrigatória.");
   if (!form.activityId.trim()) errors.push("Activity ID do Garmin é obrigatório para casar check-in e treino.");
+  if (!form.garminCsvBase64) errors.push("CSV Garmin é obrigatório para o GitHub Actions analisar treino novo.");
   if (form.brunaPse && !inRange(Number(form.brunaPse), 0, 10)) errors.push("PSE da Bruna deve estar entre 0 e 10.");
   if (!inRange(Number(form.achillesMorning), 0, 10)) errors.push("Aquiles de manhã deve estar entre 0 e 10.");
   if (!inRange(Number(form.achillesAfter), 0, 10)) errors.push("Aquiles depois deve estar entre 0 e 10.");

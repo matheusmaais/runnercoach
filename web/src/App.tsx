@@ -347,7 +347,7 @@ function OperateView() {
             onChange={(event) => onCsv(event.target.files?.[0] ?? null)}
           />
           <p className="helper">
-            {form.garminCsvName ? `${form.garminCsvName} carregado no intake.` : "Opcional, mas recomendado para treino novo."}
+            {form.garminCsvName ? `${form.garminCsvName} carregado no intake.` : "Obrigatório para o Actions analisar treino novo."}
           </p>
         </article>
       </div>

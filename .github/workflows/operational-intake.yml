@@ -60,11 +60,11 @@ jobs:
       - name: Run coaching pipeline
         run: |
           GARMIN_PATH="${{ steps.intake.outputs.garmin_csv_path }}"
-          if [ -n "$GARMIN_PATH" ]; then
-            python scripts/run_pipeline.py --garmin "$GARMIN_PATH" --after-workout --monthly-report
-          else
-            python scripts/run_pipeline.py --after-workout --monthly-report
+          if [ -z "$GARMIN_PATH" ]; then
+            echo "Operational intake requires a Garmin CSV upload because raw Garmin files are not versioned."
+            exit 2
           fi
+          python scripts/run_pipeline.py --garmin "$GARMIN_PATH" --after-workout --monthly-report
 
       - name: Generate LLM request
         run: python scripts/generate_recommendation.py

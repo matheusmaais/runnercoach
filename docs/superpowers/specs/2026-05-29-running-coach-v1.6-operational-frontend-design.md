@@ -63,6 +63,7 @@ The view contains:
   - read locally
   - base64 encode in intake JSON
   - do not display full raw CSV in the UI
+  - required for operational analysis because raw Garmin files are intentionally not versioned
 - Action buttons:
   - validate draft
   - commit intake

@@ -39,6 +39,11 @@ test("operational frontend builds a valid intake without exposing LLM secrets", 
   await page.getByLabel("Título Garmin").fill("Treino UI");
   await page.getByLabel("PSE Bruna").fill("6");
   await page.getByLabel("Relato Bruna").fill("Controlado e sem sintomas fortes.");
+  await page.getByLabel("Upload Garmin CSV").setInputFiles({
+    name: "Activities.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("Activity Type,Date\nRunning,2026-05-29\n"),
+  });
   await expect(page.getByText("Payload válido para commit e workflow.")).toBeVisible();
   await expect(page.getByText("OPENAI_API_KEY")).toHaveCount(0);
   await expect(page.getByText('"source": "github_pages"')).toBeVisible();

@@ -130,11 +130,13 @@ O fluxo operacional desejado e:
 1. Abrir o GitHub Pages.
 2. Entrar na aba `Operar`.
 3. Preencher check-in, FC/PSE da Bruna, sintomas, sono, carga de volei/academia e Aquiles do Matheus.
-4. Opcionalmente anexar o CSV Garmin exportado.
+4. Anexar o CSV Garmin exportado.
 5. Informar um fine-grained GitHub token local do navegador.
 6. Clicar em `Commitar intake e analisar`.
 7. O frontend commita `data/manual/frontend_intake/*.json` e dispara `.github/workflows/operational-intake.yml`.
 8. O GitHub Actions processa o intake, roda pipeline, chama LLM com secret, valida recomendacao, commita resultados e republica Pages.
+
+O CSV Garmin e obrigatorio nesse fluxo porque `data/raw/garmin/*` e ignorado no Git. Sem upload, o Actions nao tem os dados brutos para casar o check-in com a atividade.
 
 Token GitHub para o navegador:
 
