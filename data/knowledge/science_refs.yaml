@@ -93,11 +93,10 @@ refs:
   - science_ref_id: sleep-fatigue-load-management
     title: "Sleep Interventions Designed to Improve Athletic Performance and Recovery: A Systematic Review of Current Approaches"
     authors:
-      - Lin Shen Bonnar
-      - Charli S. Bartel
-      - Shona L. Kakoschke
-      - Ian C. Skinner
-      - Drew Dawson
+      - Daniel Bonnar
+      - Kate Bartel
+      - Naomi Kakoschke
+      - Christin Lang
     year: 2018
     source_type: peer_reviewed_study
     journal_or_publisher: "Sports Medicine"
@@ -115,21 +114,21 @@ refs:
     notes: "Supports conservative handling of poor sleep."
 
   - science_ref_id: volleyball-neuromuscular-load
-    title: "Using the VERT wearable device to monitor jumping loads in elite volleyball athletes"
+    title: "Training stress, neuromuscular fatigue and well-being in volleyball: a systematic review"
     authors:
-      - Faraz Damji
-      - Kerry MacDonald
-      - Michael A. Hunt
-      - Jack Taunton
-      - Alex Scott
-    year: 2021
+      - Andre Rebelo
+      - Joao R. Pereira
+      - Paulo Cunha
+      - Manuel J. Coelho-e-Silva
+      - Joao Valente-dos-Santos
+    year: 2024
     source_type: peer_reviewed_study
-    journal_or_publisher: "PLOS ONE"
-    doi_or_url: "https://doi.org/10.1371/journal.pone.0245299"
-    population: "Elite volleyball athletes"
-    finding: "Jump-load monitoring can quantify volleyball-specific external load."
-    practical_application: "Treat volleyball the previous day as a meaningful neuromuscular and tendon-load signal before prescribing running quality."
-    limits: "Validates jump-load monitoring; does not directly quantify next-day running performance or injury risk."
+    journal_or_publisher: "BMC Sports Science, Medicine and Rehabilitation"
+    doi_or_url: "https://doi.org/10.1186/s13102-024-00807-7"
+    population: "Volleyball athletes across youth, collegiate, professional, male, and female cohorts in longitudinal monitoring studies"
+    finding: "Volleyball monitoring literature links training stress measures with neuromuscular fatigue and well-being assessments, including daily internal load and jump-based external load monitoring."
+    practical_application: "Treat volleyball or jumping exposure as a neuromuscular load signal to consider alongside athlete-reported fatigue, soreness, and readiness; it does not quantify next-day running risk by itself."
+    limits: "Systematic review of volleyball monitoring studies; does not quantify next-day running risk or prescribe running-specific recovery thresholds."
     tags:
       - volleyball
       - neuromuscular_load
@@ -211,13 +210,13 @@ refs:
   - science_ref_id: strength-running-economy
     title: "Effects of Strength Training on Running Economy in Highly Trained Runners: A Systematic Review With Meta-Analysis of Controlled Trials"
     authors:
-      - Richard C. Blagrove
-      - Glyn Howatson
-      - Philip R. Hayes
+      - Carlos Balsalobre-Fernandez
+      - Jordan Santos-Concejero
+      - Gerasimos V. Grivas
     year: 2016
     source_type: peer_reviewed_study
     journal_or_publisher: "Journal of Strength and Conditioning Research"
-    doi_or_url: "https://pubmed.ncbi.nlm.nih.gov/26694507/"
+    doi_or_url: "https://doi.org/10.1519/JSC.0000000000001316"
     population: "Highly trained middle- and long-distance runners"
     finding: "Strength training programs can improve running economy in trained runners."
     practical_application: "Include strength as supportive training, while avoiding heavy strength work when recovery flags suggest load reduction."
@@ -228,4 +227,4 @@ refs:
       - load_management
     approved: true
     approved_date: 2026-05-29
-    notes: "PubMed record used as stable URL because DOI was not surfaced in the verified result."
+    notes: "Uses the DOI-backed 2016 Journal of Strength and Conditioning Research meta-analysis."

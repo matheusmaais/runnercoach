@@ -64,6 +64,43 @@ def test_registry_has_minimum_coverage():
     } <= approved_tags
 
 
+def test_sleep_source_identity_matches_registered_doi():
+    refs = load_science_refs(Path("data/knowledge/science_refs.yaml"))
+    ref = refs["sleep-fatigue-load-management"]
+
+    assert "Daniel Bonnar" in ref.authors
+    assert "Lin Shen Bonnar" not in ref.authors
+    assert "Charli S. Bartel" not in ref.authors
+    assert "Shona L. Kakoschke" not in ref.authors
+    assert "Ian C. Skinner" not in ref.authors
+    assert "Drew Dawson" not in ref.authors
+
+
+def test_strength_source_identity_is_internally_coherent():
+    refs = load_science_refs(Path("data/knowledge/science_refs.yaml"))
+    ref = refs["strength-running-economy"]
+
+    assert ref.title == (
+        "Effects of Strength Training on Running Economy in Highly Trained "
+        "Runners: A Systematic Review With Meta-Analysis of Controlled Trials"
+    )
+    assert ref.authors == [
+        "Carlos Balsalobre-Fernandez",
+        "Jordan Santos-Concejero",
+        "Gerasimos V. Grivas",
+    ]
+    assert ref.year == 2016
+    assert ref.doi_or_url == "https://doi.org/10.1519/JSC.0000000000001316"
+
+
+def test_volleyball_source_caveats_next_day_running_risk():
+    refs = load_science_refs(Path("data/knowledge/science_refs.yaml"))
+    ref = refs["volleyball-neuromuscular-load"]
+
+    caveat_text = f"{ref.practical_application} {ref.limits}".lower()
+    assert "does not quantify next-day running risk" in caveat_text
+
+
 def test_science_ref_requires_doi_or_url():
     with pytest.raises(ValidationError):
         science_ref(doi_or_url="")
