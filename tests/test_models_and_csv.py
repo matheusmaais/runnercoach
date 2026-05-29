@@ -83,6 +83,21 @@ def test_shared_run_requires_both_participants_and_bruna_present():
         )
 
 
+def test_pacer_role_requires_shared_run_with_bruna_present():
+    with pytest.raises(ValidationError):
+        WorkoutRecord(
+            **valid_workout_kwargs(
+                participants=["matheus", "bruna"],
+                shared_run=False,
+                bruna_present=True,
+                matheus_role="pacer",
+                confidence="high",
+                evidence_level="high",
+                recommendation_action="maintain_next_workout",
+            )
+        )
+
+
 def test_matheus_not_present_role_rejects_matheus_participant():
     with pytest.raises(ValidationError):
         WorkoutRecord(**valid_workout_kwargs(matheus_role="not_present"))

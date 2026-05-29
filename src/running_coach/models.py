@@ -123,6 +123,14 @@ class WorkoutRecord(BaseModel):
             raise ValueError(
                 "shared_run requires matheus and bruna participants and bruna_present"
             )
+        if self.matheus_role == MatheusRole.PACER and (
+            participants != KNOWN_PARTICIPANTS
+            or not self.shared_run
+            or not self.bruna_present
+        ):
+            raise ValueError(
+                "matheus_role=pacer requires shared run with matheus and bruna present"
+            )
         if self.bruna_present and "bruna" not in participants:
             raise ValueError("bruna_present requires bruna in participants")
         if self.matheus_role == MatheusRole.NOT_PRESENT and "matheus" in participants:
