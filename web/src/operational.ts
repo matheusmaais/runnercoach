@@ -1,3 +1,17 @@
+export type GarminActivitySummary = {
+  source_filename: string;
+  activity_id: string | null;
+  local_date: string;
+  local_datetime: string | null;
+  timezone: "America/Sao_Paulo";
+  activity_type: string | null;
+  title: string | null;
+  distance_km: number | null;
+  duration_seconds: number | null;
+  avg_pace: string | null;
+  best_pace: string | null;
+};
+
 export type OperationalFormState = {
   date: string;
   activityId: string;
@@ -22,7 +36,7 @@ export type OperationalFormState = {
   matheusSubjective: string;
   coachNote: string;
   garminCsvName: string;
-  garminCsvBase64: string;
+  garminActivity: GarminActivitySummary | null;
 };
 
 export type GithubSettings = {
@@ -58,13 +72,13 @@ export function defaultOperationalForm(): OperationalFormState {
     matheusSubjective: "",
     coachNote: "",
     garminCsvName: "",
-    garminCsvBase64: "",
+    garminActivity: null,
   };
 }
 
 export function defaultGithubSettings(): GithubSettings {
   return {
-    owner: "matheusandrade",
+    owner: "matheusmaais",
     repo: "runnercoach",
     branch: "main",
     token: "",
@@ -87,9 +101,10 @@ export function buildIntakePayload(form: OperationalFormState) {
       date: form.date,
       confidence: "medium",
       activity_match: {
-        activity_id: form.activityId,
+        activity_id: form.activityId.trim() || null,
         garmin_title: form.garminTitle || null,
         garmin_datetime: form.garminDatetime || null,
+        distance_km: form.garminActivity?.distance_km ?? null,
       },
       session: {
         planned_type: form.plannedType || null,
@@ -128,10 +143,13 @@ export function buildIntakePayload(form: OperationalFormState) {
         decision_after_workout: form.coachNote || null,
       },
     },
-    garmin_csv: form.garminCsvBase64
+    garmin_activity: form.garminActivity
       ? {
-          filename: form.garminCsvName || "Activities.csv",
-          content_base64: form.garminCsvBase64,
+          ...form.garminActivity,
+          activity_id: form.activityId.trim() || form.garminActivity.activity_id,
+          local_date: form.date,
+          local_datetime: form.garminDatetime || form.garminActivity.local_datetime,
+          title: form.garminTitle || form.garminActivity.title,
         }
       : null,
     workflow: {
@@ -144,8 +162,14 @@ export function buildIntakePayload(form: OperationalFormState) {
 export function validateOperationalForm(form: OperationalFormState): string[] {
   const errors: string[] = [];
   if (!form.date) errors.push("Data do treino é obrigatória.");
-  if (!form.activityId.trim()) errors.push("Activity ID do Garmin é obrigatório para casar check-in e treino.");
-  if (!form.garminCsvBase64) errors.push("CSV Garmin é obrigatório para o GitHub Actions analisar treino novo.");
+  const hasTechnicalId = Boolean(form.activityId.trim());
+  const hasHumanKeys = Boolean(
+    (form.garminDatetime && (form.garminTitle || form.garminActivity?.distance_km != null)) ||
+      (form.garminTitle && form.garminActivity?.distance_km != null),
+  );
+  if (!hasTechnicalId && !hasHumanKeys) {
+    errors.push("Informe data/hora Garmin e título ou distância para casar a atividade.");
+  }
   if (form.brunaPse && !inRange(Number(form.brunaPse), 0, 10)) errors.push("PSE da Bruna deve estar entre 0 e 10.");
   if (!inRange(Number(form.achillesMorning), 0, 10)) errors.push("Aquiles de manhã deve estar entre 0 e 10.");
   if (!inRange(Number(form.achillesAfter), 0, 10)) errors.push("Aquiles depois deve estar entre 0 e 10.");
@@ -159,16 +183,48 @@ export function intakePath(payload: { created_at: string }) {
   return `data/manual/frontend_intake/${slug}.json`;
 }
 
-export function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Falha ao ler arquivo."));
-    reader.onload = () => {
-      const result = String(reader.result || "");
-      resolve(result.includes(",") ? result.split(",")[1] : result);
-    };
-    reader.readAsDataURL(file);
+export async function deriveGarminActivityFromCsv(file: File): Promise<GarminActivitySummary> {
+  const rows = parseCsv(await file.text());
+  if (rows.length < 2) {
+    throw new Error("CSV Garmin sem atividades.");
+  }
+  const headers = rows[0].map((header) => header.trim());
+  const firstActivity = rows.slice(1).find((row) => row.some((value) => value.trim()));
+  if (!firstActivity) {
+    throw new Error("CSV Garmin sem atividades.");
+  }
+  const get = (...names: string[]) => {
+    for (const name of names) {
+      const index = headers.indexOf(name);
+      if (index >= 0) return firstActivity[index]?.trim() || "";
+    }
+    return "";
+  };
+
+  const localDatetime = get("Data", "Date");
+  const title = get("Título", "Title");
+  const distanceKm = parseGarminNumber(get("Distância", "Distance"));
+  const durationSeconds = parseDurationSeconds(get("Tempo", "Time"));
+  const activityId = await makeGarminActivityId({
+    localDatetime,
+    title,
+    distanceKm,
+    durationSeconds,
   });
+
+  return {
+    source_filename: file.name,
+    activity_id: activityId,
+    local_date: localDatetime.slice(0, 10),
+    local_datetime: localDatetime || null,
+    timezone: "America/Sao_Paulo",
+    activity_type: get("Tipo de atividade", "Activity Type") || null,
+    title: title || null,
+    distance_km: distanceKm,
+    duration_seconds: durationSeconds,
+    avg_pace: get("Ritmo médio", "Avg Pace") || null,
+    best_pace: get("Melhor ritmo", "Best Pace") || null,
+  };
 }
 
 function numberOrNull(value: string) {
@@ -177,4 +233,88 @@ function numberOrNull(value: string) {
 
 function inRange(value: number, min: number, max: number) {
   return Number.isFinite(value) && value >= min && value <= max;
+}
+
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let quoted = false;
+  const normalized = text.replace(/^\uFEFF/, "");
+
+  for (let index = 0; index < normalized.length; index += 1) {
+    const char = normalized[index];
+    const next = normalized[index + 1];
+    if (quoted) {
+      if (char === "\"" && next === "\"") {
+        field += "\"";
+        index += 1;
+      } else if (char === "\"") {
+        quoted = false;
+      } else {
+        field += char;
+      }
+    } else if (char === "\"") {
+      quoted = true;
+    } else if (char === ",") {
+      row.push(field);
+      field = "";
+    } else if (char === "\n") {
+      row.push(field.replace(/\r$/, ""));
+      rows.push(row);
+      row = [];
+      field = "";
+    } else {
+      field += char;
+    }
+  }
+
+  if (field || row.length) {
+    row.push(field.replace(/\r$/, ""));
+    rows.push(row);
+  }
+  return rows;
+}
+
+function parseGarminNumber(value: string): number | null {
+  const normalized = value.trim();
+  if (!normalized || normalized === "--") return null;
+  const parsed = Number(normalized.replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseDurationSeconds(value: string): number | null {
+  const parts = value.trim().split(":");
+  if (parts.length !== 3) return null;
+  const [hours, minutes, seconds] = parts.map(Number);
+  if (![hours, minutes, seconds].every(Number.isFinite)) return null;
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+async function makeGarminActivityId({
+  localDatetime,
+  title,
+  distanceKm,
+  durationSeconds,
+}: {
+  localDatetime: string;
+  title: string;
+  distanceKm: number | null;
+  durationSeconds: number | null;
+}) {
+  if (!localDatetime || !title || distanceKm == null || durationSeconds == null) {
+    return null;
+  }
+  const normalizedTitle = title.trim().toLowerCase().replace(/\s+/g, " ");
+  const distance = distanceKm;
+  const duration = durationSeconds;
+  const source = `${localDatetime.replace(" ", "T")}|${distance.toFixed(2)}|${duration.toFixed(1)}|${normalizedTitle}`;
+  const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(source));
+  const hash = Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 8);
+  const stamp = localDatetime.replace(/[-:]/g, "").replace(" ", "T").slice(0, 15) || "unknown";
+  const distanceToken = distance.toFixed(2).replace(".", "p");
+  return `garmin-${stamp}-${distanceToken}km-${Math.round(duration)}s-${hash}`;
 }

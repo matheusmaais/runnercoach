@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -10,13 +11,24 @@ import yaml
 
 from running_coach.checkins import CheckIn
 from running_coach.csv_utils import encode_json_cell
-from running_coach.garmin import GARMIN_ACTIVITY_FIELDS, parse_garmin_csv_text
+from running_coach.garmin import (
+    GARMIN_ACTIVITY_FIELDS,
+    human_activity_key_summary,
+    matches_activity_keys,
+    parse_garmin_csv_text,
+)
 from running_coach.models import (
     Confidence,
     DecisionType,
     MatheusRole,
     RecommendationAction,
+    SymptomSeverity,
     WorkoutRecord,
+)
+from running_coach.recommendations import (
+    RecommendationInput,
+    RecommendationResult,
+    recommend_next_action,
 )
 from running_coach.reports import write_text_report
 from running_coach.science import ScienceRef, load_science_refs
@@ -130,6 +142,12 @@ class CheckInLoadError(PipelineError):
     pass
 
 
+@dataclass(frozen=True)
+class LoadedCheckIn:
+    path: Path
+    checkin: CheckIn
+
+
 def run_pipeline(
     garmin_csv: Path,
     repo_root: Path,
@@ -142,12 +160,27 @@ def run_pipeline(
     activities = parse_garmin_csv_text(
         garmin_csv.read_text(encoding="utf-8-sig"), source_file=garmin_csv.name
     )
-    checkins = _load_checkins(repo_root)
+    activities = _merge_with_existing_processed_activities(repo_root, activities)
+    checkins = _match_checkins_to_activities(repo_root, activities)
     workouts = [
         _workout_from_activity(activity, checkins.get(activity["activity_id"]))
         for activity in activities
     ]
-    decisions = [_decision_from_workout(workout) for workout in workouts]
+    _attach_planned_workouts(repo_root, workouts)
+    recommendations = {
+        workout.workout_id: _recommendation_for_workout(repo_root, workout)
+        for workout in workouts
+    }
+    workouts = [
+        workout.model_copy(
+            update={"recommendation_action": recommendations[workout.workout_id].action}
+        )
+        for workout in workouts
+    ]
+    decisions = [
+        _decision_from_workout(workout, recommendations[workout.workout_id])
+        for workout in workouts
+    ]
     plan_status = _build_plan_status(repo_root, workouts, decisions)
     science_refs = _load_science_refs(repo_root)
 
@@ -178,12 +211,63 @@ def run_pipeline(
     )
 
 
-def _load_checkins(repo_root: Path) -> dict[str, CheckIn]:
+def _merge_with_existing_processed_activities(
+    repo_root: Path, incoming: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    existing_path = repo_root / "data/processed/activities.csv"
+    if not existing_path.exists():
+        return incoming
+
+    with existing_path.open(encoding="utf-8", newline="") as handle:
+        existing = list(csv.DictReader(handle))
+
+    merged: dict[str, dict[str, Any]] = {
+        str(activity["activity_id"]): _normalize_existing_activity(activity)
+        for activity in existing
+        if activity.get("activity_id")
+    }
+    for activity in incoming:
+        merged[str(activity["activity_id"])] = activity
+
+    return sorted(
+        merged.values(),
+        key=lambda activity: str(activity.get("local_datetime") or activity.get("local_date") or ""),
+    )
+
+
+def _normalize_existing_activity(activity: dict[str, str]) -> dict[str, Any]:
+    normalized: dict[str, Any] = dict(activity)
+    for field in ("source_row_number", "matheus_avg_hr", "matheus_max_hr", "matheus_cadence", "matheus_power"):
+        normalized[field] = _optional_int(normalized.get(field))
+    for field in ("distance_km", "duration_seconds", "matheus_ground_contact", "matheus_stride_length"):
+        normalized[field] = _optional_float(normalized.get(field))
+    normalized["is_shared_run_candidate"] = str(
+        normalized.get("is_shared_run_candidate", "")
+    ).strip().casefold() in {"true", "1", "yes"}
+    for field in ("avg_pace", "best_pace", "title", "activity_type"):
+        if normalized.get(field) == "":
+            normalized[field] = None
+    return normalized
+
+
+def _optional_int(value: Any) -> int | None:
+    if value in {None, ""}:
+        return None
+    return int(float(value))
+
+
+def _optional_float(value: Any) -> float | None:
+    if value in {None, ""}:
+        return None
+    return float(value)
+
+
+def _load_checkins(repo_root: Path) -> list[LoadedCheckIn]:
     checkins_dir = repo_root / "data/manual/checkins"
     if not checkins_dir.exists():
-        return {}
+        return []
 
-    checkins: dict[str, CheckIn] = {}
+    checkins: list[LoadedCheckIn] = []
     checkin_paths: dict[str, Path] = {}
     for path in sorted(checkins_dir.glob("*.yaml")):
         try:
@@ -192,15 +276,94 @@ def _load_checkins(repo_root: Path) -> dict[str, CheckIn]:
         except (OSError, ValidationError, yaml.YAMLError) as exc:
             raise CheckInLoadError(f"Failed to load check-in {path}: {exc}") from exc
         activity_id = checkin.activity_match.activity_id
-        if activity_id in checkins:
+        if activity_id and activity_id in checkin_paths:
             first_path = checkin_paths[activity_id]
             raise CheckInLoadError(
                 "Duplicate check-ins reference activity_id "
                 f"{activity_id}: {first_path} and {path}"
             )
-        checkins[activity_id] = checkin
-        checkin_paths[activity_id] = path
+        if activity_id:
+            checkin_paths[activity_id] = path
+        checkins.append(LoadedCheckIn(path=path, checkin=checkin))
     return checkins
+
+
+def _match_checkins_to_activities(
+    repo_root: Path, activities: list[dict[str, Any]]
+) -> dict[str, CheckIn]:
+    matched: dict[str, CheckIn] = {}
+    matched_paths: dict[str, Path] = {}
+    activities_by_id = {activity["activity_id"]: activity for activity in activities}
+
+    for loaded in _load_checkins(repo_root):
+        activity_id = _resolve_checkin_activity_id(loaded, activities, activities_by_id)
+        if activity_id in matched:
+            first_path = matched_paths[activity_id]
+            raise CheckInLoadError(
+                "Duplicate check-ins matched activity_id "
+                f"{activity_id}: {first_path} and {loaded.path}"
+            )
+        matched[activity_id] = loaded.checkin
+        matched_paths[activity_id] = loaded.path
+    return matched
+
+
+def _resolve_checkin_activity_id(
+    loaded: LoadedCheckIn,
+    activities: list[dict[str, Any]],
+    activities_by_id: dict[str, dict[str, Any]],
+) -> str:
+    checkin = loaded.checkin
+    match = checkin.activity_match
+    if match.activity_id:
+        if match.activity_id not in activities_by_id:
+            raise CheckInLoadError(
+                "Check-in references activity_id not present in Garmin CSV "
+                f"{loaded.path}: activity_id={match.activity_id}"
+            )
+        return match.activity_id
+
+    _require_human_activity_keys(loaded)
+    candidates = [
+        activity
+        for activity in activities
+        if matches_activity_keys(
+            activity,
+            date=checkin.date.isoformat(),
+            garmin_title=match.garmin_title,
+            garmin_datetime=match.garmin_datetime,
+            distance_km=match.distance_km,
+        )
+    ]
+    summary = human_activity_key_summary(
+        date=checkin.date.isoformat(),
+        garmin_title=match.garmin_title,
+        garmin_datetime=match.garmin_datetime,
+        distance_km=match.distance_km,
+    )
+    if not candidates:
+        raise CheckInLoadError(
+            f"No Garmin activity matched check-in {loaded.path}: {summary}"
+        )
+    if len(candidates) > 1:
+        ids = ", ".join(activity["activity_id"] for activity in candidates)
+        raise CheckInLoadError(
+            f"Multiple Garmin activities matched check-in {loaded.path}: "
+            f"{summary}; candidates={ids}"
+        )
+    return str(candidates[0]["activity_id"])
+
+
+def _require_human_activity_keys(loaded: LoadedCheckIn) -> None:
+    match = loaded.checkin.activity_match
+    if match.garmin_datetime and (match.garmin_title or match.distance_km is not None):
+        return
+    if match.garmin_title and match.distance_km is not None:
+        return
+    raise CheckInLoadError(
+        "Check-in needs activity_id or human Garmin match keys "
+        f"{loaded.path}: provide garmin_datetime plus title or distance_km"
+    )
 
 
 def _activity_fields(activity: dict[str, Any]) -> dict[str, Any]:
@@ -265,6 +428,7 @@ def _workout_from_activity(
         bruna_max_hr=checkin.bruna.max_hr,
         bruna_pse=checkin.bruna.pse,
         bruna_symptoms=checkin.bruna.symptoms,
+        symptom_severity=_classify_symptom_severity(checkin.bruna.symptoms),
         matheus_achilles_morning=checkin.matheus.achilles_morning,
         matheus_achilles_after=checkin.matheus.achilles_after,
         sleep_quality=checkin.bruna.sleep_quality,
@@ -277,6 +441,153 @@ def _workout_from_activity(
         recommendation_action=RecommendationAction.REQUEST_MANUAL_RESOLUTION,
         missing_evidence=_checkin_missing_evidence(checkin),
     )
+
+
+def _attach_planned_workouts(repo_root: Path, workouts: list[WorkoutRecord]) -> None:
+    planned_path = repo_root / "data/plan/planned_workouts.csv"
+    if not planned_path.exists():
+        return
+
+    with planned_path.open(encoding="utf-8", newline="") as handle:
+        planned_rows = list(csv.DictReader(handle))
+
+    used_plans: set[str] = set()
+    for workout in workouts:
+        if workout.planned_workout_id:
+            continue
+        candidates = [
+            planned
+            for planned in planned_rows
+            if planned.get("planned_workout_id") not in used_plans
+            and planned.get("date") == workout.local_date
+            and _planned_category_matches_workout(planned, workout)
+        ]
+        if len(candidates) > 1:
+            ids = ", ".join(row.get("planned_workout_id", "") for row in candidates)
+            raise PipelineError(
+                "Multiple planned workouts matched executed workout "
+                f"{workout.workout_id}: {ids}"
+            )
+        if len(candidates) == 1:
+            planned_id = candidates[0].get("planned_workout_id", "")
+            workout.planned_workout_id = planned_id or None
+            if planned_id:
+                used_plans.add(planned_id)
+
+
+def _planned_category_matches_workout(
+    planned: dict[str, str], workout: WorkoutRecord
+) -> bool:
+    intended = (planned.get("intended_category") or "").strip().casefold()
+    category = (workout.category or "").strip().casefold()
+    return bool(intended and category and intended == category)
+
+
+def _recommendation_for_workout(
+    repo_root: Path, workout: WorkoutRecord
+) -> RecommendationResult:
+    if "checkin" in workout.missing_evidence:
+        return RecommendationResult(
+            action=RecommendationAction.REQUEST_MANUAL_RESOLUTION,
+            decision=DecisionType.DEFER,
+            selected_fallback=RecommendationAction.REQUEST_MANUAL_RESOLUTION,
+            confidence=Confidence.LOW,
+            blocked_by_red_flag=False,
+            reasons=["missing_checkin"],
+            science_refs=[],
+            rule_refs=[],
+            missing_evidence=list(workout.missing_evidence),
+            assumptions=["Manual check-in is required before deterministic guardrails can evaluate athlete state."],
+            phase="unknown",
+            week_number=1,
+            planned_workout_id=workout.planned_workout_id or "unplanned-next-workout",
+        )
+
+    planned = _next_planned_workout(repo_root, workout.local_date)
+    recommendation_input = RecommendationInput(
+        bruna_pse=workout.bruna_pse,
+        symptom_severity=workout.symptom_severity,
+        matheus_achilles_morning=workout.matheus_achilles_morning or 0,
+        matheus_achilles_after=workout.matheus_achilles_after or 0,
+        volleyball_previous_day=bool(workout.volleyball_previous_day),
+        poor_sleep=_is_poor_sleep(workout.sleep_quality),
+        all_out_race=_is_all_out_race(workout),
+        planned_action=RecommendationAction.MAINTAIN_NEXT_WORKOUT,
+        phase=planned.get("phase") or "unknown",
+        week_number=_safe_int(planned.get("week_number"), default=1),
+        planned_workout_id=(
+            planned.get("planned_workout_id")
+            or workout.planned_workout_id
+            or "unplanned-next-workout"
+        ),
+    )
+    return recommend_next_action(recommendation_input)
+
+
+def _next_planned_workout(repo_root: Path, local_date: str) -> dict[str, str]:
+    planned_path = repo_root / "data/plan/planned_workouts.csv"
+    if not planned_path.exists():
+        return {}
+
+    with planned_path.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    candidates = [
+        row
+        for row in rows
+        if row.get("status") == "planned" and row.get("date", "") >= local_date
+    ]
+    if candidates:
+        return min(candidates, key=lambda row: row.get("date", ""))
+    return {}
+
+
+def _safe_int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _is_poor_sleep(value: str | None) -> bool:
+    if not value:
+        return False
+    normalized = value.strip().lower()
+    return normalized in {"poor", "bad", "ruim", "pessima", "péssima"}
+
+
+def _is_all_out_race(workout: WorkoutRecord) -> bool:
+    category = (workout.category or "").lower()
+    notes = (workout.notes or "").lower()
+    return any(
+        token in f"{category} {notes}"
+        for token in ["all_out", "all-out", "maximo", "máximo", "race"]
+    )
+
+
+def _classify_symptom_severity(symptoms: list[str]) -> SymptomSeverity:
+    normalized = [symptom.strip().lower() for symptom in symptoms if symptom.strip()]
+    if not normalized or all(
+        symptom in {"sem sintomas", "none", "no symptoms", "assintomatica", "assintomática"}
+        for symptom in normalized
+    ):
+        return SymptomSeverity.NONE
+    red_flag_terms = [
+        "tontura",
+        "desmaio",
+        "dor no peito",
+        "visao turva",
+        "visão turva",
+        "neurologico",
+        "neurológico",
+        "heat",
+        "calor extremo",
+    ]
+    if any(any(term in symptom for term in red_flag_terms) for symptom in normalized):
+        return SymptomSeverity.RED_FLAG
+    strong_terms = ["forte", "severo", "severa", "alterou", "limitou", "mecanica", "mecânica"]
+    if any(any(term in symptom for term in strong_terms) for symptom in normalized):
+        return SymptomSeverity.MODERATE
+    return SymptomSeverity.MILD
 
 
 def _checkin_missing_evidence(checkin: CheckIn) -> list[str]:
@@ -310,14 +621,15 @@ def _encode_csv_cell(value: Any) -> Any:
     return value
 
 
-def _decision_from_workout(workout: WorkoutRecord) -> dict[str, Any]:
+def _decision_from_workout(
+    workout: WorkoutRecord, recommendation: RecommendationResult
+) -> dict[str, Any]:
     missing_evidence = list(workout.missing_evidence)
     has_checkin = "checkin" not in missing_evidence
-    decision_type = DecisionType.DEFER
     reason = (
         "Manual check-in evidence is missing; confidence remains low."
         if not has_checkin
-        else "Manual check-in matched; recommendation remains deferred until adaptive engine consumes full context."
+        else "; ".join(recommendation.reasons)
     )
     return {
         "date": workout.local_date,
@@ -325,20 +637,20 @@ def _decision_from_workout(workout: WorkoutRecord) -> dict[str, Any]:
         "local_datetime": workout.local_datetime,
         "timezone": workout.timezone,
         "event": "pipeline_after_workout",
-        "decision": decision_type.value,
+        "decision": recommendation.decision.value,
         "reason": reason,
-        "impact": "No automatic workout change in Task 7; preserve audit trail for recommendation engine.",
+        "impact": f"Deterministic guardrail action: {recommendation.action.value}.",
         "related_workout_id": workout.workout_id,
         "evidence": "manual_checkin" if has_checkin else "garmin_only",
-        "confidence": workout.confidence.value,
-        "science_refs": encode_json_cell([]),
-        "decision_type": decision_type.value,
-        "blocked_by_red_flag": False,
+        "confidence": recommendation.confidence.value,
+        "science_refs": encode_json_cell(recommendation.science_refs),
+        "decision_type": recommendation.decision.value,
+        "blocked_by_red_flag": recommendation.blocked_by_red_flag,
         "missing_evidence": encode_json_cell(missing_evidence),
         "decision_id": f"decision-{workout.workout_id}",
         "workout_id": workout.workout_id,
         "activity_id": workout.activity_id,
-        "recommendation_action": RecommendationAction.REQUEST_MANUAL_RESOLUTION.value,
+        "recommendation_action": recommendation.action.value,
         "rationale": reason,
     }
 

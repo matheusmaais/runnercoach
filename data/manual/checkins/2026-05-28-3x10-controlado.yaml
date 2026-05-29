@@ -4,6 +4,7 @@ activity_match:
   activity_id: garmin-20260528T161736-7p47km-3039s-17b463bc
   garmin_title: operational-smoke
   garmin_datetime: '2026-05-28 16:17:36'
+  distance_km: null
 session:
   planned_type: operational_smoke
   actual_type: operational_smoke

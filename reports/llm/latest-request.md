@@ -81,6 +81,10 @@ Garmin physiology is Matheus-only. Shared pace/distance/time can be used for Bru
   "bruna_symptoms": [],
   "matheus_achilles_after": "0",
   "volleyball_previous_day": "true",
+  "sleep_quality": "regular",
+  "category": "operational_smoke",
+  "symptom_severity": "none",
+  "matheus_achilles_morning": "0",
   "missing_evidence": [
     "bruna_avg_hr",
     "bruna_max_hr",
@@ -110,6 +114,10 @@ Garmin physiology is Matheus-only. Shared pace/distance/time can be used for Bru
   "bruna_symptoms": [],
   "matheus_achilles_after": "",
   "volleyball_previous_day": "",
+  "sleep_quality": "",
+  "category": "",
+  "symptom_severity": "none",
+  "matheus_achilles_morning": "",
   "missing_evidence": [
     "checkin"
   ],
@@ -148,6 +156,32 @@ Garmin physiology is Matheus-only. Shared pace/distance/time can be used for Bru
     "missing_evidence": "[]"
   }
 ]
+```
+
+## Deterministic Guardrail
+
+```json
+{
+  "action": "reduce_next_workout",
+  "decision": "reduce",
+  "selected_fallback": "reduce_next_workout",
+  "confidence": "high",
+  "blocked_by_red_flag": false,
+  "reasons": [
+    "volleyball_previous_day"
+  ],
+  "science_refs": [
+    "volleyball-neuromuscular-load"
+  ],
+  "rule_refs": [
+    "volleyball-neuromuscular-load"
+  ],
+  "missing_evidence": [],
+  "assumptions": [],
+  "phase": "ten_k_polish",
+  "week_number": 1,
+  "planned_workout_id": "plan-20260531-10k"
+}
 ```
 
 ## Approved Science Refs

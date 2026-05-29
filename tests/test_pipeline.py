@@ -5,7 +5,9 @@ from pathlib import Path
 import pytest
 
 from running_coach.garmin import make_activity_id
+from running_coach.models import Confidence, DecisionType, RecommendationAction
 from running_coach.pipeline import CheckInLoadError, run_pipeline
+from running_coach.recommendations import RecommendationResult
 
 
 REQUIRED_WORKOUT_COLUMNS = {
@@ -124,6 +126,39 @@ def write_matching_checkin(path: Path, activity_id: str) -> None:
     )
 
 
+def write_human_matched_checkin(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "schema_version: 1\n"
+        "date: 2026-05-28\n"
+        "confidence: medium\n"
+        "missing_evidence: []\n"
+        "activity_match:\n"
+        "  garmin_title: Santo Angelo Corrida\n"
+        "  garmin_datetime: '2026-05-28 16:17:36'\n"
+        "  distance_km: 7.47\n"
+        "session:\n"
+        "  planned_type: quality_controlled\n"
+        "  actual_type: cruise_intervals\n"
+        "  shared_run: true\n"
+        "bruna:\n"
+        "  avg_hr: 168\n"
+        "  max_hr: 184\n"
+        "  pse: 7\n"
+        "  symptoms: []\n"
+        "  sleep_quality: regular\n"
+        "  volleyball_previous_day: false\n"
+        "  gym_previous_day: false\n"
+        "  subjective: Controlado.\n"
+        "matheus:\n"
+        "  achilles_morning: 0\n"
+        "  achilles_after: 0\n"
+        "  role: pacer\n"
+        "  subjective: Aquiles silencioso.\n",
+        encoding="utf-8",
+    )
+
+
 def write_science_registry(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
@@ -172,6 +207,33 @@ def test_pipeline_writes_core_outputs(tmp_path):
         repo_root / "reports/latest-summary.md",
     ]:
         assert output.exists(), f"missing output: {output}"
+
+
+def test_pipeline_incremental_csv_preserves_existing_activity_history(tmp_path):
+    repo_root = tmp_path / "repo"
+    full_csv = tmp_path / "Activities-full.csv"
+    full_csv.write_text(
+        "Tipo de atividade,Data,Título,Distância,Tempo,FC Média,FC máxima\n"
+        "Corrida,2026-05-28 16:17:36,Santo Angelo Corrida,7.47,00:50:39,147,164\n"
+        "Corrida,2026-05-28 17:14:17,Matheus Solo,1.33,00:05:49,189,192\n",
+        encoding="utf-8",
+    )
+    run_pipeline(garmin_csv=full_csv, repo_root=repo_root, after_workout=True)
+
+    incremental_csv = tmp_path / "Activities-incremental.csv"
+    activity_id = make_activity_id(
+        "2026-05-28 16:17:36", 7.47, 3039.0, "Santo Angelo Corrida"
+    )
+    incremental_csv.write_text(
+        "activity_id,Tipo de atividade,Data,Título,Distância,Tempo,Ritmo médio\n"
+        f"{activity_id},Corrida,2026-05-28 16:17:36,Santo Angelo Corrida,7.47,00:50:39,6:47\n",
+        encoding="utf-8",
+    )
+    run_pipeline(garmin_csv=incremental_csv, repo_root=repo_root, after_workout=True)
+
+    activities = read_csv(repo_root / "data/processed/activities.csv")
+    assert len(activities) == 2
+    assert any(row["title"] == "Matheus Solo" for row in activities)
 
 
 def test_pipeline_does_not_overwrite_science_registry(tmp_path):
@@ -226,6 +288,105 @@ def test_pipeline_matches_existing_checkin_by_activity_id(tmp_path):
     assert workouts[0]["bruna_pse"] == "7"
     assert workouts[0]["volleyball_previous_day"] == "true"
     assert workouts[0]["decision_after_workout"] == "Manter polimento conservador."
+
+
+def test_pipeline_matches_checkin_by_human_activity_keys(tmp_path):
+    garmin_csv = tmp_path / "Activities.csv"
+    repo_root = tmp_path / "repo"
+    write_garmin_csv(garmin_csv)
+    write_human_matched_checkin(repo_root / "data/manual/checkins/2026-05-28-quality.yaml")
+
+    run_pipeline(garmin_csv=garmin_csv, repo_root=repo_root, after_workout=True)
+
+    workouts = read_csv(repo_root / "data/processed/workouts.csv")
+    assert workouts[0]["athlete_context"] == "shared_run_with_manual_checkin"
+    assert workouts[0]["shared_run"] == "true"
+    assert workouts[0]["bruna_pse"] == "7"
+    assert workouts[0]["match_confidence"] == "high"
+
+
+def test_pipeline_marks_planned_workout_completed_with_evidence(tmp_path):
+    garmin_csv = tmp_path / "Activities.csv"
+    repo_root = tmp_path / "repo"
+    write_garmin_csv(garmin_csv)
+    write_human_matched_checkin(repo_root / "data/manual/checkins/2026-05-28-quality.yaml")
+    (repo_root / "data/plan").mkdir(parents=True)
+    (repo_root / "data/plan/planned_workouts.csv").write_text(
+        "planned_workout_id,week_number,date,phase,intended_category,status\n"
+        "plan-20260528-cruise,1,2026-05-28,ten_k_polish,cruise_intervals,planned\n",
+        encoding="utf-8",
+    )
+
+    run_pipeline(garmin_csv=garmin_csv, repo_root=repo_root, after_workout=True)
+
+    workouts = read_csv(repo_root / "data/processed/workouts.csv")
+    plan_status = read_csv(repo_root / "data/processed/plan_status.csv")
+    assert workouts[0]["planned_workout_id"] == "plan-20260528-cruise"
+    assert plan_status[0]["derived_status"] == "completed_with_evidence"
+    assert plan_status[0]["matched_workout_id"] == workouts[0]["workout_id"]
+
+
+def test_pipeline_fails_closed_when_human_checkin_does_not_match_activity(tmp_path):
+    garmin_csv = tmp_path / "Activities.csv"
+    repo_root = tmp_path / "repo"
+    write_garmin_csv(garmin_csv)
+    write_human_matched_checkin(repo_root / "data/manual/checkins/2026-05-28-quality.yaml")
+    checkin_path = repo_root / "data/manual/checkins/2026-05-28-quality.yaml"
+    checkin_path.write_text(
+        checkin_path.read_text(encoding="utf-8").replace(
+            "2026-05-28 16:17:36", "2026-05-28 18:00:00"
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(CheckInLoadError, match="No Garmin activity matched check-in"):
+        run_pipeline(garmin_csv=garmin_csv, repo_root=repo_root, after_workout=True)
+
+
+def test_pipeline_calls_and_applies_deterministic_recommendation(tmp_path, monkeypatch):
+    garmin_csv = tmp_path / "Activities.csv"
+    repo_root = tmp_path / "repo"
+    write_garmin_csv(garmin_csv)
+    activity_id = make_activity_id(
+        "2026-05-28 16:17:36", 7.47, 3039.0, "Santo Angelo Corrida"
+    )
+    write_matching_checkin(
+        repo_root / "data/manual/checkins/2026-05-28-quality.yaml", activity_id
+    )
+    calls = []
+
+    def deterministic_recommendation(input_data):
+        calls.append(input_data)
+        return RecommendationResult(
+            action=RecommendationAction.REPLACE_WITH_EASY,
+            decision=DecisionType.RECOVER,
+            selected_fallback=RecommendationAction.REPLACE_WITH_EASY,
+            confidence=Confidence.HIGH,
+            blocked_by_red_flag=False,
+            reasons=["bruna_pse_ge_9"],
+            science_refs=["load-management-recovery"],
+            rule_refs=["load-management-recovery"],
+            missing_evidence=[],
+            assumptions=[],
+            phase=input_data.phase,
+            week_number=input_data.week_number,
+            planned_workout_id=input_data.planned_workout_id,
+        )
+
+    monkeypatch.setattr(
+        "running_coach.pipeline.recommend_next_action", deterministic_recommendation
+    )
+
+    run_pipeline(garmin_csv=garmin_csv, repo_root=repo_root, after_workout=True)
+
+    workouts = read_csv(repo_root / "data/processed/workouts.csv")
+    decisions = read_csv(repo_root / "data/processed/decisions.csv")
+    assert len(calls) == 1
+    assert calls[0].bruna_pse == 7
+    assert workouts[0]["recommendation_action"] == "replace_with_easy"
+    assert decisions[0]["recommendation_action"] == "replace_with_easy"
+    assert decisions[0]["decision_type"] == "recover"
+    assert json.loads(decisions[0]["science_refs"]) == ["load-management-recovery"]
 
 
 def test_workouts_and_decisions_have_required_contract_columns(tmp_path):

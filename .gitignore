@@ -8,6 +8,11 @@ __pycache__/
 
 data/raw/garmin/*
 !data/raw/garmin/.gitkeep
+data/manual/frontend_intake/raw/
+data/manual/frontend_intake/*.raw.json
+data/manual/frontend_intake/*.base64.json
+!data/manual/frontend_intake/.gitkeep
+.runnercoach/
 
 reports/charts/*.png
 

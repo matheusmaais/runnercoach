@@ -35,7 +35,7 @@ import {
   buildIntakePayload,
   defaultGithubSettings,
   defaultOperationalForm,
-  fileToBase64,
+  deriveGarminActivityFromCsv,
   intakePath,
   validateOperationalForm,
   type GithubSettings,
@@ -257,16 +257,17 @@ function NextWorkoutCard({ workout }: { workout?: PlannedWorkout }) {
 
 function OperateView() {
   const [form, setForm] = useState<OperationalFormState>(() => defaultOperationalForm());
-  const [settings, setSettings] = useState<GithubSettings>(() => {
-    const saved = window.localStorage.getItem("runnercoach.github");
-    return saved ? { ...defaultGithubSettings(), ...JSON.parse(saved) } : defaultGithubSettings();
-  });
+  const [settings, setSettings] = useState<GithubSettings>(() => defaultGithubSettings());
   const [status, setStatus] = useState<string>("Pronto para montar intake.");
   const [workflowUrl, setWorkflowUrl] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const errors = validateOperationalForm(form);
   const payload = buildIntakePayload(form);
   const path = intakePath(payload);
+
+  useEffect(() => {
+    window.localStorage.removeItem("runnercoach.github");
+  }, []);
 
   function update<K extends keyof OperationalFormState>(key: K, value: OperationalFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -278,8 +279,21 @@ function OperateView() {
 
   async function onCsv(file: File | null) {
     if (!file) return;
-    update("garminCsvName", file.name);
-    update("garminCsvBase64", await fileToBase64(file));
+    try {
+      const activity = await deriveGarminActivityFromCsv(file);
+      setForm((current) => ({
+        ...current,
+        garminCsvName: file.name,
+        garminActivity: activity,
+        activityId: current.activityId || activity.activity_id || "",
+        garminTitle: current.garminTitle || activity.title || "",
+        garminDatetime: current.garminDatetime || activity.local_datetime || "",
+        date: current.date || activity.local_date,
+      }));
+      setStatus("CSV lido localmente; o intake inclui apenas resumo sanitizado.");
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : "Falha ao derivar resumo Garmin.");
+    }
   }
 
   async function commitAndDispatch() {
@@ -293,10 +307,6 @@ function OperateView() {
     }
     setBusy(true);
     try {
-      window.localStorage.setItem(
-        "runnercoach.github",
-        JSON.stringify({ ...settings, token: settings.token }),
-      );
       await commitFileToGithub({
         settings,
         path,
@@ -339,7 +349,10 @@ function OperateView() {
             <TextInput label="Branch" value={settings.branch} onChange={(value) => updateSettings("branch", value)} />
             <TextInput label="Token" type="password" value={settings.token} onChange={(value) => updateSettings("token", value)} />
           </div>
-          <p className="helper">Use token fine-grained do GitHub limitado a este repo: Contents read/write e Actions read/write.</p>
+          <p className="helper">
+            Use token fine-grained do GitHub limitado a este repo: Contents read/write e Actions read/write.
+            Token fica apenas na memória desta aba e não é salvo no navegador.
+          </p>
         </article>
 
         <article className="operate-panel">
@@ -355,7 +368,9 @@ function OperateView() {
             onChange={(event) => onCsv(event.target.files?.[0] ?? null)}
           />
           <p className="helper">
-            {form.garminCsvName ? `${form.garminCsvName} carregado no intake.` : "Obrigatório para o Actions analisar treino novo."}
+            {form.garminCsvName
+              ? `${form.garminCsvName} lido localmente; CSV bruto nao sera commitado.`
+              : "Opcional: use para preencher o resumo local da atividade selecionada."}
           </p>
         </article>
       </div>
@@ -364,7 +379,7 @@ function OperateView() {
         <h3>Check-in do treino</h3>
         <div className="form-grid three">
           <TextInput label="Data" type="date" value={form.date} onChange={(value) => update("date", value)} />
-          <TextInput label="Activity ID Garmin" value={form.activityId} onChange={(value) => update("activityId", value)} />
+          <TextInput label="Activity ID Garmin (avancado/opcional)" value={form.activityId} onChange={(value) => update("activityId", value)} />
           <TextInput label="Título Garmin" value={form.garminTitle} onChange={(value) => update("garminTitle", value)} />
           <TextInput label="Data/hora Garmin" value={form.garminDatetime} onChange={(value) => update("garminDatetime", value)} />
           <TextInput label="Planejado" value={form.plannedType} onChange={(value) => update("plannedType", value)} />

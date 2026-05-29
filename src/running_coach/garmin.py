@@ -104,6 +104,57 @@ def make_activity_id(
     )
 
 
+def normalize_activity_title(value: str | None) -> str:
+    if value is None:
+        return ""
+    return re.sub(r"\s+", " ", value.strip()).casefold()
+
+
+def matches_activity_keys(
+    activity: dict[str, Any],
+    *,
+    date: str,
+    garmin_title: str | None,
+    garmin_datetime: str | None,
+    distance_km: float | None,
+) -> bool:
+    if garmin_datetime:
+        if activity.get("local_datetime") != garmin_datetime:
+            return False
+    elif activity.get("local_date") != date:
+        return False
+
+    if garmin_title and (
+        normalize_activity_title(activity.get("title"))
+        != normalize_activity_title(garmin_title)
+    ):
+        return False
+
+    if distance_km is not None:
+        activity_distance = activity.get("distance_km")
+        if activity_distance is None or abs(float(activity_distance) - distance_km) > 0.02:
+            return False
+
+    return True
+
+
+def human_activity_key_summary(
+    *,
+    date: str,
+    garmin_title: str | None,
+    garmin_datetime: str | None,
+    distance_km: float | None,
+) -> str:
+    parts = [f"date={date}"]
+    if garmin_datetime:
+        parts.append(f"garmin_datetime={garmin_datetime}")
+    if garmin_title:
+        parts.append(f"garmin_title={garmin_title}")
+    if distance_km is not None:
+        parts.append(f"distance_km={distance_km:.2f}")
+    return ", ".join(parts)
+
+
 def parse_garmin_csv_text(csv_text: str, source_file: str) -> list[dict[str, Any]]:
     text = csv_text.lstrip("\ufeff")
     reader = csv.DictReader(io.StringIO(text))
@@ -121,7 +172,8 @@ def parse_garmin_csv_text(csv_text: str, source_file: str) -> list[dict[str, Any
         )
         output.append(
             {
-                "activity_id": make_activity_id(
+                "activity_id": _optional_text(row, "activity_id")
+                or make_activity_id(
                     local_datetime, distance_km, duration_seconds, title
                 ),
                 "source_file": source_file,

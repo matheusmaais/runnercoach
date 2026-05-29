@@ -51,9 +51,9 @@ def main() -> int:
         prompt=_prompt(request),
     )
 
-    raw_path = output_dir / "latest-bedrock-response.json"
-    parsed_response = _repair_bedrock_response(json.loads(_strip_json_fences(response_text)))
-    raw_path.write_text(json.dumps(parsed_response, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    raw_response = json.loads(_strip_json_fences(response_text))
+    _persist_bedrock_response(output_dir, raw_response)
+    parsed_response = _repair_bedrock_response(raw_response)
 
     try:
         validated = validate_llm_response(parsed_response, request)
@@ -166,6 +166,23 @@ def _repair_bedrock_response(response: dict[str, Any]) -> dict[str, Any]:
         repaired["decision_type"] = decision_aliases[decision_type]
 
     return repaired
+
+
+def _persist_bedrock_response(
+    output_dir: Path, raw_response: dict[str, Any]
+) -> dict[str, Path]:
+    raw_path = output_dir / "latest-bedrock-response.json"
+    repaired_path = output_dir / "latest-bedrock-repaired-response.json"
+    raw_path.write_text(
+        json.dumps(raw_response, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    repaired_path.write_text(
+        json.dumps(_repair_bedrock_response(raw_response), ensure_ascii=False, indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
+    return {"raw": raw_path, "repaired": repaired_path}
 
 
 if __name__ == "__main__":

@@ -24,9 +24,10 @@ def compute_sha256(path: Path) -> str:
 class ActivityMatch(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    activity_id: str = Field(min_length=1)
+    activity_id: str | None = Field(default=None, min_length=1)
     garmin_title: str | None = None
     garmin_datetime: str | None = None
+    distance_km: float | None = Field(default=None, gt=0)
 
 
 class SessionCheckIn(BaseModel):

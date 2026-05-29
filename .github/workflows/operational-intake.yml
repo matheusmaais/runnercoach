@@ -23,8 +23,6 @@ on:
 permissions:
   contents: write
   actions: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: "operational-intake"
@@ -49,8 +47,23 @@ jobs:
 
       - name: Process frontend intake
         id: intake
+        env:
+          INTAKE_PATH: ${{ inputs.intake_path }}
         run: |
-          python scripts/process_frontend_intake.py "${{ inputs.intake_path }}" | tee /tmp/intake.env
+          python - <<'PY'
+          import os
+          import re
+
+          intake_path = os.environ["INTAKE_PATH"]
+          safe_path = r"data/manual/frontend_intake/[A-Za-z0-9][A-Za-z0-9._-]*\.json"
+          if (
+              not re.fullmatch(safe_path, intake_path)
+              or ".." in intake_path
+              or intake_path.startswith("/")
+          ):
+              raise SystemExit(f"Invalid intake_path: {intake_path!r}")
+          PY
+          python scripts/process_frontend_intake.py "$INTAKE_PATH" | tee /tmp/intake.env
           {
             echo "garmin_csv_path=$(grep '^garmin_csv_path=' /tmp/intake.env | cut -d= -f2- || true)"
             echo "run_llm=$(grep '^run_llm=' /tmp/intake.env | cut -d= -f2- || echo false)"
@@ -107,14 +120,3 @@ jobs:
             git commit -m "chore: process frontend intake"
             git push
           fi
-
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: web/dist
-
-      - name: Deploy Pages
-        uses: actions/deploy-pages@v4

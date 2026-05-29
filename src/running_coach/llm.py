@@ -8,7 +8,8 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from running_coach.csv_utils import decode_json_cell
-from running_coach.models import Confidence, DecisionType, RecommendationAction
+from running_coach.models import Confidence, DecisionType, RecommendationAction, SymptomSeverity
+from running_coach.recommendations import RecommendationInput, recommend_next_action
 from running_coach.science import load_science_refs
 
 
@@ -65,7 +66,7 @@ def build_llm_request(repo_root: Path | str) -> dict[str, Any]:
         row for row in workouts if row.get("athlete_context") == "matheus_garmin_only"
     )
 
-    return {
+    request = {
         "schema_version": 1,
         "generated_at": _deterministic_generated_at(
             latest_shared, latest_matheus_solo, workouts
@@ -107,6 +108,8 @@ def build_llm_request(repo_root: Path | str) -> dict[str, Any]:
             field: _schema_hint(field) for field in sorted(REQUIRED_RESPONSE_FIELDS)
         },
     }
+    request["deterministic_guardrail"] = _deterministic_guardrail_for_request(request)
+    return request
 
 
 def render_llm_request_markdown(request: dict[str, Any]) -> str:
@@ -144,6 +147,12 @@ def render_llm_request_markdown(request: dict[str, Any]) -> str:
             "",
             "```json",
             json.dumps(request.get("next_planned_workouts", []), ensure_ascii=False, indent=2),
+            "```",
+            "",
+            "## Deterministic Guardrail",
+            "",
+            "```json",
+            json.dumps(request.get("deterministic_guardrail", {}), ensure_ascii=False, indent=2),
             "```",
             "",
             "## Approved Science Refs",
@@ -207,6 +216,26 @@ def validate_llm_response(
     if parsed.athlete_scope == "bruna" and solo_workout_id in parsed.evidence_used:
         raise LlmResponseValidationError(
             "Matheus solo workout cannot be used as Bruna evidence"
+        )
+
+    known_evidence_ids = _known_evidence_ids(request)
+    unknown_evidence = sorted(set(parsed.evidence_used) - known_evidence_ids)
+    if known_evidence_ids and unknown_evidence:
+        raise LlmResponseValidationError(f"unknown evidence_used ids: {unknown_evidence}")
+
+    guardrail = _deterministic_guardrail_for_request(request)
+    guardrail_action = RecommendationAction(guardrail["action"])
+    if not _action_allowed_by_guardrail(parsed.next_workout_action, guardrail_action):
+        raise LlmResponseValidationError(
+            "deterministic guardrail forbids action "
+            f"{parsed.next_workout_action.value}; required envelope is "
+            f"{guardrail_action.value}"
+        )
+    required_missing = set(guardrail.get("missing_evidence", []))
+    omitted_missing = sorted(required_missing - set(parsed.missing_evidence))
+    if omitted_missing:
+        raise LlmResponseValidationError(
+            f"missing evidence omitted from response: {omitted_missing}"
         )
 
     return parsed.model_dump(mode="json")
@@ -278,6 +307,10 @@ def _llm_workout(row: dict[str, str], bruna_evidence: str) -> dict[str, Any]:
         "bruna_symptoms",
         "matheus_achilles_after",
         "volleyball_previous_day",
+        "sleep_quality",
+        "category",
+        "symptom_severity",
+        "matheus_achilles_morning",
         "missing_evidence",
     ]
     payload = {key: row.get(key, "") for key in keys}
@@ -290,6 +323,151 @@ def _llm_workout(row: dict[str, str], bruna_evidence: str) -> dict[str, Any]:
 
 def _workout_id(payload: dict[str, Any]) -> str:
     return str(payload.get("workout_id") or "")
+
+
+def _known_evidence_ids(request: dict[str, Any]) -> set[str]:
+    ids: set[str] = set()
+    for section in ("latest_shared_workout", "latest_matheus_solo"):
+        payload = request.get(section, {})
+        if isinstance(payload, dict):
+            ids.update(
+                str(payload.get(key))
+                for key in ("workout_id", "activity_id")
+                if payload.get(key)
+            )
+    for planned in request.get("next_planned_workouts", []):
+        if isinstance(planned, dict) and planned.get("planned_workout_id"):
+            ids.add(str(planned["planned_workout_id"]))
+    for decision in request.get("recent_decisions", []):
+        if isinstance(decision, dict):
+            ids.update(
+                str(decision.get(key))
+                for key in ("decision_id", "workout_id", "activity_id", "related_workout_id")
+                if decision.get(key)
+            )
+    return ids
+
+
+def _deterministic_guardrail_for_request(request: dict[str, Any]) -> dict[str, Any]:
+    workout = request.get("latest_shared_workout", {})
+    if not isinstance(workout, dict) or not workout:
+        return {
+            "action": RecommendationAction.REQUEST_MANUAL_RESOLUTION.value,
+            "decision": DecisionType.DEFER.value,
+            "confidence": Confidence.LOW.value,
+            "reasons": ["missing_shared_workout"],
+            "science_refs": [],
+            "rule_refs": [],
+            "missing_evidence": ["latest_shared_workout"],
+            "planned_workout_id": "unplanned-next-workout",
+        }
+
+    planned = _first_planned_workout(request)
+    result = recommend_next_action(
+        RecommendationInput(
+            bruna_pse=_optional_int(workout.get("bruna_pse")),
+            symptom_severity=_symptom_severity(workout.get("symptom_severity")),
+            matheus_achilles_morning=_optional_int(
+                workout.get("matheus_achilles_morning")
+            )
+            or 0,
+            matheus_achilles_after=_optional_int(workout.get("matheus_achilles_after"))
+            or 0,
+            volleyball_previous_day=_bool_value(workout.get("volleyball_previous_day")),
+            poor_sleep=_is_poor_sleep(workout.get("sleep_quality")),
+            all_out_race=_is_all_out_race(workout),
+            planned_action=RecommendationAction.MAINTAIN_NEXT_WORKOUT,
+            phase=str(planned.get("phase") or "unknown"),
+            week_number=_optional_int(planned.get("week_number")) or 1,
+            planned_workout_id=str(
+                planned.get("planned_workout_id") or "unplanned-next-workout"
+            ),
+        )
+    )
+    return result.model_dump(mode="json")
+
+
+def _first_planned_workout(request: dict[str, Any]) -> dict[str, Any]:
+    planned = request.get("next_planned_workouts", [])
+    if isinstance(planned, list) and planned and isinstance(planned[0], dict):
+        return planned[0]
+    return {}
+
+
+def _optional_int(value: Any) -> int | None:
+    if value in (None, ""):
+        return None
+    return int(value)
+
+
+def _bool_value(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() == "true"
+    return bool(value)
+
+
+def _is_poor_sleep(value: Any) -> bool:
+    if not value:
+        return False
+    return str(value).strip().lower() in {"poor", "bad", "ruim", "pessima", "péssima"}
+
+
+def _is_all_out_race(workout: dict[str, Any]) -> bool:
+    haystack = " ".join(
+        str(workout.get(key) or "").lower() for key in ("category", "next_workout")
+    )
+    return any(
+        token in haystack
+        for token in ("all_out", "all-out", "maximo", "máximo", "race")
+    )
+
+
+def _symptom_severity(value: Any) -> SymptomSeverity:
+    if not value:
+        return SymptomSeverity.NONE
+    return SymptomSeverity(str(value))
+
+
+def _action_allowed_by_guardrail(
+    llm_action: RecommendationAction, guardrail_action: RecommendationAction
+) -> bool:
+    allowed = {
+        RecommendationAction.MAINTAIN_NEXT_WORKOUT: set(RecommendationAction),
+        RecommendationAction.REDUCE_NEXT_WORKOUT: {
+            RecommendationAction.REDUCE_NEXT_WORKOUT,
+            RecommendationAction.REPLACE_WITH_EASY,
+            RecommendationAction.REPLACE_WITH_OFF,
+            RecommendationAction.DEFER_QUALITY,
+        },
+        RecommendationAction.REPLACE_WITH_EASY: {
+            RecommendationAction.REPLACE_WITH_EASY,
+            RecommendationAction.REPLACE_WITH_OFF,
+        },
+        RecommendationAction.REPLACE_WITH_OFF: {
+            RecommendationAction.REPLACE_WITH_OFF,
+        },
+        RecommendationAction.REPLACE_WITH_CROSS_TRAINING: {
+            RecommendationAction.REPLACE_WITH_CROSS_TRAINING,
+            RecommendationAction.REPLACE_WITH_OFF,
+        },
+        RecommendationAction.DEFER_QUALITY: {
+            RecommendationAction.DEFER_QUALITY,
+            RecommendationAction.REDUCE_NEXT_WORKOUT,
+            RecommendationAction.REPLACE_WITH_EASY,
+            RecommendationAction.REPLACE_WITH_OFF,
+        },
+        RecommendationAction.BRUNA_WITHOUT_MATHEUS: {
+            RecommendationAction.BRUNA_WITHOUT_MATHEUS,
+            RecommendationAction.REPLACE_WITH_CROSS_TRAINING,
+            RecommendationAction.REPLACE_WITH_OFF,
+        },
+        RecommendationAction.REQUEST_MANUAL_RESOLUTION: {
+            RecommendationAction.REQUEST_MANUAL_RESOLUTION,
+        },
+    }
+    return llm_action in allowed[guardrail_action]
 
 
 def _deterministic_generated_at(

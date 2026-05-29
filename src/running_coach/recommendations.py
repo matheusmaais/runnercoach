@@ -92,6 +92,13 @@ def _select_action(
     reasons = _guardrail_reasons(input_data)
     reason_tags = set(reasons)
 
+    if "bruna_strong_symptoms" in reason_tags:
+        return (
+            RecommendationAction.REDUCE_NEXT_WORKOUT,
+            reasons,
+            False,
+        )
+
     if "bruna_pse_ge_9" in reason_tags and "all_out_race" in reason_tags:
         return (
             RecommendationAction.REPLACE_WITH_OFF,
@@ -153,6 +160,8 @@ def _guardrail_reasons(input_data: RecommendationInput) -> list[str]:
     reasons: list[str] = []
     if input_data.bruna_pse is not None and input_data.bruna_pse >= 9:
         reasons.append("bruna_pse_ge_9")
+    if input_data.symptom_severity == SymptomSeverity.MODERATE:
+        reasons.append("bruna_strong_symptoms")
     if _max_achilles(input_data) >= 5:
         reasons.append("matheus_achilles_ge_5")
     elif _max_achilles(input_data) >= 3:
@@ -179,6 +188,8 @@ def _decision_for(action: RecommendationAction, reasons: list[str]) -> DecisionT
         return DecisionType.RECOVER
     if "bruna_pse_ge_9" in reason_tags:
         return DecisionType.RECOVER
+    if "bruna_strong_symptoms" in reason_tags:
+        return DecisionType.REDUCE
     if "matheus_achilles_ge_5" in reason_tags:
         return DecisionType.ALTER
     if "matheus_achilles_ge_3" in reason_tags:
@@ -196,6 +207,8 @@ def _rule_refs_for(reasons: list[str]) -> list[str]:
     if "red_flag_symptom" in reason_tags:
         refs.append("safety-red-flag-conservative")
     if "bruna_pse_ge_9" in reason_tags:
+        refs.append("load-management-recovery")
+    if "bruna_strong_symptoms" in reason_tags:
         refs.append("load-management-recovery")
     if reason_tags & {"matheus_achilles_ge_5", "matheus_achilles_ge_3"}:
         refs.append("achilles-tendinopathy-load")

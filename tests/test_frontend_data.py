@@ -78,7 +78,7 @@ def test_frontend_payload_exposes_latest_llm_recommendation() -> None:
 
     assert recommendation["recommendation_id"]
     assert recommendation["decision_type"] == "race_strategy"
-    assert recommendation["next_workout_action"] == "maintain_next_workout"
+    assert recommendation["next_workout_action"] == "reduce_next_workout"
     assert recommendation["summary"]
     assert recommendation["science_refs"]
 

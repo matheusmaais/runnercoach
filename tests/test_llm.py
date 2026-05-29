@@ -1,6 +1,7 @@
 import json
 import hashlib
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -69,7 +70,7 @@ def test_generate_recommendation_cli_writes_request_artifacts(tmp_path):
 
     result = subprocess.run(
         [
-            ".venv/bin/python",
+            sys.executable,
             "scripts/generate_recommendation.py",
             "--output-dir",
             str(output_dir),
@@ -95,7 +96,7 @@ def test_generate_recommendation_cli_validates_response(tmp_path):
 
     result = subprocess.run(
         [
-            ".venv/bin/python",
+            sys.executable,
             "scripts/generate_recommendation.py",
             "--output-dir",
             str(output_dir),
@@ -157,6 +158,28 @@ def test_validate_llm_response_rejects_matheus_solo_as_bruna_scope():
         validate_llm_response(response, request)
 
 
+def test_validate_llm_response_rejects_unknown_evidence_ids():
+    request = build_llm_request(Path("."))
+    response = _valid_response(evidence_used=["workout-does-not-exist"])
+
+    with pytest.raises(LlmResponseValidationError, match="unknown evidence_used"):
+        validate_llm_response(response, request)
+
+
+def test_validate_llm_response_rejects_action_against_high_pse_and_achilles_guardrail():
+    request = build_llm_request(Path("."))
+    request["latest_shared_workout"]["bruna_pse"] = "9"
+    request["latest_shared_workout"]["matheus_achilles_after"] = "5"
+    response = _valid_response(
+        next_workout_action="maintain_next_workout",
+        decision_type="maintain",
+        evidence_used=[request["latest_shared_workout"]["workout_id"]],
+    )
+
+    with pytest.raises(LlmResponseValidationError, match="deterministic guardrail"):
+        validate_llm_response(response, request)
+
+
 def test_validate_llm_response_rejects_unknown_fields():
     request = build_llm_request(Path("."))
     response = _valid_response()
@@ -170,14 +193,14 @@ def _valid_response(**overrides):
     response = {
         "schema_version": 1,
         "recommendation_id": "llm-20260529-001",
-        "next_workout_action": "maintain_next_workout",
-        "decision_type": "maintain",
+        "next_workout_action": "reduce_next_workout",
+        "decision_type": "reduce",
         "confidence": "medium",
         "summary": "Manter o plano com cautela.",
         "what_workout_showed": "Ha evidencia compartilhada, mas ainda falta FC da Bruna.",
         "risk_assessment": "Risco controlado com evidencia incompleta.",
         "next_workout": "Executar proximo treino por faixa e PSE.",
-        "science_refs": ["training-consistency-principle"],
+        "science_refs": ["volleyball-neuromuscular-load"],
         "evidence_used": [
             "workout-garmin-20260528T161736-7p47km-3039s-17b463bc"
         ],
