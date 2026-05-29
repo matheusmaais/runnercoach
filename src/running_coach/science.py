@@ -40,9 +40,8 @@ class ScienceRef(BaseModel):
             raise ValueError("doi_or_url must be non-empty")
         if value.startswith(("http://", "https://")):
             return value
-        if value.startswith("doi:10."):
-            return value
-        if DOI_PATTERN.match(value):
+        doi_value = value.removeprefix("doi:") if value.startswith("doi:") else value
+        if DOI_PATTERN.match(doi_value):
             return value
         raise ValueError("doi_or_url must be an http URL or DOI")
 

@@ -86,6 +86,25 @@ def test_science_ref_accepts_doi():
     assert ref.doi_or_url == "10.1136/bjsports-2016-096581"
 
 
+@pytest.mark.parametrize(
+    "doi_or_url",
+    [
+        "doi:10.",
+        "doi:10.abc",
+        "doi:10.123/no-space-ok",
+    ],
+)
+def test_science_ref_rejects_invalid_prefixed_doi(doi_or_url):
+    with pytest.raises(ValidationError, match="doi_or_url must be an http URL or DOI"):
+        science_ref(doi_or_url=doi_or_url)
+
+
+def test_science_ref_accepts_prefixed_doi():
+    ref = science_ref(doi_or_url="doi:10.1136/bjsports-2016-096581")
+
+    assert ref.doi_or_url == "doi:10.1136/bjsports-2016-096581"
+
+
 def test_unknown_source_type_rejected():
     with pytest.raises(ValidationError):
         science_ref(source_type="blog")
