@@ -12,6 +12,8 @@ The system is personal, not generic. It must use Garmin data, subjective feedbac
 
 The product should be fully designed now, but implemented incrementally. This is not waterfall. It is a complete north-star design with stable data contracts and vertical releases that remain useful at each stage.
 
+The implementation model is an iterative roadmap with explicit internal milestones. The north-star product is designed end to end, but V1 is split into independently verifiable slices so implementation does not become waterfall hidden inside a large first release.
+
 ## Non-Negotiable Product Principles
 
 1. Consistency beats heroics.
@@ -63,6 +65,26 @@ The Garmin watch is on Matheus's wrist.
 - Bruna is evaluated through shared pace, PSE/RPE, manual HR when provided, symptoms, subjective feedback, recovery, volleyball, strength training, sleep, menstrual/cólica context when voluntarily provided, and whether she felt she could repeat the block.
 - Missing Bruna feedback does not block recommendations, but lowers confidence and must be recorded as missing evidence.
 
+### Evidence Levels
+
+Every athlete-specific interpretation must carry an explicit evidence level.
+
+Evidence dimensions:
+
+- `pace_evidence`: shared Garmin pace/distance/time.
+- `bruna_hr_evidence`: manual Galaxy HR or screenshot-derived HR.
+- `bruna_subjective_evidence`: PSE/RPE, symptoms, recovery, and subjective notes.
+- `matheus_physiology_evidence`: Garmin HR/cadence/power/running dynamics.
+- `matheus_injury_evidence`: Achilles morning and post-workout scores.
+
+Allowed values:
+
+- `high`: direct athlete-specific data exists and is internally consistent.
+- `medium`: partial athlete-specific data exists and no contradicting signal is present.
+- `low`: inferred from shared pace/context with missing athlete-specific evidence.
+
+Any Bruna intensity or zone decision without PSE/symptoms/recovery must be `low` or `medium` confidence and must list the missing evidence. Matheus solo efforts must not update Bruna zones, projections, or readiness.
+
 ## Current Training Context
 
 Weekly baseline:
@@ -102,6 +124,8 @@ The Sunday 10K on 2026-05-31 is a diagnostic race, not the final goal. Strategy:
 - Km 8-10: progress only if no symptoms and control remains.
 - Recede to conservative mode if blurry vision, dizziness, PSE 9 too early, disorganized breathing before km 5, unusual pain, heat stress, or other concerning symptom appears.
 
+If a red-flag symptom appears, the system must produce a conservative recommendation and suppress performance-oriented next-workout suggestions until recovery status is clarified. V1 does not provide medical diagnosis. It records the symptom, lowers confidence, and recommends conservative recovery.
+
 The January 2027 half-marathon target is a provisional range, not an official fixed time. It should appear in the dashboard as a hypothesis and be recalibrated from races, key workouts, consistency, recovery, and risk.
 
 ## Architecture
@@ -116,6 +140,8 @@ The spreadsheet is not the brain. Google Sheets, Excel, CLI, GitHub Pages, and L
 Garmin raw CSV, local and gitignored
         +
 manual check-ins as YAML per workout
+        +
+versioned plan/cycle model
         +
 approved science registry
         +
@@ -139,7 +165,11 @@ running-coach-system/
 │   │   └── garmin/              # local input, ignored except .gitkeep
 │   ├── manual/
 │   │   ├── checkins/            # canonical human input
-│   │   └── screenshots/         # optional local/reference screenshots
+│   │   └── screenshots/         # versioned source evidence for Bruna HR
+│   ├── plan/
+│   │   ├── cycle.yaml           # current phase, numbered weeks, milestones, constraints
+│   │   ├── workout_templates.yaml
+│   │   └── planned_workouts.csv
 │   └── processed/
 │       ├── activities.csv
 │       ├── workouts.csv
@@ -147,6 +177,7 @@ running-coach-system/
 │       ├── wellness.csv
 │       ├── decisions.csv
 │       ├── zones.csv
+│       ├── plan_status.csv
 │       └── science_refs.csv
 ├── docs/
 │   ├── state.md
@@ -194,9 +225,10 @@ The repo uses a hybrid privacy model.
 
 - `data/raw/garmin/` is local and gitignored by default.
 - `data/manual/checkins/`, docs, processed CSVs, reports, and decision logs are versioned.
+- `data/manual/screenshots/` is versioned in this personal repository. Screenshots are treated as source evidence for Bruna HR and must be referenced from check-ins when used.
 - The raw CSV can be re-imported locally at any time.
 - Tests use small anonymized fixtures, not the full raw Garmin export.
-- Screenshots are optional references and should be local/ignored unless explicitly curated.
+- If the project later needs a public/template version, screenshots and sensitive check-in data must be excluded or anonymized before publication.
 
 The provided generated workbook is a visual and semantic reference only. It must not be used as a source of truth, because formulas and decisions inside it are not the product contract.
 
@@ -210,6 +242,7 @@ Example:
 schema_version: 1
 date: 2026-05-28
 activity_match:
+  activity_id: "garmin-20260528T161736-7p47km-3039s"
   garmin_title: "Santo Ângelo - 3x10min"
   garmin_datetime: "2026-05-28 16:17:36"
 session:
@@ -233,12 +266,54 @@ matheus:
   role: pacemaker
   subjective: "Aquiles silencioso."
 attachments:
-  bruna_hr_screenshot: null
+  bruna_hr_screenshot: "data/manual/screenshots/2026-05-28-bruna-hr.jpg"
 coach_notes:
   decision_after_workout: "Manter polimento, evitar buscar 5:50/km como treino contínuo."
 ```
 
 The future CLI, GitHub Pages form, screenshot workflow, or chat-assisted entry must all write this same YAML shape. CSVs remain derived artifacts.
+
+### Activity Matching
+
+Check-ins must reference a stable `activity_id`, not only title/date text.
+
+`activity_id` is generated deterministically from Garmin activity datetime, duration, distance, and normalized title hash. This prevents repeated titles such as "Santo Ângelo Corrida" from receiving the wrong manual feedback.
+
+Matching rules:
+
+- Exact `activity_id` match wins.
+- If `activity_id` is missing, the importer may propose a match by datetime/duration/distance but must mark it `match_confidence: low` until confirmed.
+- Duplicate candidate matches must fail closed and ask for manual resolution.
+- A check-in cannot be silently attached to more than one activity.
+
+## Plan And Cycle Contract
+
+The recommendation engine must never choose a random plausible workout. It must adapt the next workout inside an explicit plan/cycle model.
+
+Required plan artifacts:
+
+- `data/plan/cycle.yaml`: current phase, numbered weeks, target race/milestone, weekly structure, constraints, and criteria to advance or hold.
+- `data/plan/workout_templates.yaml`: reusable workout types with purpose, allowed intensity range, contraindications, and science tags.
+- `data/plan/planned_workouts.csv`: planned workout slots with date, week number, phase, intended category, fallback options, and status.
+- `data/processed/plan_status.csv`: derived comparison of planned vs completed work.
+
+Minimum fields for planned workouts:
+
+- `planned_workout_id`
+- `week_number`
+- `date`
+- `phase`
+- `slot`
+- `intended_category`
+- `purpose`
+- `primary_athlete`
+- `planned_distance_or_duration`
+- `planned_intensity_range`
+- `allowed_fallbacks`
+- `contraindications`
+- `status`
+
+The plan is adaptive, not rigid. After each workout, the system may maintain, reduce, replace, or defer the next planned session, but the decision must reference the current phase, week number, prior load, and upcoming target.
 
 ## Processed Data Contracts
 
@@ -248,6 +323,15 @@ Garmin facts, normalized from Portuguese Garmin CSV.
 
 Required fields include date/time, title, activity type, distance, duration, average pace, best pace, elevation, training effect, and Matheus-only physiological/running dynamics fields.
 
+Every normalized Garmin row must include:
+
+- `activity_id`
+- `source_file`
+- `source_row_number`
+- `data_owner_hr`: always `matheus` for Garmin HR
+- `data_owner_dynamics`: always `matheus` for Garmin running dynamics
+- `is_shared_run_candidate`
+
 ### workouts.csv
 
 Unified coaching view of shared runs and other relevant training events.
@@ -255,7 +339,14 @@ Unified coaching view of shared runs and other relevant training events.
 Required fields include:
 
 - date
+- workout_id
+- activity_id
+- planned_workout_id
 - athlete_context
+- participants
+- shared_run
+- bruna_present
+- matheus_role
 - activity_type
 - category
 - distance_km
@@ -281,6 +372,8 @@ Required fields include:
 - decision_after_workout
 - confidence
 - missing_evidence
+- evidence_level
+- match_confidence
 
 ### races.csv
 
@@ -335,6 +428,31 @@ Fields:
 - evidence
 - confidence
 - science_refs
+- decision_type
+- blocked_by_red_flag
+- missing_evidence
+
+### science_refs.csv
+
+Approved science registry used by recommendations.
+
+Fields:
+
+- `science_ref_id`
+- `title`
+- `authors`
+- `year`
+- `source_type`
+- `journal_or_publisher`
+- `doi_or_url`
+- `population`
+- `finding`
+- `practical_application`
+- `limits`
+- `tags`
+- `approved`
+- `approved_date`
+- `notes`
 
 ## Recommendation Engine
 
@@ -346,6 +464,7 @@ These rules define the allowed decision envelope:
 
 - If Bruna PSE >= 9 in training, next run is easy/off.
 - If Bruna had strong symptoms, reduce intensity.
+- If Bruna has a red-flag symptom such as blurry vision, dizziness, fainting, chest pain, unusual neurological symptom, or severe heat-stress signal, suppress performance-oriented recommendations and choose conservative recovery.
 - If Matheus Achilles is 3-4/10, remove intervals, descending, fast progressions, and speed focus.
 - If Matheus Achilles is >= 5/10, recommend off/cross-training and revisit plan.
 - If Achilles worsens for two consecutive days, raise alert level.
@@ -355,6 +474,18 @@ These rules define the allowed decision envelope:
 - If a workout was missed, do not compensate.
 - If a race was all-out, treat the next 2-4 days as recovery.
 - If high fatigue persists for two weeks, insert a down week.
+- If Matheus cannot safely pace because of Achilles status, the system may recommend that Bruna trains without Matheus or changes the session format.
+
+### Symptom Severity
+
+Symptoms must be classified before recommendation:
+
+- `none`: no reported symptom.
+- `mild`: discomfort that does not alter mechanics or cognition.
+- `moderate`: symptom affects performance or recovery but no red flag is present.
+- `red_flag`: blurry vision, dizziness, fainting, chest pain, unusual neurological symptom, severe heat-stress signal, or any symptom the athlete marks as concerning.
+
+V1 response to `red_flag` is conservative recovery and no performance escalation. It does not provide diagnosis.
 
 ### LLM Coach Layer
 
@@ -376,6 +507,8 @@ Every recommendation must include:
 - missing evidence
 - assumptions
 - science references used
+- plan context: current phase, week number, planned workout being adapted, and fallback selected
+- whether Bruna can or should execute without Matheus if Matheus's Achilles blocks pacing
 
 The LLM cannot cite unaudited popular advice. It can only cite the approved science registry.
 
@@ -388,6 +521,14 @@ Artifacts:
 - `docs/scientific-basis.md`: practical interpretation for Matheus and Bruna.
 - `data/processed/science_refs.csv`: structured registry of approved sources.
 - `scripts/research_science.py`: assists with future research, but never overwrites approved science automatically.
+
+Quality contract:
+
+- Every approved source must have DOI or URL.
+- Every source must declare source type: peer-reviewed study, position stand, textbook/book, coaching framework, or governing-body guidance.
+- Every source must state population and applicability limits.
+- Every practical application must be connected to tags used by recommendations.
+- A recommendation cannot cite a source whose tags do not match the decision reason.
 
 Required science topics:
 
@@ -460,6 +601,16 @@ Required charts:
 - sustainable strong-pace trend
 - risk/fatigue trend
 
+Dashboard acceptance criteria:
+
+- Workbook contains all 10 required tabs.
+- Dashboard tab contains no raw wide data table above the fold.
+- Dashboard has native charts, not only styled tables.
+- Key dashboard areas render without clipped labels or unreadable colors.
+- Operational tabs have freeze panes and filters.
+- Risk statuses use the same color semantics everywhere.
+- A visual verification pass must render the dashboard and at least the main operational tabs before release.
+
 ## Reports And Operating Cadence
 
 The system runs after each workout.
@@ -503,6 +654,42 @@ V1 is complete when:
 10. A single pipeline command updates the system.
 11. Tests cover parsing, data ownership, safety rules, recommendation confidence, and dashboard generation.
 
+### V1 Internal Milestones
+
+V1 is split into smaller implementation gates.
+
+#### V1.0: Data Contracts
+
+- Repository structure.
+- Garmin import into ignored raw storage.
+- Activity ID generation.
+- Garmin PT-BR normalization.
+- Check-in YAML validation.
+- Processed CSV skeletons.
+
+#### V1.1: Plan And Recommendation Core
+
+- Numbered weeks and cycle model.
+- Planned workout slots.
+- Deterministic guardrails.
+- Red-flag symptom handling.
+- Recommendation output with confidence, missing evidence, assumptions, plan context, and science refs.
+
+#### V1.2: Documentation And Science
+
+- Athlete profiles.
+- Coaching principles.
+- Roadmap.
+- State and decisions docs.
+- Initial approved science registry with quality fields.
+
+#### V1.3: Dashboard And Reports
+
+- Modern local dashboard.
+- Latest summary.
+- Monthly report command.
+- Visual verification checklist.
+
 ## Testing Strategy
 
 Minimum tests:
@@ -510,16 +697,24 @@ Minimum tests:
 - Garmin PT-BR parsing of dates, decimal numbers, duration, pace, and `--` values.
 - Garmin physiological fields map only to Matheus.
 - Shared run pace/distance/time can apply to both athletes.
+- Matheus solo activity cannot update Bruna zones, projections, or readiness.
+- Two Garmin rows with the same title still receive distinct `activity_id` values.
+- Check-in matching fails closed when candidate activity match is ambiguous.
 - Check-in YAML validation rejects invalid PSE, invalid Achilles scores, and impossible dates.
 - PSE >= 9 forces easy/off recommendation.
+- Red-flag symptoms suppress performance-oriented recommendations.
 - Achilles >= 3 removes intensity for Matheus.
 - Achilles >= 5 recommends off/cross-training.
+- If Matheus's Achilles blocks pacing, recommendation can tell Bruna to train without Matheus or change the format.
 - Volleyball previous day blocks maximal training.
 - Poor sleep reduces volume or intensity.
 - Missed workouts are not compensated.
 - All-out race creates recovery window.
 - Recommendation output includes confidence, missing evidence, assumptions, decision, and science refs.
+- Recommendation output references current phase, week number, planned workout, and selected fallback.
+- Recommendation cannot cite an unapproved science reference or a source without matching tags.
 - Dashboard generation creates all required tabs.
+- Dashboard workbook contains native charts and passes visual verification.
 
 ## Release Roadmap
 
@@ -554,8 +749,8 @@ These are intentionally deferred to implementation planning:
 - Exact Python validation library.
 - Exact dashboard authoring library.
 - Whether `Makefile` wraps the Python commands or remains optional.
-- Whether screenshots are committed, ignored, or selectively curated.
 - Whether Google Sheets sync starts as import-only or API update.
+- Exact first set of numbered weeks after the 2026-05-31 10K result is available.
 
 ## Approval Status
 
@@ -565,6 +760,7 @@ Approved design decisions from brainstorming:
 - Existing generated workbook is reference only.
 - Privacy model is hybrid.
 - Manual feedback is YAML per workout, CSVs are derived.
+- Screenshots are versioned in this personal repository.
 - Missing feedback allows best-effort recommendations with explicit confidence/missing evidence.
 - Sunday 2026-05-31 10K uses controlled aggressive strategy.
 - System updates after each workout.
@@ -578,3 +774,6 @@ Approved design decisions from brainstorming:
 - Projections use conservative, realistic, and aggressive scenarios.
 - Half-marathon target starts as a hypothesis, not an official fixed goal.
 - Normal decisions use concise logs; major decisions use RCA format.
+- Plan uses numbered weeks.
+- Red-flag symptoms trigger conservative recommendations, not medical diagnosis.
+- Matheus Achilles safety may lead the system to recommend Bruna run without Matheus or alter format.
