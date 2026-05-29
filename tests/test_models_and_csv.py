@@ -125,3 +125,23 @@ def test_duplicate_participants_are_rejected():
 def test_string_booleans_are_rejected(field, value):
     with pytest.raises(ValidationError):
         WorkoutRecord(**valid_workout_kwargs(**{field: value}))
+
+
+def test_workout_record_rejects_unknown_fields():
+    with pytest.raises(ValidationError):
+        WorkoutRecord(**valid_workout_kwargs(unmodeled_field="hidden drift"))
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("bruna_pse", "9"),
+        ("bruna_pse", 11),
+        ("matheus_achilles_morning", 11),
+        ("matheus_achilles_after", "3"),
+        ("volleyball_previous_day", "true"),
+    ],
+)
+def test_workout_record_rejects_coerced_or_out_of_range_state_fields(field, value):
+    with pytest.raises(ValidationError):
+        WorkoutRecord(**valid_workout_kwargs(**{field: value}))

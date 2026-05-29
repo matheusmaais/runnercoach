@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import csv
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
 import yaml
 
 from running_coach.checkins import CheckIn
@@ -66,6 +68,9 @@ WORKOUT_FIELDS = [
 
 DECISION_FIELDS = [
     "date",
+    "local_date",
+    "local_datetime",
+    "timezone",
     "event",
     "decision",
     "reason",
@@ -80,7 +85,6 @@ DECISION_FIELDS = [
     "decision_id",
     "workout_id",
     "activity_id",
-    "local_date",
     "recommendation_action",
     "rationale",
 ]
@@ -102,6 +106,14 @@ SCIENCE_REF_FIELDS = [
     "approved_date",
     "notes",
 ]
+
+
+class PipelineError(RuntimeError):
+    pass
+
+
+class CheckInLoadError(PipelineError):
+    pass
 
 
 def run_pipeline(garmin_csv: Path, repo_root: Path, after_workout: bool) -> None:
@@ -142,10 +154,22 @@ def _load_checkins(repo_root: Path) -> dict[str, CheckIn]:
         return {}
 
     checkins: dict[str, CheckIn] = {}
+    checkin_paths: dict[str, Path] = {}
     for path in sorted(checkins_dir.glob("*.yaml")):
-        payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        checkin = CheckIn.model_validate(payload)
-        checkins[checkin.activity_match.activity_id] = checkin
+        try:
+            payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            checkin = CheckIn.model_validate(payload)
+        except (OSError, ValidationError, yaml.YAMLError) as exc:
+            raise CheckInLoadError(f"Failed to load check-in {path}: {exc}") from exc
+        activity_id = checkin.activity_match.activity_id
+        if activity_id in checkins:
+            first_path = checkin_paths[activity_id]
+            raise CheckInLoadError(
+                "Duplicate check-ins reference activity_id "
+                f"{activity_id}: {first_path} and {path}"
+            )
+        checkins[activity_id] = checkin
+        checkin_paths[activity_id] = path
     return checkins
 
 
@@ -241,10 +265,19 @@ def _checkin_missing_evidence(checkin: CheckIn) -> list[str]:
 
 def _workout_csv_row(workout: WorkoutRecord) -> dict[str, Any]:
     row = workout.model_dump(mode="json")
-    row["participants"] = encode_json_cell(row["participants"])
-    row["bruna_symptoms"] = encode_json_cell(row["bruna_symptoms"])
-    row["missing_evidence"] = encode_json_cell(row["missing_evidence"])
-    return row
+    return {field: _encode_csv_cell(row.get(field)) for field in WORKOUT_FIELDS}
+
+
+def _encode_csv_cell(value: Any) -> Any:
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, list):
+        return encode_json_cell(value)
+    if isinstance(value, Enum):
+        return value.value
+    return value
 
 
 def _decision_from_workout(workout: WorkoutRecord) -> dict[str, Any]:
@@ -258,6 +291,9 @@ def _decision_from_workout(workout: WorkoutRecord) -> dict[str, Any]:
     )
     return {
         "date": workout.local_date,
+        "local_date": workout.local_date,
+        "local_datetime": workout.local_datetime,
+        "timezone": workout.timezone,
         "event": "pipeline_after_workout",
         "decision": decision_type.value,
         "reason": reason,
@@ -267,12 +303,11 @@ def _decision_from_workout(workout: WorkoutRecord) -> dict[str, Any]:
         "confidence": workout.confidence.value,
         "science_refs": encode_json_cell([]),
         "decision_type": decision_type.value,
-        "blocked_by_red_flag": "false",
+        "blocked_by_red_flag": False,
         "missing_evidence": encode_json_cell(missing_evidence),
         "decision_id": f"decision-{workout.workout_id}",
         "workout_id": workout.workout_id,
         "activity_id": workout.activity_id,
-        "local_date": workout.local_date,
         "recommendation_action": RecommendationAction.REQUEST_MANUAL_RESOLUTION.value,
         "rationale": reason,
     }
@@ -287,9 +322,7 @@ def _load_science_refs(repo_root: Path) -> dict[str, ScienceRef]:
 
 def _science_ref_csv_row(ref: ScienceRef) -> dict[str, Any]:
     row = ref.model_dump(mode="json")
-    row["authors"] = encode_json_cell(row["authors"])
-    row["tags"] = encode_json_cell(row["tags"])
-    return row
+    return {field: _encode_csv_cell(row.get(field)) for field in SCIENCE_REF_FIELDS}
 
 
 def _write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, Any]]) -> None:
@@ -297,7 +330,10 @@ def _write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, Any]]) ->
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(
+            {field: _encode_csv_cell(row.get(field)) for field in fieldnames}
+            for row in rows
+        )
 
 
 def _write_reports(

@@ -2,8 +2,10 @@ import csv
 import json
 from pathlib import Path
 
+import pytest
+
 from running_coach.garmin import make_activity_id
-from running_coach.pipeline import run_pipeline
+from running_coach.pipeline import CheckInLoadError, run_pipeline
 
 
 REQUIRED_WORKOUT_COLUMNS = {
@@ -51,6 +53,9 @@ REQUIRED_WORKOUT_COLUMNS = {
 
 REQUIRED_DECISION_COLUMNS = {
     "date",
+    "local_date",
+    "local_datetime",
+    "timezone",
     "event",
     "decision",
     "reason",
@@ -214,11 +219,11 @@ def test_pipeline_matches_existing_checkin_by_activity_id(tmp_path):
         missing_evidence
     )
     assert json.loads(workouts[0]["participants"]) == ["matheus", "bruna"]
-    assert workouts[0]["shared_run"] == "True"
-    assert workouts[0]["bruna_present"] == "True"
+    assert workouts[0]["shared_run"] == "true"
+    assert workouts[0]["bruna_present"] == "true"
     assert workouts[0]["matheus_role"] == "pacer"
     assert workouts[0]["bruna_pse"] == "7"
-    assert workouts[0]["volleyball_previous_day"] == "True"
+    assert workouts[0]["volleyball_previous_day"] == "true"
     assert workouts[0]["decision_after_workout"] == "Manter polimento conservador."
 
 
@@ -233,6 +238,46 @@ def test_workouts_and_decisions_have_required_contract_columns(tmp_path):
     decisions = read_csv(repo_root / "data/processed/decisions.csv")
     assert REQUIRED_WORKOUT_COLUMNS.issubset(workouts[0].keys())
     assert REQUIRED_DECISION_COLUMNS.issubset(decisions[0].keys())
+    assert decisions[0]["timezone"] == "America/Sao_Paulo"
+    assert decisions[0]["local_datetime"] == "2026-05-28 16:17:36"
+
+
+def test_pipeline_fails_closed_on_duplicate_checkin_activity_ids(tmp_path):
+    garmin_csv = tmp_path / "Activities.csv"
+    repo_root = tmp_path / "repo"
+    write_garmin_csv(garmin_csv)
+    activity_id = make_activity_id(
+        "2026-05-28 16:17:36", 7.47, 3039.0, "Santo Angelo Corrida"
+    )
+    write_matching_checkin(
+        repo_root / "data/manual/checkins/2026-05-28-a.yaml", activity_id
+    )
+    write_matching_checkin(
+        repo_root / "data/manual/checkins/2026-05-28-b.yaml", activity_id
+    )
+
+    try:
+        run_pipeline(garmin_csv=garmin_csv, repo_root=repo_root, after_workout=True)
+    except CheckInLoadError as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("duplicate check-ins should fail closed")
+
+    assert "Duplicate check-ins reference activity_id" in message
+    assert "2026-05-28-a.yaml" in message
+    assert "2026-05-28-b.yaml" in message
+
+
+def test_pipeline_checkin_validation_errors_include_file_path(tmp_path):
+    garmin_csv = tmp_path / "Activities.csv"
+    repo_root = tmp_path / "repo"
+    checkin_path = repo_root / "data/manual/checkins/bad.yaml"
+    write_garmin_csv(garmin_csv)
+    checkin_path.parent.mkdir(parents=True, exist_ok=True)
+    checkin_path.write_text("schema_version: 1\n", encoding="utf-8")
+
+    with pytest.raises(CheckInLoadError, match="bad.yaml"):
+        run_pipeline(garmin_csv=garmin_csv, repo_root=repo_root, after_workout=True)
 
 
 def test_pipeline_derived_science_refs_from_registry(tmp_path):
@@ -245,5 +290,5 @@ def test_pipeline_derived_science_refs_from_registry(tmp_path):
 
     science_refs = read_csv(repo_root / "data/processed/science_refs.csv")
     assert science_refs[0]["science_ref_id"] == "source-1"
-    assert science_refs[0]["approved"] == "True"
+    assert science_refs[0]["approved"] == "true"
     assert json.loads(science_refs[0]["tags"]) == ["threshold"]

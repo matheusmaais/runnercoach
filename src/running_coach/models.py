@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, Field, StrictBool, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator, model_validator
 
 
 TIMEZONE = "America/Sao_Paulo"
@@ -86,6 +86,8 @@ class ExtractionMethod(StrEnum):
 
 
 class WorkoutRecord(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     date: str | None = None
     local_date: str
     local_datetime: str | None = None
@@ -104,20 +106,20 @@ class WorkoutRecord(BaseModel):
     duration: float | None = None
     avg_pace: str | None = None
     best_pace: str | None = None
-    matheus_avg_hr: int | None = None
-    matheus_max_hr: int | None = None
-    matheus_cadence: int | None = None
-    matheus_power: int | None = None
+    matheus_avg_hr: int | None = Field(default=None, ge=30, le=240, strict=True)
+    matheus_max_hr: int | None = Field(default=None, ge=30, le=240, strict=True)
+    matheus_cadence: int | None = Field(default=None, ge=0, strict=True)
+    matheus_power: int | None = Field(default=None, ge=0, strict=True)
     matheus_ground_contact: float | None = None
     matheus_stride_length: float | None = None
-    bruna_avg_hr: int | None = None
-    bruna_max_hr: int | None = None
-    bruna_pse: int | None = None
-    matheus_achilles_morning: int | None = None
-    matheus_achilles_after: int | None = None
+    bruna_avg_hr: int | None = Field(default=None, ge=30, le=240, strict=True)
+    bruna_max_hr: int | None = Field(default=None, ge=30, le=240, strict=True)
+    bruna_pse: int | None = Field(default=None, ge=0, le=10, strict=True)
+    matheus_achilles_morning: int | None = Field(default=None, ge=0, le=10, strict=True)
+    matheus_achilles_after: int | None = Field(default=None, ge=0, le=10, strict=True)
     sleep_quality: str | None = None
-    volleyball_previous_day: bool | None = None
-    gym_previous_day: bool | None = None
+    volleyball_previous_day: StrictBool | None = None
+    gym_previous_day: StrictBool | None = None
     notes: str | None = None
     decision_after_workout: str | None = None
     confidence: Confidence
