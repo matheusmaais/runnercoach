@@ -1,0 +1,16 @@
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+*.pyc
+
+data/raw/garmin/*
+!data/raw/garmin/.gitkeep
+
+reports/dashboard.xlsx
+reports/charts/*.png
+
+.env
+.DS_Store
+logs/
