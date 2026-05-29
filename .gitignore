@@ -9,7 +9,6 @@ __pycache__/
 data/raw/garmin/*
 !data/raw/garmin/.gitkeep
 
-reports/dashboard.xlsx
 reports/charts/*.png
 
 .env

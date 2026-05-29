@@ -48,7 +48,7 @@ def test_raw_garmin_csvs_are_ignored_but_gitkeep_is_allowed():
     assert not is_ignored("data/raw/garmin/.gitkeep")
     assert is_ignored("logs/app.log")
     assert is_ignored(".env")
-    assert is_ignored("reports/dashboard.xlsx")
+    assert not is_ignored("reports/dashboard.xlsx")
     assert not is_ignored("data/manual/screenshots/example.png")
 
 
