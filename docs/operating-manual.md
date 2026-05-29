@@ -60,9 +60,15 @@ O pipeline gera ou atualiza:
 - `docs/decisions.md`
 - `reports/latest-summary.md`
 
-O dashboard gera:
+O dashboard local gera:
 
 - `reports/dashboard.xlsx`
+
+O dashboard Google Sheets persistente esta registrado em `docs/google-sheets.md`:
+
+- https://docs.google.com/spreadsheets/d/1NYrPxauwysUgE4Hm0Kt-F7Kc9OkziGablhC6zHXDM4o
+
+Git continua sendo a fonte oficial; Google Sheets e a interface operacional.
 
 ## Reviewing Recommendations
 

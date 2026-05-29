@@ -4,6 +4,11 @@ Sistema pessoal de acompanhamento, analise e recomendacao conservadora de treino
 
 O V1 foca em contratos confiaveis: importar Garmin, preservar a verdade de propriedade dos dados, capturar feedback manual, gerar dados processados, registrar decisoes auditaveis, atualizar relatorios e construir `reports/dashboard.xlsx`.
 
+Dashboard Google Sheets persistente:
+
+- [Projeto Meia Forte Janeiro 2027 — Matheus & Bruna](https://docs.google.com/spreadsheets/d/1NYrPxauwysUgE4Hm0Kt-F7Kc9OkziGablhC6zHXDM4o)
+- Detalhes de sync: `docs/google-sheets.md`
+
 ## V1 Workflow
 
 1. Export Garmin activities CSV.
@@ -78,5 +83,6 @@ PYTHON=.venv/bin/python make dashboard
 - `data/processed/`: generated CSV outputs.
 - `docs/`: state, decisions, roadmap, operating manual, principles, athlete profiles, science basis.
 - `reports/`: latest summary, charts, and generated dashboard workbook.
+- `docs/google-sheets.md`: persistent Google Sheets dashboard ID and sync notes.
 - `scripts/`: re-runnable command entrypoints.
 - `src/running_coach/`: typed models, Garmin ingestion, pipeline, science registry, recommendations, and dashboard generation.
