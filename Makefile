@@ -1,21 +1,22 @@
 .PHONY: test ingest analyze recommend dashboard pipeline
 
 GARMIN ?= data/raw/garmin/Activities.csv
+PYTHON ?= python3
 
 test:
-	pytest -q
+	$(PYTHON) -m pytest -q
 
 ingest:
-	python scripts/ingest_garmin.py --garmin "$(GARMIN)"
+	$(PYTHON) scripts/ingest_garmin.py --garmin "$(GARMIN)"
 
 analyze:
-	python scripts/run_pipeline.py --garmin "$(GARMIN)" --analyze-only
+	$(PYTHON) scripts/run_pipeline.py --garmin "$(GARMIN)" --analyze-only
 
 recommend:
-	python scripts/run_pipeline.py --garmin "$(GARMIN)" --after-workout
+	$(PYTHON) scripts/run_pipeline.py --garmin "$(GARMIN)" --after-workout
 
 dashboard:
-	python scripts/build_dashboard.py
+	$(PYTHON) scripts/build_dashboard.py
 
 pipeline:
-	python scripts/run_pipeline.py --garmin "$(GARMIN)" --after-workout
+	$(PYTHON) scripts/run_pipeline.py --garmin "$(GARMIN)" --after-workout

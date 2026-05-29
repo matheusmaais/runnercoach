@@ -1,4 +1,14 @@
+import subprocess
 from pathlib import Path
+
+
+def is_ignored(path):
+    result = subprocess.run(
+        ["git", "check-ignore", "--quiet", "--no-index", path],
+        check=False,
+    )
+    assert result.returncode in (0, 1), path
+    return result.returncode == 0
 
 
 def test_required_directories_exist():
@@ -20,10 +30,13 @@ def test_required_directories_exist():
 
 def test_empty_scaffold_directories_have_tracked_markers():
     required_markers = [
+        "data/raw/garmin/.gitkeep",
         "data/manual/checkins/.gitkeep",
+        "data/manual/screenshots/.gitkeep",
         "data/plan/.gitkeep",
         "data/knowledge/.gitkeep",
         "data/processed/.gitkeep",
+        "reports/monthly/.gitkeep",
         "scripts/.gitkeep",
     ]
     for item in required_markers:
@@ -31,7 +44,16 @@ def test_empty_scaffold_directories_have_tracked_markers():
 
 
 def test_raw_garmin_csvs_are_ignored_but_gitkeep_is_allowed():
-    gitignore = Path(".gitignore").read_text()
-    assert "data/raw/garmin/*" in gitignore
-    assert "!data/raw/garmin/.gitkeep" in gitignore
-    assert "data/manual/screenshots/*" not in gitignore
+    assert is_ignored("data/raw/garmin/Activities.csv")
+    assert not is_ignored("data/raw/garmin/.gitkeep")
+    assert is_ignored("logs/app.log")
+    assert is_ignored(".env")
+    assert is_ignored("reports/dashboard.xlsx")
+    assert not is_ignored("data/manual/screenshots/example.png")
+
+
+def test_makefile_uses_configurable_python_interpreter():
+    makefile = Path("Makefile").read_text()
+    assert "PYTHON ?= python3" in makefile
+    assert "$(PYTHON) -m pytest -q" in makefile
+    assert "\n\tpython " not in makefile
