@@ -7,7 +7,11 @@ from pathlib import Path
 import yaml
 
 from running_coach.operational import FrontendIntake, process_frontend_intake
-from scripts.call_bedrock_recommendation import _extract_bedrock_text, _strip_json_fences
+from scripts.call_bedrock_recommendation import (
+    _extract_bedrock_text,
+    _repair_bedrock_response,
+    _strip_json_fences,
+)
 from scripts.call_openai_recommendation import _extract_response_text, _response_json_schema
 
 
@@ -164,3 +168,18 @@ def test_extract_bedrock_text_and_strip_json_fences() -> None:
     }
 
     assert _strip_json_fences(_extract_bedrock_text(payload)) == '{"recommendation_id":"rec-bedrock"}'
+
+
+def test_repair_bedrock_response_normalizes_common_shape_errors() -> None:
+    repaired = _repair_bedrock_response(
+        {
+            "decision_type": "pre_workout_recommendation",
+            "evidence_used": "workout-1, plan-1",
+            "missing_evidence": "bruna_avg_hr, bruna_max_hr",
+            "science_refs": ["seiler"],
+        }
+    )
+
+    assert repaired["decision_type"] == "race_strategy"
+    assert repaired["evidence_used"] == ["workout-1", "plan-1"]
+    assert repaired["missing_evidence"] == ["bruna_avg_hr", "bruna_max_hr"]

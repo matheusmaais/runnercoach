@@ -52,7 +52,7 @@ def main() -> int:
     )
 
     raw_path = output_dir / "latest-bedrock-response.json"
-    parsed_response = json.loads(_strip_json_fences(response_text))
+    parsed_response = _repair_bedrock_response(json.loads(_strip_json_fences(response_text)))
     raw_path.write_text(json.dumps(parsed_response, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     try:
@@ -142,6 +142,19 @@ def _strip_json_fences(text: str) -> str:
     if stripped.lower().startswith("json\n"):
         stripped = stripped[5:].strip()
     return stripped
+
+
+def _repair_bedrock_response(response: dict[str, Any]) -> dict[str, Any]:
+    repaired = dict(response)
+    for key in ("science_refs", "evidence_used", "missing_evidence"):
+        value = repaired.get(key)
+        if isinstance(value, str):
+            repaired[key] = [item.strip() for item in value.split(",") if item.strip()]
+
+    if repaired.get("decision_type") == "pre_workout_recommendation":
+        repaired["decision_type"] = "race_strategy"
+
+    return repaired
 
 
 if __name__ == "__main__":
