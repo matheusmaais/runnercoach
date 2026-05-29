@@ -1,6 +1,11 @@
+import csv
 import subprocess
 
+import pytest
+
 from running_coach.garmin import (
+    GARMIN_ACTIVITY_FIELDS,
+    GarminParseError,
     make_activity_id,
     parse_duration_seconds,
     parse_garmin_csv_text,
@@ -108,3 +113,101 @@ def test_ingest_script_runs_from_repo_root(tmp_path):
 
     assert result.returncode == 0, result.stderr
     assert "garmin-20260528T161736" in output_csv.read_text(encoding="utf-8")
+
+
+def test_header_only_csv_written_by_script_has_canonical_header(tmp_path):
+    garmin_csv = tmp_path / "Activities.csv"
+    output_csv = tmp_path / "activities.csv"
+    garmin_csv.write_text(
+        "Tipo de atividade,Data,Título,Distância,Tempo\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            "python3",
+            "scripts/ingest_garmin.py",
+            "--garmin",
+            str(garmin_csv),
+            "--output",
+            str(output_csv),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert output_csv.read_text(encoding="utf-8") != ""
+    with output_csv.open(encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        assert reader.fieldnames == GARMIN_ACTIVITY_FIELDS
+        assert list(reader) == []
+
+
+def test_missing_required_header_raises_contextual_garmin_parse_error():
+    csv_text = "Tipo de atividade,Data,Título,Tempo\n"
+
+    with pytest.raises(GarminParseError) as error:
+        parse_garmin_csv_text(csv_text, source_file="Activities.csv")
+
+    message = str(error.value)
+    assert "Activities.csv" in message
+    assert "row 1" in message
+    assert "Distância" in message
+    assert "missing required Garmin field" in message
+
+
+def test_malformed_duration_raises_contextual_garmin_parse_error():
+    csv_text = (
+        "Tipo de atividade,Data,Título,Distância,Tempo\n"
+        "Corrida,2026-05-28 16:17:36,Santo Ângelo Corrida,7.47,50:39\n"
+    )
+
+    with pytest.raises(GarminParseError) as error:
+        parse_garmin_csv_text(csv_text, source_file="Activities.csv")
+
+    message = str(error.value)
+    assert "row 2" in message
+    assert "Tempo" in message
+    assert "50:39" in message
+
+
+def test_shared_run_candidate_normalizes_activity_type():
+    csv_text = (
+        "Tipo de atividade,Data,Título,Distância,Tempo\n"
+        " Corrida ,2026-05-28 16:17:36,Santo Ângelo Corrida,7.47,00:50:39\n"
+    )
+
+    row = parse_garmin_csv_text(csv_text, source_file="Activities.csv")[0]
+
+    assert row["is_shared_run_candidate"] is True
+
+
+def test_output_header_from_script_equals_canonical_fields(tmp_path):
+    garmin_csv = tmp_path / "Activities.csv"
+    output_csv = tmp_path / "activities.csv"
+    garmin_csv.write_text(
+        "Tipo de atividade,Data,Título,Distância,Tempo\n"
+        "Corrida,2026-05-28 16:17:36,Santo Ângelo Corrida,7.47,00:50:39\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            "python3",
+            "scripts/ingest_garmin.py",
+            "--garmin",
+            str(garmin_csv),
+            "--output",
+            str(output_csv),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    with output_csv.open(encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        assert reader.fieldnames == GARMIN_ACTIVITY_FIELDS

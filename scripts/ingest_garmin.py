@@ -8,7 +8,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from running_coach.garmin import parse_garmin_csv_text
+from running_coach.garmin import GARMIN_ACTIVITY_FIELDS, parse_garmin_csv_text
 
 
 def main() -> None:
@@ -24,12 +24,9 @@ def main() -> None:
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        output.write_text("", encoding="utf-8")
-        return
 
     with output.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
+        writer = csv.DictWriter(handle, fieldnames=GARMIN_ACTIVITY_FIELDS)
         writer.writeheader()
         writer.writerows(rows)
 

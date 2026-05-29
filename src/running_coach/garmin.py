@@ -10,8 +10,63 @@ from typing import Any
 from running_coach.models import TIMEZONE
 
 
+GARMIN_ACTIVITY_FIELDS = [
+    "activity_id",
+    "source_file",
+    "source_row_number",
+    "local_date",
+    "local_datetime",
+    "timezone",
+    "activity_type",
+    "title",
+    "distance_km",
+    "duration_seconds",
+    "matheus_avg_hr",
+    "matheus_max_hr",
+    "avg_pace",
+    "best_pace",
+    "matheus_cadence",
+    "matheus_power",
+    "matheus_ground_contact",
+    "matheus_stride_length",
+    "data_owner_hr",
+    "data_owner_dynamics",
+    "is_shared_run_candidate",
+]
+
+REQUIRED_GARMIN_FIELDS = [
+    "Data",
+    "Tipo de atividade",
+    "Título",
+    "Distância",
+    "Tempo",
+]
+
+
+class GarminParseError(Exception):
+    def __init__(
+        self,
+        *,
+        source_file: str,
+        row_number: int,
+        field: str,
+        value: Any,
+        reason: str,
+    ) -> None:
+        self.source_file = source_file
+        self.row_number = row_number
+        self.field = field
+        self.value = value
+        self.reason = reason
+        super().__init__(
+            f"{source_file}: row {row_number}, field {field}, value {value!r}: {reason}"
+        )
+
+
 def parse_duration_seconds(value: str) -> float:
     hours, minutes, seconds = value.split(":")
+    if not (hours and minutes and seconds):
+        raise ValueError("duration must use HH:MM:SS")
     return int(hours) * 3600 + int(minutes) * 60 + float(seconds)
 
 
@@ -52,15 +107,18 @@ def make_activity_id(
 def parse_garmin_csv_text(csv_text: str, source_file: str) -> list[dict[str, Any]]:
     text = csv_text.lstrip("\ufeff")
     reader = csv.DictReader(io.StringIO(text))
+    _validate_required_headers(reader.fieldnames, source_file)
     output: list[dict[str, Any]] = []
     for row_number, row in enumerate(reader, start=2):
-        local_datetime = _required_text(row, "Data")
+        local_datetime = _required_text(row, "Data", source_file, row_number)
         local_date = local_datetime.split(" ")[0]
-        title = row.get("Título", "") or ""
-        distance_km = parse_number(row.get("Distância")) or 0.0
-        duration_seconds = parse_duration_seconds(_required_text(row, "Tempo"))
+        title = _required_text(row, "Título", source_file, row_number)
+        distance_km = _parse_number_field(row, "Distância", source_file, row_number)
+        duration_seconds = _parse_duration_field(row, "Tempo", source_file, row_number)
 
-        activity_type = row.get("Tipo de atividade", "") or ""
+        activity_type = _required_text(
+            row, "Tipo de atividade", source_file, row_number
+        )
         output.append(
             {
                 "activity_id": make_activity_id(
@@ -75,30 +133,68 @@ def parse_garmin_csv_text(csv_text: str, source_file: str) -> list[dict[str, Any
                 "title": title,
                 "distance_km": distance_km,
                 "duration_seconds": duration_seconds,
-                "matheus_avg_hr": parse_int(row.get("FC Média")),
-                "matheus_max_hr": parse_int(row.get("FC máxima")),
+                "matheus_avg_hr": _parse_int_field(
+                    row, "FC Média", source_file, row_number
+                ),
+                "matheus_max_hr": _parse_int_field(
+                    row, "FC máxima", source_file, row_number
+                ),
                 "avg_pace": _optional_text(row, "Ritmo médio"),
                 "best_pace": _optional_text(row, "Melhor ritmo"),
-                "matheus_cadence": parse_int(row.get("Cadência de corrida média")),
-                "matheus_power": parse_int(row.get("Potência média")),
-                "matheus_ground_contact": parse_number(
-                    row.get("Tempo médio de contato com o solo")
+                "matheus_cadence": _parse_int_field(
+                    row, "Cadência de corrida média", source_file, row_number
                 ),
-                "matheus_stride_length": parse_number(
-                    row.get("Comprimento médio da passada")
+                "matheus_power": _parse_int_field(
+                    row, "Potência média", source_file, row_number
+                ),
+                "matheus_ground_contact": _parse_number_field(
+                    row,
+                    "Tempo médio de contato com o solo",
+                    source_file,
+                    row_number,
+                    required=False,
+                ),
+                "matheus_stride_length": _parse_number_field(
+                    row,
+                    "Comprimento médio da passada",
+                    source_file,
+                    row_number,
+                    required=False,
                 ),
                 "data_owner_hr": "matheus",
                 "data_owner_dynamics": "matheus",
-                "is_shared_run_candidate": activity_type == "Corrida",
+                "is_shared_run_candidate": activity_type.strip().casefold()
+                == "corrida",
             }
         )
     return output
 
 
-def _required_text(row: dict[str, str], field: str) -> str:
+def _validate_required_headers(fieldnames: list[str] | None, source_file: str) -> None:
+    headers = set(fieldnames or [])
+    for field in REQUIRED_GARMIN_FIELDS:
+        if field not in headers:
+            raise GarminParseError(
+                source_file=source_file,
+                row_number=1,
+                field=field,
+                value="",
+                reason="missing required Garmin field",
+            )
+
+
+def _required_text(
+    row: dict[str, str], field: str, source_file: str, row_number: int
+) -> str:
     value = row.get(field)
     if value is None or value == "":
-        raise ValueError(f"missing required Garmin field: {field}")
+        raise GarminParseError(
+            source_file=source_file,
+            row_number=row_number,
+            field=field,
+            value=value or "",
+            reason="missing required Garmin field",
+        )
     return value
 
 
@@ -107,3 +203,58 @@ def _optional_text(row: dict[str, str], field: str) -> str | None:
     if value is None or value.strip() in {"", "--"}:
         return None
     return value
+
+
+def _parse_duration_field(
+    row: dict[str, str], field: str, source_file: str, row_number: int
+) -> float:
+    value = _required_text(row, field, source_file, row_number)
+    try:
+        return parse_duration_seconds(value)
+    except (TypeError, ValueError) as error:
+        raise GarminParseError(
+            source_file=source_file,
+            row_number=row_number,
+            field=field,
+            value=value,
+            reason=str(error),
+        ) from error
+
+
+def _parse_number_field(
+    row: dict[str, str],
+    field: str,
+    source_file: str,
+    row_number: int,
+    *,
+    required: bool = True,
+) -> float | None:
+    value = row.get(field)
+    if required:
+        _required_text(row, field, source_file, row_number)
+    try:
+        return parse_number(value)
+    except (TypeError, ValueError) as error:
+        raise GarminParseError(
+            source_file=source_file,
+            row_number=row_number,
+            field=field,
+            value=value,
+            reason=str(error),
+        ) from error
+
+
+def _parse_int_field(
+    row: dict[str, str], field: str, source_file: str, row_number: int
+) -> int | None:
+    value = row.get(field)
+    try:
+        return parse_int(value)
+    except (TypeError, ValueError) as error:
+        raise GarminParseError(
+            source_file=source_file,
+            row_number=row_number,
+            field=field,
+            value=value,
+            reason=str(error),
+        ) from error
