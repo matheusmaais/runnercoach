@@ -18,6 +18,18 @@ def test_required_directories_exist():
         assert Path(item).is_dir(), item
 
 
+def test_empty_scaffold_directories_have_tracked_markers():
+    required_markers = [
+        "data/manual/checkins/.gitkeep",
+        "data/plan/.gitkeep",
+        "data/knowledge/.gitkeep",
+        "data/processed/.gitkeep",
+        "scripts/.gitkeep",
+    ]
+    for item in required_markers:
+        assert Path(item).is_file(), item
+
+
 def test_raw_garmin_csvs_are_ignored_but_gitkeep_is_allowed():
     gitignore = Path(".gitignore").read_text()
     assert "data/raw/garmin/*" in gitignore
