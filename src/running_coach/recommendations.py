@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt
 
 from running_coach.models import (
     Confidence,
@@ -13,31 +13,17 @@ from running_coach.models import (
 class RecommendationInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    bruna_pse: int | None = None
+    bruna_pse: StrictInt | None = Field(default=None, ge=0, le=10)
     symptom_severity: SymptomSeverity
-    matheus_achilles_morning: int
-    matheus_achilles_after: int
+    matheus_achilles_morning: StrictInt = Field(ge=0, le=10)
+    matheus_achilles_after: StrictInt = Field(ge=0, le=10)
     volleyball_previous_day: StrictBool
     poor_sleep: StrictBool
     all_out_race: StrictBool
     planned_action: RecommendationAction
     phase: str = Field(min_length=1)
-    week_number: int = Field(ge=1)
+    week_number: StrictInt = Field(ge=1)
     planned_workout_id: str = Field(min_length=1)
-
-    @field_validator("bruna_pse")
-    @classmethod
-    def pse_must_be_in_range(cls, value: int | None) -> int | None:
-        if value is not None and not 0 <= value <= 10:
-            raise ValueError("bruna_pse must be between 0 and 10")
-        return value
-
-    @field_validator("matheus_achilles_morning", "matheus_achilles_after")
-    @classmethod
-    def achilles_must_be_in_range(cls, value: int) -> int:
-        if not 0 <= value <= 10:
-            raise ValueError("achilles score must be between 0 and 10")
-        return value
 
 
 class RecommendationResult(BaseModel):
@@ -50,6 +36,7 @@ class RecommendationResult(BaseModel):
     blocked_by_red_flag: bool
     reasons: list[str] = Field(default_factory=list)
     science_refs: list[str] = Field(default_factory=list)
+    rule_refs: list[str] = Field(default_factory=list)
     missing_evidence: list[str] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)
     phase: str
@@ -70,6 +57,7 @@ def recommend_next_action(input_data: RecommendationInput) -> RecommendationResu
         confidence = Confidence.MEDIUM
 
     action, reasons, blocked_by_red_flag = _select_action(input_data)
+    assumptions.extend(_assumptions_for(reasons))
     if _is_high_confidence_hard_stop(action, blocked_by_red_flag):
         confidence = Confidence.HIGH
 
@@ -80,7 +68,8 @@ def recommend_next_action(input_data: RecommendationInput) -> RecommendationResu
         confidence=confidence,
         blocked_by_red_flag=blocked_by_red_flag,
         reasons=reasons,
-        science_refs=_science_refs_for(reasons),
+        science_refs=[],
+        rule_refs=_rule_refs_for(reasons),
         missing_evidence=missing_evidence,
         assumptions=assumptions,
         phase=input_data.phase,
@@ -99,32 +88,41 @@ def _select_action(
             True,
         )
 
-    if _max_achilles(input_data) >= 5:
+    reasons = _guardrail_reasons(input_data)
+    reason_tags = set(reasons)
+
+    if "bruna_pse_ge_9" in reason_tags and "all_out_race" in reason_tags:
         return (
-            RecommendationAction.BRUNA_WITHOUT_MATHEUS,
-            ["matheus_achilles_ge_5"],
+            RecommendationAction.REPLACE_WITH_OFF,
+            reasons,
             False,
         )
 
-    if input_data.bruna_pse is not None and input_data.bruna_pse >= 9:
+    if "bruna_pse_ge_9" in reason_tags:
         return (
             RecommendationAction.REPLACE_WITH_EASY,
-            ["bruna_pse_ge_9"],
+            reasons,
             False,
         )
 
-    if _max_achilles(input_data) >= 3:
+    if "matheus_achilles_ge_5" in reason_tags:
+        return (
+            RecommendationAction.BRUNA_WITHOUT_MATHEUS,
+            reasons,
+            False,
+        )
+
+    if "matheus_achilles_ge_3" in reason_tags:
         return (
             RecommendationAction.DEFER_QUALITY,
-            ["matheus_achilles_ge_3"],
+            reasons,
             False,
         )
 
-    load_reasons = _load_reduction_reasons(input_data)
-    if load_reasons:
+    if reasons:
         return (
             RecommendationAction.REDUCE_NEXT_WORKOUT,
-            load_reasons,
+            reasons,
             False,
         )
 
@@ -147,6 +145,18 @@ def _load_reduction_reasons(input_data: RecommendationInput) -> list[str]:
         reasons.append("poor_sleep")
     if input_data.all_out_race:
         reasons.append("all_out_race")
+    return reasons
+
+
+def _guardrail_reasons(input_data: RecommendationInput) -> list[str]:
+    reasons: list[str] = []
+    if input_data.bruna_pse is not None and input_data.bruna_pse >= 9:
+        reasons.append("bruna_pse_ge_9")
+    if _max_achilles(input_data) >= 5:
+        reasons.append("matheus_achilles_ge_5")
+    elif _max_achilles(input_data) >= 3:
+        reasons.append("matheus_achilles_ge_3")
+    reasons.extend(_load_reduction_reasons(input_data))
     return reasons
 
 
@@ -179,19 +189,29 @@ def _decision_for(action: RecommendationAction, reasons: list[str]) -> DecisionT
     return DecisionType.ALTER
 
 
-def _science_refs_for(reasons: list[str]) -> list[str]:
+def _rule_refs_for(reasons: list[str]) -> list[str]:
     reason_tags = set(reasons)
+    refs: list[str] = []
     if "red_flag_symptom" in reason_tags:
-        return ["safety-red-flag-conservative"]
+        refs.append("safety-red-flag-conservative")
     if "bruna_pse_ge_9" in reason_tags:
-        return ["load-management-recovery"]
+        refs.append("load-management-recovery")
     if reason_tags & {"matheus_achilles_ge_5", "matheus_achilles_ge_3"}:
-        return ["achilles-tendinopathy-load"]
+        refs.append("achilles-tendinopathy-load")
     if reason_tags & {"volleyball_previous_day", "poor_sleep", "all_out_race"}:
         if "volleyball_previous_day" in reason_tags:
-            return ["volleyball-neuromuscular-load"]
-        return ["sleep-fatigue-load-management"]
+            refs.append("volleyball-neuromuscular-load")
+        else:
+            refs.append("sleep-fatigue-load-management")
+    if refs:
+        return refs
     return ["training-consistency-principle"]
+
+
+def _assumptions_for(reasons: list[str]) -> list[str]:
+    if "matheus_achilles_ge_5" in set(reasons):
+        return ["Matheus should not pace while Achilles severity is at least 5."]
+    return []
 
 
 def _is_high_confidence_hard_stop(
