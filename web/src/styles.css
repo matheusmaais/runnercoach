@@ -402,6 +402,18 @@ main {
   padding-left: 18px;
 }
 
+.recommendation-panel {
+  display: grid;
+  gap: 16px;
+  grid-column: 1 / -1;
+}
+
+.recommendation-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .form-grid {
   display: grid;
   gap: 12px;
@@ -552,6 +564,10 @@ main {
   .operate-grid,
   .principles-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recommendation-grid {
+    grid-template-columns: 1fr;
   }
 }
 

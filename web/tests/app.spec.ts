@@ -21,6 +21,8 @@ test("navigates through all product sections", async ({ page }) => {
 
   await page.getByRole("button", { name: "Coach Room" }).click();
   await expect(page.getByRole("heading", { name: "Coach Room" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Recomendação validada" })).toBeVisible();
+  await expect(page.getByText("maintain next workout")).toBeVisible();
   await expect(page.getByText("Claims proibidos")).toBeVisible();
 
   await page.getByRole("button", { name: "Ciência" }).click();

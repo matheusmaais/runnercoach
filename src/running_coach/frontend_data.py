@@ -17,6 +17,7 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
     science_refs = _read_csv(root / "data/processed/science_refs.csv")
     plan_status = _read_csv(root / "data/processed/plan_status.csv")
     llm_request = _read_json(root / "reports/llm/latest-request.json")
+    latest_recommendation = _read_json(root / "reports/llm/latest-recommendation.json")
 
     recent_workouts = [_present_workout(row) for row in _latest_rows(workouts, 12)]
     next_workouts = [_present_plan(row) for row in plan_status if row.get("planned_status") == "planned"]
@@ -48,6 +49,7 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
         "decisions": [_present_decision(row) for row in _latest_rows(decisions, 10)],
         "science_refs": [_present_science_ref(row) for row in science_refs if _truthy(row.get("approved"))],
         "llm_context": _llm_context(llm_request),
+        "latest_llm_recommendation": _present_llm_recommendation(latest_recommendation),
         "evidence_contracts": _evidence_contracts(),
         "presentation_warnings": [
             "Pace solo do Matheus não pode ser renderizado como evolução da Bruna.",
@@ -325,6 +327,24 @@ def _llm_context(llm_request: dict[str, Any]) -> dict[str, Any]:
         "forbidden_claims": llm_request.get("forbidden_claims", []),
         "required_response_schema": llm_request.get("required_response_schema", {}),
         "approved_science_ref_count": len(llm_request.get("approved_science_refs", [])),
+    }
+
+
+def _present_llm_recommendation(recommendation: dict[str, Any]) -> dict[str, Any] | None:
+    if not recommendation:
+        return None
+    return {
+        "recommendation_id": recommendation.get("recommendation_id", ""),
+        "decision_type": recommendation.get("decision_type", ""),
+        "next_workout_action": recommendation.get("next_workout_action", ""),
+        "confidence": recommendation.get("confidence", ""),
+        "summary": recommendation.get("summary", ""),
+        "what_workout_showed": recommendation.get("what_workout_showed", ""),
+        "risk_assessment": recommendation.get("risk_assessment", ""),
+        "next_workout": recommendation.get("next_workout", ""),
+        "science_refs": _as_list(recommendation.get("science_refs")),
+        "evidence_used": _as_list(recommendation.get("evidence_used")),
+        "missing_evidence": _as_list(recommendation.get("missing_evidence")),
     }
 
 

@@ -521,6 +521,8 @@ function PlanView({ payload }: { payload: FrontendPayload }) {
 }
 
 function CoachRoom({ payload }: { payload: FrontendPayload }) {
+  const recommendation = payload.latest_llm_recommendation;
+
   return (
     <section className="view" aria-label="Coach Room">
       <SectionHeader
@@ -551,6 +553,43 @@ function CoachRoom({ payload }: { payload: FrontendPayload }) {
           <p>Sem ciência aprovada, recomendação vira rascunho, não decisão.</p>
         </article>
       </div>
+      {recommendation ? (
+        <article className="coach-panel recommendation-panel">
+          <div className="panel-title">
+            <Rocket />
+            <h3>Recomendação validada</h3>
+          </div>
+          <div className="signal-row">
+            <Signal label="Ação" value={formatToken(recommendation.next_workout_action)} tone="good" />
+            <Signal label="Decisão" value={formatToken(recommendation.decision_type)} tone="neutral" />
+            <Signal label="Confiança" value={formatToken(recommendation.confidence)} tone="warn" />
+          </div>
+          <p>{recommendation.summary}</p>
+          <div className="recommendation-grid">
+            <div>
+              <p className="eyebrow">Próximo treino</p>
+              <p>{recommendation.next_workout}</p>
+            </div>
+            <div>
+              <p className="eyebrow">Risco</p>
+              <p>{recommendation.risk_assessment}</p>
+            </div>
+          </div>
+          <div className="rule-list">
+            {recommendation.science_refs.slice(0, 6).map((ref) => (
+              <span key={ref}>{formatToken(ref)}</span>
+            ))}
+          </div>
+        </article>
+      ) : (
+        <article className="coach-panel recommendation-panel">
+          <div className="panel-title">
+            <ShieldAlert />
+            <h3>Sem recomendação validada</h3>
+          </div>
+          <p>Dispare uma análise pelo Operar para gerar `reports/llm/latest-recommendation.json`.</p>
+        </article>
+      )}
       <div className="warning-board">
         {payload.presentation_warnings.map((warning) => (
           <p key={warning}>{warning}</p>

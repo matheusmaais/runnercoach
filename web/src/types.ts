@@ -36,6 +36,7 @@ export type FrontendPayload = {
     forbidden_claims: string[];
     approved_science_ref_count: number;
   };
+  latest_llm_recommendation: LlmRecommendation | null;
   evidence_contracts: {
     garmin_owner: string;
     shared_data: string[];
@@ -43,6 +44,20 @@ export type FrontendPayload = {
     hard_rules: string[];
   };
   presentation_warnings: string[];
+};
+
+export type LlmRecommendation = {
+  recommendation_id: string;
+  decision_type: string;
+  next_workout_action: string;
+  confidence: string;
+  summary: string;
+  what_workout_showed: string;
+  risk_assessment: string;
+  next_workout: string;
+  science_refs: string[];
+  evidence_used: string[];
+  missing_evidence: string[];
 };
 
 export type Athlete = {

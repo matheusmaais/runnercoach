@@ -21,6 +21,7 @@ def test_frontend_payload_has_required_sections() -> None:
         "decisions",
         "science_refs",
         "llm_context",
+        "latest_llm_recommendation",
         "evidence_contracts",
         "presentation_warnings",
     }.issubset(payload)
@@ -68,6 +69,18 @@ def test_frontend_payload_includes_science_and_next_workouts() -> None:
     assert len(payload["next_workouts"]) >= 2
     assert payload["next_workouts"][0]["date"] == "2026-05-31"
     assert payload["next_workouts"][0]["decision_basis"]
+
+
+def test_frontend_payload_exposes_latest_llm_recommendation() -> None:
+    payload = build_frontend_payload(Path("."))
+
+    recommendation = payload["latest_llm_recommendation"]
+
+    assert recommendation["recommendation_id"]
+    assert recommendation["decision_type"] == "race_strategy"
+    assert recommendation["next_workout_action"] == "maintain_next_workout"
+    assert recommendation["summary"]
+    assert recommendation["science_refs"]
 
 
 def test_write_frontend_payload_creates_json(tmp_path: Path) -> None:
