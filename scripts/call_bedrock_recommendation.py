@@ -77,7 +77,13 @@ def _prompt(request: dict[str, Any]) -> str:
     return (
         "Você é o motor de recomendação do runnercoach. Responda somente com JSON válido, "
         "sem Markdown, sem cercas de código, seguindo exatamente o schema solicitado. "
-        "Não inclua propriedades extras. Preserve todos os contratos de dados.\n\n"
+        "Não inclua propriedades extras. Preserve todos os contratos de dados. "
+        "decision_type deve ser exatamente um destes valores: maintain, reduce, alter, defer, "
+        "recover, hold_phase, advance_phase, race_strategy. next_workout_action deve ser "
+        "exatamente um destes valores: maintain_next_workout, reduce_next_workout, "
+        "replace_with_easy, replace_with_off, replace_with_cross_training, defer_quality, "
+        "bruna_without_matheus, request_manual_resolution. science_refs, evidence_used e "
+        "missing_evidence devem ser arrays JSON, mesmo quando houver apenas um item.\n\n"
         f"{render_llm_request_markdown(request)}"
     )
 
@@ -151,8 +157,13 @@ def _repair_bedrock_response(response: dict[str, Any]) -> dict[str, Any]:
         if isinstance(value, str):
             repaired[key] = [item.strip() for item in value.split(",") if item.strip()]
 
-    if repaired.get("decision_type") == "pre_workout_recommendation":
-        repaired["decision_type"] = "race_strategy"
+    decision_aliases = {
+        "pre_workout_recommendation": "race_strategy",
+        "pre_race_taper_confirmation": "race_strategy",
+    }
+    decision_type = repaired.get("decision_type")
+    if isinstance(decision_type, str) and decision_type in decision_aliases:
+        repaired["decision_type"] = decision_aliases[decision_type]
 
     return repaired
 

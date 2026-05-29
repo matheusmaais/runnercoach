@@ -183,3 +183,17 @@ def test_repair_bedrock_response_normalizes_common_shape_errors() -> None:
     assert repaired["decision_type"] == "race_strategy"
     assert repaired["evidence_used"] == ["workout-1", "plan-1"]
     assert repaired["missing_evidence"] == ["bruna_avg_hr", "bruna_max_hr"]
+
+
+def test_repair_bedrock_response_normalizes_pre_race_alias() -> None:
+    repaired = _repair_bedrock_response(
+        {
+            "decision_type": "pre_race_taper_confirmation",
+            "evidence_used": ["race_plan"],
+            "missing_evidence": [],
+            "science_refs": "world-athletics",
+        }
+    )
+
+    assert repaired["decision_type"] == "race_strategy"
+    assert repaired["science_refs"] == ["world-athletics"]
