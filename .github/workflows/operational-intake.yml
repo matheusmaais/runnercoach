@@ -1,0 +1,119 @@
+name: Process Operational Frontend Intake
+
+on:
+  workflow_dispatch:
+    inputs:
+      intake_path:
+        description: "Path to data/manual/frontend_intake/*.json"
+        required: true
+        type: string
+      run_llm:
+        description: "Call LLM if OPENAI_API_KEY is configured"
+        required: true
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+      commit_results:
+        description: "Commit generated outputs back to the repository"
+        required: true
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+
+permissions:
+  contents: write
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "operational-intake"
+  cancel-in-progress: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python package
+        run: python -m pip install -e ".[dev]"
+
+      - name: Process frontend intake
+        id: intake
+        run: |
+          python scripts/process_frontend_intake.py "${{ inputs.intake_path }}" | tee /tmp/intake.env
+          {
+            echo "garmin_csv_path=$(grep '^garmin_csv_path=' /tmp/intake.env | cut -d= -f2- || true)"
+            echo "run_llm=$(grep '^run_llm=' /tmp/intake.env | cut -d= -f2- || echo false)"
+            echo "commit_results=$(grep '^commit_results=' /tmp/intake.env | cut -d= -f2- || echo true)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run coaching pipeline
+        run: |
+          GARMIN_PATH="${{ steps.intake.outputs.garmin_csv_path }}"
+          if [ -n "$GARMIN_PATH" ]; then
+            python scripts/run_pipeline.py --garmin "$GARMIN_PATH" --after-workout --monthly-report
+          else
+            python scripts/run_pipeline.py --after-workout --monthly-report
+          fi
+
+      - name: Generate LLM request
+        run: python scripts/generate_recommendation.py
+
+      - name: Call LLM securely
+        if: ${{ inputs.run_llm == 'true' && steps.intake.outputs.run_llm == 'true' }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4.1' }}
+        run: python scripts/call_openai_recommendation.py
+
+      - name: Build dashboard and frontend data
+        run: |
+          python scripts/build_dashboard.py
+          python scripts/build_frontend_data.py
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build frontend
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - name: Commit generated outputs
+        if: ${{ inputs.commit_results == 'true' }}
+        run: |
+          git config user.name "runnercoach-bot"
+          git config user.email "runnercoach-bot@users.noreply.github.com"
+          git add data/manual/checkins data/manual/frontend_intake data/processed docs reports web/public/data/app-data.json
+          if git diff --cached --quiet; then
+            echo "No generated changes to commit"
+          else
+            git commit -m "chore: process frontend intake"
+            git push
+          fi
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+      - name: Deploy Pages
+        uses: actions/deploy-pages@v4

@@ -27,3 +27,19 @@ test("navigates through all product sections", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Ciência & Decisões" })).toBeVisible();
   await expect(page.getByText("Fonte").first()).toBeVisible();
 });
+
+test("operational frontend builds a valid intake without exposing LLM secrets", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "Operar" }).click();
+  await expect(page.getByRole("heading", { name: "Inserir treino e disparar análise" })).toBeVisible();
+  await expect(page.getByText("A LLM roda apenas no Actions com secret")).toBeVisible();
+
+  await page.getByLabel("Activity ID Garmin").fill("garmin-ui-test");
+  await page.getByLabel("Título Garmin").fill("Treino UI");
+  await page.getByLabel("PSE Bruna").fill("6");
+  await page.getByLabel("Relato Bruna").fill("Controlado e sem sintomas fortes.");
+  await expect(page.getByText("Payload válido para commit e workflow.")).toBeVisible();
+  await expect(page.getByText("OPENAI_API_KEY")).toHaveCount(0);
+  await expect(page.getByText('"source": "github_pages"')).toBeVisible();
+});

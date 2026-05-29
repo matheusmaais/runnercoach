@@ -89,7 +89,8 @@ main {
 .chart-grid,
 .coach-grid,
 .science-grid,
-.plan-grid {
+.plan-grid,
+.operate-grid {
   display: grid;
   gap: 16px;
 }
@@ -103,7 +104,8 @@ main {
 }
 
 .chart-grid,
-.coach-grid {
+.coach-grid,
+.operate-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -117,6 +119,7 @@ main {
 .metric-card,
 .chart-panel,
 .coach-panel,
+.operate-panel,
 .science-card,
 .decision-card,
 .plan-card,
@@ -193,6 +196,7 @@ main {
 .metric-card,
 .chart-panel,
 .coach-panel,
+.operate-panel,
 .science-card,
 .decision-card,
 .plan-card {
@@ -385,6 +389,110 @@ main {
   padding-left: 18px;
 }
 
+.form-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.form-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field span,
+.helper {
+  color: #98a9bd;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.field input,
+.field textarea,
+.file-input {
+  background: rgba(7, 13, 24, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  color: #eef4fb;
+  min-height: 42px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.field textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.toggle-row label {
+  align-items: center;
+  background: rgba(148, 163, 184, 0.09);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 999px;
+  color: #cbd5e1;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px 11px;
+}
+
+.primary-action {
+  background: #2dd4bf;
+  border: 0;
+  border-radius: 8px;
+  color: #07111f;
+  cursor: pointer;
+  font-weight: 900;
+  margin: 14px 0 8px;
+  min-height: 44px;
+  padding: 11px 14px;
+}
+
+.primary-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.error-list {
+  color: #fca5a5;
+  line-height: 1.6;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.success-text {
+  color: #86efac;
+  margin: 0;
+}
+
+.payload-preview {
+  background: #070d18;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+  color: #b8c5d6;
+  font-size: 0.72rem;
+  margin: 0;
+  max-height: 430px;
+  overflow: auto;
+  padding: 12px;
+  white-space: pre-wrap;
+}
+
 .science-card {
   display: grid;
   gap: 18px;
@@ -427,6 +535,7 @@ main {
   .coach-grid,
   .science-grid,
   .plan-grid,
+  .operate-grid,
   .principles-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -457,6 +566,9 @@ main {
   .coach-grid,
   .science-grid,
   .plan-grid,
+  .operate-grid,
+  .form-grid.two,
+  .form-grid.three,
   .principles-strip,
   .workout-row {
     grid-template-columns: 1fr;

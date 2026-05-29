@@ -123,6 +123,31 @@ Proximo passo recomendado:
 - V1.6 deve transformar o frontend em interface operacional usando GitHub Actions como backend seguro.
 - O browser coleta check-in/upload, dispara workflow, o Actions roda Python + LLM com secrets, valida a resposta, commita os artefatos e republica o Pages.
 
+## V1.6 Operational Frontend
+
+O fluxo operacional desejado e:
+
+1. Abrir o GitHub Pages.
+2. Entrar na aba `Operar`.
+3. Preencher check-in, FC/PSE da Bruna, sintomas, sono, carga de volei/academia e Aquiles do Matheus.
+4. Opcionalmente anexar o CSV Garmin exportado.
+5. Informar um fine-grained GitHub token local do navegador.
+6. Clicar em `Commitar intake e analisar`.
+7. O frontend commita `data/manual/frontend_intake/*.json` e dispara `.github/workflows/operational-intake.yml`.
+8. O GitHub Actions processa o intake, roda pipeline, chama LLM com secret, valida recomendacao, commita resultados e republica Pages.
+
+Token GitHub para o navegador:
+
+- Use um fine-grained personal access token limitado a este repositorio.
+- Permissoes minimas: Contents read/write e Actions read/write.
+- O token fica no `localStorage` do navegador para uso pessoal; nao e commitado no repo.
+
+Secret GitHub para LLM:
+
+- Crie `OPENAI_API_KEY` em repository secrets.
+- Opcionalmente crie variable `OPENAI_MODEL`; padrao do workflow: `gpt-4.1`.
+- A chave OpenAI nunca deve ser colocada no frontend.
+
 Publicacao:
 
 - `.github/workflows/pages.yml` gera o payload, compila `web/` e publica `web/dist` no GitHub Pages.

@@ -11,8 +11,10 @@ import {
   Gauge,
   HeartPulse,
   LineChart as LineChartIcon,
+  Rocket,
   ShieldAlert,
   TimerReset,
+  UploadCloud,
 } from "lucide-react";
 import {
   Area,
@@ -28,12 +30,24 @@ import {
   YAxis,
 } from "recharts";
 import { loadPayload } from "./data";
+import { commitFileToGithub, dispatchOperationalWorkflow } from "./github";
+import {
+  buildIntakePayload,
+  defaultGithubSettings,
+  defaultOperationalForm,
+  fileToBase64,
+  intakePath,
+  validateOperationalForm,
+  type GithubSettings,
+  type OperationalFormState,
+} from "./operational";
 import type { FrontendPayload, PlannedWorkout, ScienceRef, Workout } from "./types";
 
-type View = "cockpit" | "timeline" | "plan" | "coach" | "science";
+type View = "cockpit" | "operate" | "timeline" | "plan" | "coach" | "science";
 
 const nav: { id: View; label: string }[] = [
   { id: "cockpit", label: "Cockpit" },
+  { id: "operate", label: "Operar" },
   { id: "timeline", label: "Timeline" },
   { id: "plan", label: "Plano" },
   { id: "coach", label: "Coach Room" },
@@ -80,6 +94,7 @@ export function App() {
 
       <main>
         {activeView === "cockpit" && <Cockpit payload={payload} />}
+        {activeView === "operate" && <OperateView />}
         {activeView === "timeline" && <Timeline payload={payload} />}
         {activeView === "plan" && <PlanView payload={payload} />}
         {activeView === "coach" && <CoachRoom payload={payload} />}
@@ -237,6 +252,186 @@ function NextWorkoutCard({ workout }: { workout?: PlannedWorkout }) {
         ))}
       </div>
     </div>
+  );
+}
+
+function OperateView() {
+  const [form, setForm] = useState<OperationalFormState>(() => defaultOperationalForm());
+  const [settings, setSettings] = useState<GithubSettings>(() => {
+    const saved = window.localStorage.getItem("runnercoach.github");
+    return saved ? { ...defaultGithubSettings(), ...JSON.parse(saved) } : defaultGithubSettings();
+  });
+  const [status, setStatus] = useState<string>("Pronto para montar intake.");
+  const [busy, setBusy] = useState(false);
+  const errors = validateOperationalForm(form);
+  const payload = buildIntakePayload(form);
+  const path = intakePath(payload);
+
+  function update<K extends keyof OperationalFormState>(key: K, value: OperationalFormState[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateSettings<K extends keyof GithubSettings>(key: K, value: GithubSettings[K]) {
+    setSettings((current) => ({ ...current, [key]: value }));
+  }
+
+  async function onCsv(file: File | null) {
+    if (!file) return;
+    update("garminCsvName", file.name);
+    update("garminCsvBase64", await fileToBase64(file));
+  }
+
+  async function commitAndDispatch() {
+    if (errors.length) {
+      setStatus(`Corrija antes de enviar: ${errors.join(" ")}`);
+      return;
+    }
+    if (!settings.token.trim()) {
+      setStatus("Informe um GitHub token com Contents write e Actions write.");
+      return;
+    }
+    setBusy(true);
+    try {
+      window.localStorage.setItem(
+        "runnercoach.github",
+        JSON.stringify({ ...settings, token: settings.token }),
+      );
+      await commitFileToGithub({
+        settings,
+        path,
+        content: JSON.stringify(payload, null, 2) + "\n",
+        message: `chore: add frontend intake ${form.date}`,
+      });
+      await dispatchOperationalWorkflow(settings, path);
+      setStatus(`Intake commitado em ${path}. Workflow operacional disparado.`);
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : "Falha operacional desconhecida.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="view" aria-label="Operar">
+      <SectionHeader
+        eyebrow="Operação pelo frontend"
+        title="Inserir treino e disparar análise"
+        copy="O browser versiona o intake no GitHub e dispara Actions. A LLM roda apenas no Actions com secret, nunca no GitHub Pages."
+      />
+
+      <div className="operate-grid">
+        <article className="operate-panel">
+          <div className="panel-title">
+            <Rocket />
+            <h3>GitHub</h3>
+          </div>
+          <div className="form-grid two">
+            <TextInput label="Owner" value={settings.owner} onChange={(value) => updateSettings("owner", value)} />
+            <TextInput label="Repo" value={settings.repo} onChange={(value) => updateSettings("repo", value)} />
+            <TextInput label="Branch" value={settings.branch} onChange={(value) => updateSettings("branch", value)} />
+            <TextInput label="Token" type="password" value={settings.token} onChange={(value) => updateSettings("token", value)} />
+          </div>
+          <p className="helper">Use token fine-grained do GitHub limitado a este repo: Contents read/write e Actions read/write.</p>
+        </article>
+
+        <article className="operate-panel">
+          <div className="panel-title">
+            <UploadCloud />
+            <h3>Garmin CSV</h3>
+          </div>
+          <input
+            aria-label="Upload Garmin CSV"
+            className="file-input"
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(event) => onCsv(event.target.files?.[0] ?? null)}
+          />
+          <p className="helper">
+            {form.garminCsvName ? `${form.garminCsvName} carregado no intake.` : "Opcional, mas recomendado para treino novo."}
+          </p>
+        </article>
+      </div>
+
+      <article className="operate-panel">
+        <h3>Check-in do treino</h3>
+        <div className="form-grid three">
+          <TextInput label="Data" type="date" value={form.date} onChange={(value) => update("date", value)} />
+          <TextInput label="Activity ID Garmin" value={form.activityId} onChange={(value) => update("activityId", value)} />
+          <TextInput label="Título Garmin" value={form.garminTitle} onChange={(value) => update("garminTitle", value)} />
+          <TextInput label="Data/hora Garmin" value={form.garminDatetime} onChange={(value) => update("garminDatetime", value)} />
+          <TextInput label="Planejado" value={form.plannedType} onChange={(value) => update("plannedType", value)} />
+          <TextInput label="Executado" value={form.actualType} onChange={(value) => update("actualType", value)} />
+          <TextInput label="FC média Bruna" type="number" value={form.brunaAvgHr} onChange={(value) => update("brunaAvgHr", value)} />
+          <TextInput label="FC máx Bruna" type="number" value={form.brunaMaxHr} onChange={(value) => update("brunaMaxHr", value)} />
+          <TextInput label="PSE Bruna" type="number" value={form.brunaPse} onChange={(value) => update("brunaPse", value)} />
+          <TextInput label="Sono Bruna" value={form.brunaSleep} onChange={(value) => update("brunaSleep", value)} />
+          <TextInput label="Aquiles manhã" type="number" value={form.achillesMorning} onChange={(value) => update("achillesMorning", value)} />
+          <TextInput label="Aquiles depois" type="number" value={form.achillesAfter} onChange={(value) => update("achillesAfter", value)} />
+        </div>
+        <div className="form-grid two">
+          <TextArea label="Sintomas Bruna" value={form.brunaSymptoms} onChange={(value) => update("brunaSymptoms", value)} />
+          <TextArea label="Relato Bruna" value={form.brunaSubjective} onChange={(value) => update("brunaSubjective", value)} />
+          <TextArea label="Relato Matheus" value={form.matheusSubjective} onChange={(value) => update("matheusSubjective", value)} />
+          <TextArea label="Decisão/nota do coach" value={form.coachNote} onChange={(value) => update("coachNote", value)} />
+        </div>
+        <div className="toggle-row">
+          <label><input type="checkbox" checked={form.sharedRun} onChange={(event) => update("sharedRun", event.target.checked)} /> Corrida conjunta</label>
+          <label><input type="checkbox" checked={form.volleyballPreviousDay} onChange={(event) => update("volleyballPreviousDay", event.target.checked)} /> Vôlei no dia anterior</label>
+          <label><input type="checkbox" checked={form.gymPreviousDay} onChange={(event) => update("gymPreviousDay", event.target.checked)} /> Academia no dia anterior</label>
+          <label><input type="checkbox" checked={form.couldRepeatLastBlock} onChange={(event) => update("couldRepeatLastBlock", event.target.checked)} /> Bruna repetiria último bloco</label>
+        </div>
+      </article>
+
+      <div className="operate-grid">
+        <article className="operate-panel">
+          <h3>Validação</h3>
+          {errors.length ? (
+            <ul className="error-list">
+              {errors.map((error) => <li key={error}>{error}</li>)}
+            </ul>
+          ) : (
+            <p className="success-text">Payload válido para commit e workflow.</p>
+          )}
+          <p className="helper">Caminho: {path}</p>
+          <button className="primary-action" disabled={busy || errors.length > 0} onClick={commitAndDispatch} type="button">
+            {busy ? "Enviando..." : "Commitar intake e analisar"}
+          </button>
+          <p className="helper">{status}</p>
+        </article>
+        <article className="operate-panel">
+          <h3>Preview do intake</h3>
+          <pre className="payload-preview">{JSON.stringify(payload, null, 2)}</pre>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function TextInput({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+}) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+    </label>
+  );
+}
+
+function TextArea({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <textarea value={value} onChange={(event) => onChange(event.target.value)} />
+    </label>
   );
 }
 
