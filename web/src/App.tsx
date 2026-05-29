@@ -30,7 +30,7 @@ import {
   YAxis,
 } from "recharts";
 import { loadPayload } from "./data";
-import { commitFileToGithub, dispatchOperationalWorkflow } from "./github";
+import { commitFileToGithub, dispatchOperationalWorkflow, latestOperationalRun } from "./github";
 import {
   buildIntakePayload,
   defaultGithubSettings,
@@ -262,6 +262,7 @@ function OperateView() {
     return saved ? { ...defaultGithubSettings(), ...JSON.parse(saved) } : defaultGithubSettings();
   });
   const [status, setStatus] = useState<string>("Pronto para montar intake.");
+  const [workflowUrl, setWorkflowUrl] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const errors = validateOperationalForm(form);
   const payload = buildIntakePayload(form);
@@ -303,7 +304,14 @@ function OperateView() {
         message: `chore: add frontend intake ${form.date}`,
       });
       await dispatchOperationalWorkflow(settings, path);
-      setStatus(`Intake commitado em ${path}. Workflow operacional disparado.`);
+      await new Promise((resolve) => window.setTimeout(resolve, 1800));
+      const run = await latestOperationalRun(settings);
+      setWorkflowUrl(run?.html_url ?? "");
+      setStatus(
+        run
+          ? `Intake commitado em ${path}. Workflow ${run.status} disparado.`
+          : `Intake commitado em ${path}. Workflow disparado; abra Actions para acompanhar.`,
+      );
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Falha operacional desconhecida.");
     } finally {
@@ -397,6 +405,11 @@ function OperateView() {
             {busy ? "Enviando..." : "Commitar intake e analisar"}
           </button>
           <p className="helper">{status}</p>
+          {workflowUrl && (
+            <a className="run-link" href={workflowUrl} target="_blank" rel="noreferrer">
+              Acompanhar workflow no GitHub
+            </a>
+          )}
         </article>
         <article className="operate-panel">
           <h3>Preview do intake</h3>

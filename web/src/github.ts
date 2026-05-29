@@ -53,6 +53,30 @@ export async function dispatchOperationalWorkflow(settings: GithubSettings, inta
   }
 }
 
+export async function latestOperationalRun(settings: GithubSettings) {
+  const response = await fetch(
+    `https://api.github.com/repos/${settings.owner}/${settings.repo}/actions/workflows/operational-intake.yml/runs?branch=${encodeURIComponent(settings.branch)}&event=workflow_dispatch&per_page=1`,
+    {
+      headers: githubHeaders(settings.token),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Consulta do workflow falhou: HTTP ${response.status} ${await response.text()}`);
+  }
+
+  const payload = await response.json();
+  return payload.workflow_runs?.[0] as
+    | {
+        id: number;
+        html_url: string;
+        status: string;
+        conclusion: string | null;
+        created_at: string;
+      }
+    | undefined;
+}
+
 function githubHeaders(token: string) {
   return {
     Accept: "application/vnd.github+json",

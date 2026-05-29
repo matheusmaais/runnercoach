@@ -149,6 +149,8 @@ Secret GitHub para LLM:
 - Crie `OPENAI_API_KEY` em repository secrets.
 - Opcionalmente crie variable `OPENAI_MODEL`; padrao do workflow: `gpt-4.1`.
 - A chave OpenAI nunca deve ser colocada no frontend.
+- O workflow usa Structured Outputs (`json_schema`) e valida a resposta com o schema local antes de publicar `reports/llm/latest-recommendation.json`.
+- Depois de enviar pelo frontend, use o link "Acompanhar workflow no GitHub" para ver o processamento em tempo real.
 
 Publicacao:
 

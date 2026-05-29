@@ -78,7 +78,10 @@ def _call_responses_api(*, api_key: str, model: str, prompt: str) -> str:
         "input": prompt,
         "text": {
             "format": {
-                "type": "json_object",
+                "type": "json_schema",
+                "name": "running_coach_recommendation",
+                "strict": True,
+                "schema": _response_json_schema(),
             }
         },
     }
@@ -116,6 +119,30 @@ def _extract_response_text(payload: dict[str, Any]) -> str:
             if isinstance(text, str):
                 chunks.append(text)
     return "\n".join(chunks).strip()
+
+
+def _response_json_schema() -> dict[str, Any]:
+    fields = {
+        "schema_version": {"type": "integer", "const": 1},
+        "recommendation_id": {"type": "string"},
+        "next_workout_action": {"type": "string"},
+        "decision_type": {"type": "string"},
+        "confidence": {"type": "string"},
+        "summary": {"type": "string"},
+        "what_workout_showed": {"type": "string"},
+        "risk_assessment": {"type": "string"},
+        "next_workout": {"type": "string"},
+        "science_refs": {"type": "array", "items": {"type": "string"}},
+        "evidence_used": {"type": "array", "items": {"type": "string"}},
+        "missing_evidence": {"type": "array", "items": {"type": "string"}},
+        "athlete_scope": {"type": "string"},
+    }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": fields,
+        "required": list(fields),
+    }
 
 
 if __name__ == "__main__":

@@ -511,6 +511,7 @@ main {
   gap: 18px;
 }
 
+.run-link,
 .science-card a {
   align-items: center;
   color: #5eead4;
