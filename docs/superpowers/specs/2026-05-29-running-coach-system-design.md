@@ -170,6 +170,8 @@ running-coach-system/
 │   │   ├── cycle.yaml           # current phase, numbered weeks, milestones, constraints
 │   │   ├── workout_templates.yaml
 │   │   └── planned_workouts.csv
+│   ├── knowledge/
+│   │   └── science_refs.yaml    # canonical approved science registry
 │   └── processed/
 │       ├── activities.csv
 │       ├── workouts.csv
@@ -226,6 +228,8 @@ The repo uses a hybrid privacy model.
 - `data/raw/garmin/` is local and gitignored by default.
 - `data/manual/checkins/`, docs, processed CSVs, reports, and decision logs are versioned.
 - `data/manual/screenshots/` is versioned in this personal repository. Screenshots are treated as source evidence for Bruna HR and must be referenced from check-ins when used.
+- `data/knowledge/science_refs.yaml` is versioned as the canonical approved science registry.
+- `data/processed/science_refs.csv` is derived from `data/knowledge/science_refs.yaml` for dashboard and tabular analysis.
 - The raw CSV can be re-imported locally at any time.
 - Tests use small anonymized fixtures, not the full raw Garmin export.
 - If the project later needs a public/template version, screenshots and sensitive check-in data must be excluded or anonymized before publication.
@@ -267,6 +271,12 @@ matheus:
   subjective: "Aquiles silencioso."
 attachments:
   bruna_hr_screenshot: "data/manual/screenshots/2026-05-28-bruna-hr.jpg"
+  bruna_hr_screenshot_sha256: null
+  bruna_hr_extraction:
+    extracted_avg_hr: 168
+    extracted_max_hr: 186
+    extraction_method: manual_read
+    extraction_confidence: high
 coach_notes:
   decision_after_workout: "Manter polimento, evitar buscar 5:50/km como treino contínuo."
 ```
@@ -317,6 +327,143 @@ The plan is adaptive, not rigid. After each workout, the system may maintain, re
 
 ## Processed Data Contracts
 
+### Timezone And Dates
+
+Canonical timezone is `America/Sao_Paulo`.
+
+Every activity, workout, race, wellness entry, plan slot, and decision must store:
+
+- `local_date`: date in `YYYY-MM-DD`.
+- `local_datetime`: local datetime when available.
+- `timezone`: `America/Sao_Paulo`.
+
+Week grouping is based on local date in `America/Sao_Paulo`, with Monday as week start.
+
+### CSV Encoding Rules
+
+CSV files are optimized for dashboard and spreadsheet interoperability. They must remain deterministic and reversible.
+
+Scalar fields use plain CSV values. Multi-valued fields are encoded as compact JSON strings in a single cell.
+
+JSON-string fields include:
+
+- `participants`
+- `allowed_fallbacks`
+- `contraindications`
+- `bruna_symptoms`
+- `missing_evidence`
+- `assumptions`
+- `science_refs`
+- `tags`
+
+Example:
+
+```csv
+participants,missing_evidence,science_refs
+"[""matheus"",""bruna""]","[""bruna_hr""]","[""seiler-2010-polarized"",""daniels-threshold""]"
+```
+
+Round-trip parsing must preserve list order and values.
+
+## Controlled Vocabularies
+
+Controlled vocabularies prevent semantic drift between docs, CSVs, dashboard, and future Google Sheets.
+
+### confidence / evidence_level / match_confidence / extraction_confidence
+
+Allowed values:
+
+- `high`
+- `medium`
+- `low`
+
+### phase
+
+Allowed values:
+
+- `ten_k_polish`
+- `post_ten_k_recovery`
+- `five_ten_k_development`
+- `half_base`
+- `half_specific`
+- `half_taper`
+
+### planned_workout.status
+
+Allowed values:
+
+- `planned`
+- `completed_as_planned`
+- `completed_modified`
+- `deferred`
+- `skipped`
+- `replaced`
+- `cancelled`
+
+### decision_type
+
+Allowed values:
+
+- `maintain`
+- `reduce`
+- `alter`
+- `defer`
+- `recover`
+- `hold_phase`
+- `advance_phase`
+- `race_strategy`
+
+### recommendation_action
+
+Allowed values:
+
+- `maintain_next_workout`
+- `reduce_next_workout`
+- `replace_with_easy`
+- `replace_with_off`
+- `replace_with_cross_training`
+- `defer_quality`
+- `bruna_without_matheus`
+- `request_manual_resolution`
+
+### symptom_severity
+
+Allowed values:
+
+- `none`
+- `mild`
+- `moderate`
+- `red_flag`
+
+### matheus_role
+
+Allowed values:
+
+- `pacer`
+- `solo`
+- `support`
+- `not_present`
+
+### source_type
+
+Allowed values:
+
+- `peer_reviewed_study`
+- `position_stand`
+- `textbook_or_book`
+- `coaching_framework`
+- `governing_body_guidance`
+
+### extraction_method
+
+Allowed values:
+
+- `manual_read`
+- `ocr`
+- `not_applicable`
+
+Any value outside these vocabularies must fail validation before recommendation or dashboard generation.
+
 ### activities.csv
 
 Garmin facts, normalized from Portuguese Garmin CSV.
@@ -328,6 +475,9 @@ Every normalized Garmin row must include:
 - `activity_id`
 - `source_file`
 - `source_row_number`
+- `local_date`
+- `local_datetime`
+- `timezone`
 - `data_owner_hr`: always `matheus` for Garmin HR
 - `data_owner_dynamics`: always `matheus` for Garmin running dynamics
 - `is_shared_run_candidate`
@@ -339,6 +489,9 @@ Unified coaching view of shared runs and other relevant training events.
 Required fields include:
 
 - date
+- local_date
+- local_datetime
+- timezone
 - workout_id
 - activity_id
 - planned_workout_id
@@ -370,6 +523,7 @@ Required fields include:
 - gym_previous_day
 - notes
 - decision_after_workout
+- recommendation_action
 - confidence
 - missing_evidence
 - evidence_level
@@ -434,7 +588,7 @@ Fields:
 
 ### science_refs.csv
 
-Approved science registry used by recommendations.
+Derived CSV view of the approved science registry. The canonical source is `data/knowledge/science_refs.yaml`.
 
 Fields:
 
@@ -519,7 +673,8 @@ V1 uses curated and versioned science, with automation only as an assistant.
 Artifacts:
 
 - `docs/scientific-basis.md`: practical interpretation for Matheus and Bruna.
-- `data/processed/science_refs.csv`: structured registry of approved sources.
+- `data/knowledge/science_refs.yaml`: canonical structured registry of approved sources.
+- `data/processed/science_refs.csv`: derived tabular view for dashboards and spreadsheet analysis.
 - `scripts/research_science.py`: assists with future research, but never overwrites approved science automatically.
 
 Quality contract:
@@ -700,6 +855,9 @@ Minimum tests:
 - Matheus solo activity cannot update Bruna zones, projections, or readiness.
 - Two Garmin rows with the same title still receive distinct `activity_id` values.
 - Check-in matching fails closed when candidate activity match is ambiguous.
+- CSV JSON-string fields round-trip without losing list order or values.
+- Invalid controlled-vocabulary values fail validation before recommendations are generated.
+- Activity and workout dates use `America/Sao_Paulo` and Monday-based week grouping.
 - Check-in YAML validation rejects invalid PSE, invalid Achilles scores, and impossible dates.
 - PSE >= 9 forces easy/off recommendation.
 - Red-flag symptoms suppress performance-oriented recommendations.
@@ -713,6 +871,8 @@ Minimum tests:
 - Recommendation output includes confidence, missing evidence, assumptions, decision, and science refs.
 - Recommendation output references current phase, week number, planned workout, and selected fallback.
 - Recommendation cannot cite an unapproved science reference or a source without matching tags.
+- Pipeline does not overwrite `data/knowledge/science_refs.yaml`; it only generates derived science outputs.
+- Screenshot-backed Bruna HR keeps image path, SHA-256 when available, extraction method, and extraction confidence.
 - Dashboard generation creates all required tabs.
 - Dashboard workbook contains native charts and passes visual verification.
 
