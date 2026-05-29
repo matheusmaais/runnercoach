@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import date as Date
+import re
+from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Literal
 
-from pydantic import BaseModel, Field, StrictBool, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator, model_validator
 
 from running_coach.models import Confidence, ExtractionMethod, MatheusRole
+
+SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
 
 def compute_sha256(path: Path) -> str:
@@ -19,20 +22,26 @@ def compute_sha256(path: Path) -> str:
 
 
 class ActivityMatch(BaseModel):
-    activity_id: str
+    model_config = ConfigDict(extra="forbid")
+
+    activity_id: str = Field(min_length=1)
     garmin_title: str | None = None
     garmin_datetime: str | None = None
 
 
 class SessionCheckIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     planned_type: str | None = None
     actual_type: str | None = None
     shared_run: StrictBool
 
 
 class BrunaCheckIn(BaseModel):
-    avg_hr: int | None = None
-    max_hr: int | None = None
+    model_config = ConfigDict(extra="forbid")
+
+    avg_hr: int | None = Field(default=None, ge=30, le=240)
+    max_hr: int | None = Field(default=None, ge=30, le=240)
     pse: int | None = None
     symptoms: list[str] = Field(default_factory=list)
     sleep_quality: str | None = None
@@ -51,6 +60,8 @@ class BrunaCheckIn(BaseModel):
 
 
 class MatheusCheckIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     achilles_morning: int
     achilles_after: int
     role: MatheusRole
@@ -65,35 +76,57 @@ class MatheusCheckIn(BaseModel):
 
 
 class BrunaHrExtraction(BaseModel):
-    extracted_avg_hr: int | None = None
-    extracted_max_hr: int | None = None
+    model_config = ConfigDict(extra="forbid")
+
+    extracted_avg_hr: int | None = Field(default=None, ge=30, le=240)
+    extracted_max_hr: int | None = Field(default=None, ge=30, le=240)
     extraction_method: ExtractionMethod = ExtractionMethod.NOT_APPLICABLE
     extraction_confidence: Confidence | None = None
 
+    @model_validator(mode="after")
+    def confidence_required_for_real_extraction(self) -> BrunaHrExtraction:
+        if (
+            self.extraction_method != ExtractionMethod.NOT_APPLICABLE
+            and self.extraction_confidence is None
+        ):
+            raise ValueError(
+                "extraction_confidence is required when extraction_method is not "
+                "not_applicable"
+            )
+        return self
+
 
 class Attachments(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     bruna_hr_screenshot: str | None = None
     bruna_hr_screenshot_sha256: str | None = None
     bruna_hr_extraction: BrunaHrExtraction | None = None
 
+    @field_validator("bruna_hr_screenshot_sha256")
+    @classmethod
+    def screenshot_sha256_must_be_lower_hex(cls, value: str | None) -> str | None:
+        if value is not None and not SHA256_PATTERN.fullmatch(value):
+            raise ValueError("bruna_hr_screenshot_sha256 must be 64 lowercase hex chars")
+        return value
+
 
 class CoachNotes(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     decision_after_workout: str | None = None
 
 
 class CheckIn(BaseModel):
-    schema_version: int
-    date: str
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1]
+    date: date
     activity_match: ActivityMatch
     session: SessionCheckIn
     bruna: BrunaCheckIn
     matheus: MatheusCheckIn
     attachments: Attachments = Field(default_factory=Attachments)
     coach_notes: CoachNotes = Field(default_factory=CoachNotes)
-
-    @field_validator("date", mode="before")
-    @classmethod
-    def date_must_be_iso_string(cls, value: Any) -> str:
-        if isinstance(value, Date):
-            return value.isoformat()
-        return value
+    missing_evidence: list[str] = Field(default_factory=list)
+    confidence: Confidence = Confidence.LOW
