@@ -1,0 +1,34 @@
+{
+  "athlete_scope": "shared_run",
+  "confidence": "medium",
+  "decision_type": "race_strategy",
+  "evidence_used": [
+    "workout-garmin-20260528T161736-7p47km-3039s-17b463bc",
+    "plan-20260531-10k"
+  ],
+  "missing_evidence": [
+    "bruna_avg_hr",
+    "bruna_max_hr",
+    "bruna_hr_screenshot",
+    "bruna_sleep_quality_2026-05-28",
+    "bruna_checkin_2026-05-29",
+    "bruna_checkin_2026-05-30",
+    "bruna_checkin_2026-05-31_pre_race",
+    "matheus_achilles_after_solo_run_2026-05-28"
+  ],
+  "next_workout": "2026-05-31 diagnostic_race_10k: Bruna deve correr os 10k em ritmo forte sustentável, alvo 6:00-6:10/km nos primeiros 5k e manter ou acelerar levemente nos últimos 5k se sentir recuperada. Não sair em ritmo de all-out desde o início. Matheus deve gerenciar o Aquiles — ritmo conservador ou acompanhar apenas se sem dor. Confirmar presença e condição de ambos no check-in pré-corrida de 31/05.",
+  "next_workout_action": "maintain_next_workout",
+  "recommendation_id": "rec-20260528-race-strategy-10k-polish-w1",
+  "risk_assessment": "Risco moderado. Bruna completou 7,47 km a 6:47/km com PSE 7 no dia anterior a uma corrida de volleyball (volleyball_previous_day=true), o que indica carga neuromuscular acumulada. PSE 7 em ritmo fácil/moderado sugere fadiga residual acima do ideal para uma corrida diagnóstica em 3 dias. Sem dados de FC de Bruna, não é possível confirmar intensidade real. Matheus Aquiles marcado como 0 após o treino compartilhado, mas o segmento solo de 1,33 km a 4:22/km não possui check-in — risco Aquiles permanece como limitador estratégico. Ausência de 19 check-ins reduz confiança geral no estado de fadiga acumulada.",
+  "schema_version": 1,
+  "science_refs": [
+    "load-management-recovery",
+    "threshold-training-lactate",
+    "volleyball-neuromuscular-load",
+    "training-consistency-principle",
+    "safety-red-flag-conservative",
+    "achilles-tendinopathy-load"
+  ],
+  "summary": "Treino compartilhado de 28/05 concluído com sucesso: 7,47 km a 6:47/km, PSE 7 para Bruna, sem sintomas, Aquiles de Matheus em 0. Com a corrida diagnóstica de 10k em 31/05, o foco agora é preservação e estratégia de prova. Bruna deve chegar descansada, evitar cargas extras em 29-30/05 e executar os 10k em ritmo forte sustentável (~6:00-6:10/km), não all-out. Matheus deve decidir participação com base no Aquiles. Check-in pré-corrida é obrigatório para confirmar recomendação.",
+  "what_workout_showed": "O treino compartilhado de 28/05 confirma que Bruna completou volume adequado (7,47 km) dentro da faixa de ritmo fácil/moderado (6:47/km) com PSE 7, um dia após volleyball. PSE 7 indica esforço percebido acima do fácil, possivelmente influenciado pela carga de volleyball do dia anterior. Sem FC de Bruna, não é possível confirmar se o esforço foi aeróbico controlado ou com deriva cardíaca. O ritmo está dentro da faixa easy/long run estimada (6:40-7:00/km), o que é consistente com um treino de manutenção pré-corrida. O segmento solo de Matheus (1,33 km a 4:22/km) é Matheus-only e não é usado como evidência de evolução de Bruna."
+}

@@ -1,17 +1,12 @@
 schema_version: 1
-date: 2026-05-28
-confidence: low
-missing_evidence:
-  - bruna_hr_screenshot
-  - bruna_avg_hr
-  - bruna_max_hr
+date: '2026-05-28'
 activity_match:
   activity_id: garmin-20260528T161736-7p47km-3039s-17b463bc
-  garmin_title: Santo Ângelo - 3x10min
-  garmin_datetime: "2026-05-28 16:17:36"
+  garmin_title: operational-smoke
+  garmin_datetime: '2026-05-28 16:17:36'
 session:
-  planned_type: quality_controlled
-  actual_type: cruise_intervals
+  planned_type: operational_smoke
+  actual_type: operational_smoke
   shared_run: true
 bruna:
   avg_hr: null
@@ -22,13 +17,13 @@ bruna:
   volleyball_previous_day: true
   gym_previous_day: false
   lower_body_load_previous_day: volleyball
-  subjective: Cansada pelo vôlei, mas controlou bem.
+  subjective: Smoke operacional sem commit de resultados.
   could_repeat_last_block: false
 matheus:
   achilles_morning: 0
   achilles_after: 0
   role: pacer
-  subjective: Aquiles silencioso.
+  subjective: Smoke operacional.
 attachments:
   bruna_hr_screenshot: null
   bruna_hr_screenshot_sha256: null
@@ -38,4 +33,6 @@ attachments:
     extraction_method: not_applicable
     extraction_confidence: null
 coach_notes:
-  decision_after_workout: Manter polimento, evitar buscar 5:50/km como treino contínuo.
+  decision_after_workout: Smoke operacional; nao usar como decisao de treino.
+missing_evidence: []
+confidence: low

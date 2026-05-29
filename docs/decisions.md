@@ -11,7 +11,7 @@
 | Date | Event | Evidence | Decision | Impact | Related Workout | Missing Evidence |
 |---|---|---|---|---|---|---|
 | 2026-05-28 | pipeline_after_workout | garmin_only | defer | No automatic workout change in Task 7; preserve audit trail for recommendation engine. | workout-garmin-20260528T171417-1p33km-349s-245ee321 | ["checkin"] |
-| 2026-05-28 | pipeline_after_workout | manual_checkin | defer | No automatic workout change in Task 7; preserve audit trail for recommendation engine. | workout-garmin-20260528T161736-7p47km-3039s-17b463bc | ["bruna_hr_screenshot","bruna_avg_hr","bruna_max_hr"] |
+| 2026-05-28 | pipeline_after_workout | manual_checkin | defer | No automatic workout change in Task 7; preserve audit trail for recommendation engine. | workout-garmin-20260528T161736-7p47km-3039s-17b463bc | ["bruna_avg_hr","bruna_max_hr","bruna_hr_screenshot"] |
 | 2026-05-26 | pipeline_after_workout | garmin_only | defer | No automatic workout change in Task 7; preserve audit trail for recommendation engine. | workout-garmin-20260526T171134-6p17km-2445s-3da74ec2 | ["checkin"] |
 | 2026-05-26 | pipeline_after_workout | garmin_only | defer | No automatic workout change in Task 7; preserve audit trail for recommendation engine. | workout-garmin-20260526T002509-0p00km-6s-63df559b | ["checkin"] |
 | 2026-05-24 | pipeline_after_workout | garmin_only | defer | No automatic workout change in Task 7; preserve audit trail for recommendation engine. | workout-garmin-20260524T161830-5p24km-1833s-5d178a73 | ["checkin"] |

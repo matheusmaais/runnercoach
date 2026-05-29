@@ -82,9 +82,9 @@ Garmin physiology is Matheus-only. Shared pace/distance/time can be used for Bru
   "matheus_achilles_after": "0",
   "volleyball_previous_day": "true",
   "missing_evidence": [
-    "bruna_hr_screenshot",
     "bruna_avg_hr",
-    "bruna_max_hr"
+    "bruna_max_hr",
+    "bruna_hr_screenshot"
   ],
   "bruna_evidence": "available"
 }

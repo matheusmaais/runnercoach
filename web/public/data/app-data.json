@@ -63,9 +63,9 @@
       "matheus_achilles_after": "0",
       "volleyball_previous_day": "true",
       "missing_evidence": [
-        "bruna_hr_screenshot",
         "bruna_avg_hr",
-        "bruna_max_hr"
+        "bruna_max_hr",
+        "bruna_hr_screenshot"
       ],
       "bruna_evidence": "available",
       "evidence_confidence": "medium",
@@ -172,7 +172,7 @@
       "datetime": "2026-05-28 16:17:36",
       "athlete_context": "shared_run_with_manual_checkin",
       "activity_type": "Corrida",
-      "category": "cruise_intervals",
+      "category": "operational_smoke",
       "distance_km": 7.47,
       "duration_seconds": 3039.0,
       "avg_pace": "6:47",
@@ -182,14 +182,14 @@
       "bruna_max_hr": "",
       "bruna_pse": "7",
       "missing_evidence": [
-        "bruna_hr_screenshot",
         "bruna_avg_hr",
-        "bruna_max_hr"
+        "bruna_max_hr",
+        "bruna_hr_screenshot"
       ],
       "evidence_level": "low",
       "evidence_confidence": "low",
       "recommendation_action": "request_manual_resolution",
-      "decision_after_workout": "Manter polimento, evitar buscar 5:50/km como treino contínuo.",
+      "decision_after_workout": "Smoke operacional; nao usar como decisao de treino.",
       "shared_run": true,
       "bruna_present": true,
       "badges": [

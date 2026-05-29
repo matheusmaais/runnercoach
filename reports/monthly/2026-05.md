@@ -9,7 +9,7 @@
 
 - Total volume: 78.26 km
 - Long runs: 3
-- Quality/race-like sessions: 1
+- Quality/race-like sessions: 0
 
 ## Fatigue And Risk
 
