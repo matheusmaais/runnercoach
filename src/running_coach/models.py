@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, StrictBool, field_validator, model_validator
 
 
 TIMEZONE = "America/Sao_Paulo"
@@ -93,8 +93,8 @@ class WorkoutRecord(BaseModel):
     activity_id: str
     planned_workout_id: str | None = None
     participants: list[str]
-    shared_run: bool
-    bruna_present: bool
+    shared_run: StrictBool
+    bruna_present: StrictBool
     matheus_role: MatheusRole
     confidence: Confidence
     evidence_level: Confidence
@@ -111,3 +111,22 @@ class WorkoutRecord(BaseModel):
         if unknown:
             raise ValueError(f"unknown participants: {unknown}")
         return value
+
+    @model_validator(mode="after")
+    def participant_invariants_are_consistent(self) -> WorkoutRecord:
+        participants = set(self.participants)
+        if len(participants) != len(self.participants):
+            raise ValueError("participants must be unique")
+        if self.shared_run and (
+            participants != KNOWN_PARTICIPANTS or not self.bruna_present
+        ):
+            raise ValueError(
+                "shared_run requires matheus and bruna participants and bruna_present"
+            )
+        if self.bruna_present and "bruna" not in participants:
+            raise ValueError("bruna_present requires bruna in participants")
+        if self.matheus_role == MatheusRole.NOT_PRESENT and "matheus" in participants:
+            raise ValueError("matheus_role=not_present requires matheus absent")
+        if "matheus" not in participants and self.matheus_role != MatheusRole.NOT_PRESENT:
+            raise ValueError("matheus absent requires matheus_role=not_present")
+        return self
