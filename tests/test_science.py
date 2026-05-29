@@ -68,7 +68,19 @@ def test_sleep_source_identity_matches_registered_doi():
     refs = load_science_refs(Path("data/knowledge/science_refs.yaml"))
     ref = refs["sleep-fatigue-load-management"]
 
-    assert "Daniel Bonnar" in ref.authors
+    assert ref.title == (
+        "Sleep Interventions Designed to Improve Athletic Performance and Recovery: "
+        "A Systematic Review of Current Approaches"
+    )
+    assert ref.year == 2018
+    assert "Sports Medicine" in ref.journal_or_publisher
+    assert ref.doi_or_url == "https://doi.org/10.1007/s40279-017-0832-x"
+    assert {
+        "Daniel Bonnar",
+        "Kate Bartel",
+        "Naomi Kakoschke",
+        "Christin Lang",
+    } <= set(ref.authors)
     assert "Lin Shen Bonnar" not in ref.authors
     assert "Charli S. Bartel" not in ref.authors
     assert "Shona L. Kakoschke" not in ref.authors
@@ -90,15 +102,28 @@ def test_strength_source_identity_is_internally_coherent():
         "Gerasimos V. Grivas",
     ]
     assert ref.year == 2016
+    assert "Journal of Strength and Conditioning Research" in ref.journal_or_publisher
     assert ref.doi_or_url == "https://doi.org/10.1519/JSC.0000000000001316"
+    assert any("Balsalobre-Fernandez" in author for author in ref.authors)
+    assert any("Santos-Concejero" in author for author in ref.authors)
+    assert any("Grivas" in author for author in ref.authors)
 
 
 def test_volleyball_source_caveats_next_day_running_risk():
     refs = load_science_refs(Path("data/knowledge/science_refs.yaml"))
     ref = refs["volleyball-neuromuscular-load"]
 
+    title = ref.title.lower()
+    assert "training stress" in title
+    assert "neuromuscular fatigue" in title
+    assert "volleyball" in title
+    assert ref.year == 2024
+    assert "10.1186/s13102-024-00807-7" in ref.doi_or_url
     caveat_text = f"{ref.practical_application} {ref.limits}".lower()
     assert "does not quantify next-day running risk" in caveat_text
+    assert {"volleyball", "neuromuscular_load"} <= set(ref.tags)
+    if "load_management" in ref.tags:
+        assert "does not quantify next-day running risk" in ref.limits.lower()
 
 
 def test_science_ref_requires_doi_or_url():
