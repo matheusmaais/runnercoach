@@ -4,6 +4,7 @@ __pycache__/
 .mypy_cache/
 .venv/
 *.pyc
+*.egg-info/
 
 data/raw/garmin/*
 !data/raw/garmin/.gitkeep
