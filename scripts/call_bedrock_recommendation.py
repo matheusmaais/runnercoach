@@ -95,7 +95,6 @@ def _call_bedrock_converse(*, bearer_token: str, region: str, model_id: str, pro
         "inferenceConfig": {
             "maxTokens": 2400,
             "temperature": 0.2,
-            "topP": 0.9,
         },
     }
     req = urllib.request.Request(
