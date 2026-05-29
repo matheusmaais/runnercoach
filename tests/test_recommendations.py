@@ -1,4 +1,9 @@
-from running_coach.models import Confidence, RecommendationAction, SymptomSeverity
+from running_coach.models import (
+    Confidence,
+    DecisionType,
+    RecommendationAction,
+    SymptomSeverity,
+)
 from running_coach.recommendations import RecommendationInput, recommend_next_action
 
 
@@ -32,6 +37,9 @@ def test_red_flag_suppresses_performance():
     assert result.action == RecommendationAction.REPLACE_WITH_OFF
     assert result.blocked_by_red_flag is True
     assert result.confidence == Confidence.HIGH
+    assert result.decision == DecisionType.RECOVER
+    assert result.selected_fallback == RecommendationAction.REPLACE_WITH_OFF
+    assert result.science_refs
     assert result.reasons
 
 
@@ -64,24 +72,32 @@ def test_volleyball_previous_day_reduces_next_workout():
     result = recommend_next_action(recommendation_input(volleyball_previous_day=True))
 
     assert result.action == RecommendationAction.REDUCE_NEXT_WORKOUT
+    assert result.decision == DecisionType.REDUCE
+    assert result.science_refs == ["volleyball-neuromuscular-load"]
 
 
 def test_poor_sleep_reduces_next_workout():
     result = recommend_next_action(recommendation_input(poor_sleep=True))
 
     assert result.action == RecommendationAction.REDUCE_NEXT_WORKOUT
+    assert result.decision == DecisionType.REDUCE
+    assert result.science_refs == ["sleep-fatigue-load-management"]
 
 
 def test_all_out_race_reduces_next_workout():
     result = recommend_next_action(recommendation_input(all_out_race=True))
 
     assert result.action == RecommendationAction.REDUCE_NEXT_WORKOUT
+    assert result.decision == DecisionType.RECOVER
+    assert result.science_refs == ["sleep-fatigue-load-management"]
 
 
 def test_missing_bruna_pse_records_missing_evidence_and_medium_confidence():
     result = recommend_next_action(recommendation_input(bruna_pse=None))
 
     assert result.action == RecommendationAction.MAINTAIN_NEXT_WORKOUT
+    assert result.decision == DecisionType.MAINTAIN
+    assert result.selected_fallback is None
     assert result.confidence == Confidence.MEDIUM
     assert result.missing_evidence == ["bruna_pse"]
     assert result.assumptions
@@ -102,3 +118,18 @@ def test_output_includes_phase_week_and_planned_workout_id():
     assert isinstance(result.reasons, list)
     assert isinstance(result.assumptions, list)
     assert isinstance(result.missing_evidence, list)
+    dumped = result.model_dump()
+    assert dumped["decision"] == DecisionType.MAINTAIN
+    assert dumped["selected_fallback"] is None
+    assert dumped["science_refs"] == ["training-consistency-principle"]
+
+
+def test_maintain_planned_action_has_no_selected_fallback():
+    result = recommend_next_action(
+        recommendation_input(planned_action=RecommendationAction.MAINTAIN_NEXT_WORKOUT)
+    )
+
+    assert result.action == RecommendationAction.MAINTAIN_NEXT_WORKOUT
+    assert result.decision == DecisionType.MAINTAIN
+    assert result.selected_fallback is None
+    assert result.science_refs == ["training-consistency-principle"]
