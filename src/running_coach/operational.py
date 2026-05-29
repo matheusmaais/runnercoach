@@ -86,9 +86,9 @@ def write_frontend_intake(repo_root: Path, payload: dict) -> Path:
 
 
 def _write_checkin(repo_root: Path, checkin: CheckIn) -> Path:
+    existing_path = _existing_checkin_path(repo_root, checkin.activity_match.activity_id)
     title = checkin.activity_match.garmin_title or checkin.activity_match.activity_id
-    filename = f"{checkin.date.isoformat()}-{_slug(title)}.yaml"
-    path = repo_root / "data/manual/checkins" / filename
+    path = existing_path or repo_root / "data/manual/checkins" / f"{checkin.date.isoformat()}-{_slug(title)}.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = checkin.model_dump(mode="json")
     path.write_text(
@@ -96,6 +96,18 @@ def _write_checkin(repo_root: Path, checkin: CheckIn) -> Path:
         encoding="utf-8",
     )
     return path
+
+
+def _existing_checkin_path(repo_root: Path, activity_id: str) -> Path | None:
+    checkins_dir = repo_root / "data/manual/checkins"
+    if not checkins_dir.exists():
+        return None
+    for path in sorted(checkins_dir.glob("*.yaml")):
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        existing = (data.get("activity_match") or {}).get("activity_id")
+        if existing == activity_id:
+            return path
+    return None
 
 
 def _write_garmin_csv(repo_root: Path, intake: FrontendIntake) -> Path:

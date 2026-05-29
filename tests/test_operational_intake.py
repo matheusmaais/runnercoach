@@ -97,6 +97,33 @@ def test_process_frontend_intake_writes_checkin_and_garmin_csv(tmp_path: Path) -
     assert result.garmin_csv_path.read_text(encoding="utf-8").startswith("Activity Type,Date")
 
 
+def test_process_frontend_intake_updates_existing_checkin_for_same_activity(tmp_path: Path) -> None:
+    existing = tmp_path / "data/manual/checkins/2026-05-29-existing.yaml"
+    existing.parent.mkdir(parents=True)
+    existing.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": 1,
+                "date": "2026-05-29",
+                "confidence": "low",
+                "activity_match": {"activity_id": "garmin-test-20260529"},
+                "session": {"shared_run": True},
+                "bruna": {},
+                "matheus": {"achilles_morning": 0, "achilles_after": 0, "role": "pacer"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    intake_path = tmp_path / "data/manual/frontend_intake/2026-05-29T120000Z.json"
+    intake_path.parent.mkdir(parents=True)
+    intake_path.write_text(json.dumps(_intake_payload()), encoding="utf-8")
+
+    result = process_frontend_intake(tmp_path, intake_path)
+
+    assert result.checkin_path == existing
+    assert not (tmp_path / "data/manual/checkins/2026-05-29-treino-teste.yaml").exists()
+
+
 def test_extract_response_text_from_responses_payload() -> None:
     payload = {
         "output": [
