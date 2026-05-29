@@ -1,4 +1,5 @@
 import pytest
+from pathlib import Path
 from pydantic import ValidationError
 
 from running_coach.models import (
@@ -8,6 +9,7 @@ from running_coach.models import (
     SymptomSeverity,
 )
 from running_coach.recommendations import RecommendationInput, recommend_next_action
+from running_coach.science import load_science_refs
 
 
 def recommendation_input(**overrides):
@@ -175,6 +177,34 @@ def test_maintain_planned_action_has_no_selected_fallback():
     assert result.selected_fallback is None
     assert result.science_refs == result.rule_refs
     assert result.rule_refs == ["training-consistency-principle"]
+
+
+def test_all_recommendation_science_refs_are_approved_registry_ids():
+    registry = load_science_refs(Path("data/knowledge/science_refs.yaml"))
+    approved_ids = {
+        science_ref_id
+        for science_ref_id, science_ref in registry.items()
+        if science_ref.approved
+    }
+    scenarios = [
+        recommendation_input(symptom_severity=SymptomSeverity.RED_FLAG),
+        recommendation_input(bruna_pse=9),
+        recommendation_input(matheus_achilles_morning=3),
+        recommendation_input(matheus_achilles_after=5),
+        recommendation_input(volleyball_previous_day=True),
+        recommendation_input(poor_sleep=True),
+        recommendation_input(all_out_race=True),
+        recommendation_input(),
+    ]
+
+    emitted_refs = {
+        science_ref
+        for scenario in scenarios
+        for science_ref in recommend_next_action(scenario).science_refs
+    }
+
+    assert emitted_refs
+    assert emitted_refs <= approved_ids
 
 
 @pytest.mark.parametrize(
