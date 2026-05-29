@@ -1,0 +1,231 @@
+refs:
+  - science_ref_id: safety-red-flag-conservative
+    title: "Prevention, diagnosis, and treatment of the overtraining syndrome: joint consensus statement of the European College of Sport Science and the American College of Sports Medicine"
+    authors:
+      - Romain Meeusen
+      - Martine Duclos
+      - Carl Foster
+      - Andrew Fry
+      - Michael Gleeson
+      - David Nieman
+      - John Raglin
+      - Gerard Rietjens
+      - Juergen Steinacker
+      - Axel Urhausen
+    year: 2013
+    source_type: position_stand
+    journal_or_publisher: "Medicine & Science in Sports & Exercise"
+    doi_or_url: "https://doi.org/10.1249/MSS.0b013e318279a10a"
+    population: "Athletes exposed to sustained heavy training loads"
+    finding: "Persistent fatigue, performance decrement, sleep disturbance, mood change, and illness/injury signs require conservative management and exclusion of medical causes."
+    practical_application: "Treat red-flag symptom clusters as a reason to stop performance-seeking recommendations and bias toward recovery or medical evaluation."
+    limits: "Consensus guidance for overtraining syndrome, not a diagnostic engine for acute injury or illness."
+    tags:
+      - safety
+      - red_flag
+      - load_management
+      - sleep_recovery
+    approved: true
+    approved_date: 2026-05-29
+    notes: "Supports fail-closed behavior when athlete state is unsafe."
+
+  - science_ref_id: load-management-recovery
+    title: "International Olympic Committee consensus statement on load in sport and risk of injury: how much is too much?"
+    authors:
+      - Torbjoern Soligard
+      - Martin Schwellnus
+      - Juan-M. Alonso
+      - Roald Bahr
+      - Ben Clarsen
+      - H. Paul Dijkstra
+      - Tim Gabbett
+      - Michael Gleeson
+      - Martin Hagglund
+      - Mark R. Hutchinson
+      - Christa Janse van Rensburg
+      - Karim M. Khan
+      - Romain Meeusen
+      - John W. Orchard
+      - Babette M. Pluim
+      - Martin Raftery
+      - Richard Budgett
+      - Lars Engebretsen
+    year: 2016
+    source_type: position_stand
+    journal_or_publisher: "British Journal of Sports Medicine"
+    doi_or_url: "https://doi.org/10.1136/bjsports-2016-096581"
+    population: "Competitive athletes across sports"
+    finding: "Injury risk is related to both external and internal load, with rapid load changes and inadequate recovery increasing risk."
+    practical_application: "Reduce or defer load after unusually hard efforts, high perceived exertion, or stacked stressors instead of adding quality work."
+    limits: "Broad multi-sport consensus; individual thresholds require athlete-specific history."
+    tags:
+      - load_management
+      - recovery
+      - easy_run
+      - long_run
+    approved: true
+    approved_date: 2026-05-29
+    notes: "Primary source for conservative load adjustment."
+
+  - science_ref_id: achilles-tendinopathy-load
+    title: "Continued sports activity, using a pain-monitoring model, during rehabilitation in patients with Achilles tendinopathy: a randomized controlled study"
+    authors:
+      - Karin Graevare Silbernagel
+      - Roland Thomee
+      - Bengt I. Eriksson
+      - Jon Karlsson
+    year: 2007
+    source_type: peer_reviewed_study
+    journal_or_publisher: "American Journal of Sports Medicine"
+    doi_or_url: "https://doi.org/10.1177/0363546506298279"
+    population: "Patients with Achilles tendinopathy"
+    finding: "Achilles loading activity during rehab did not show negative effects when governed by a pain-monitoring model."
+    practical_application: "Use Achilles symptom severity to gate pacing and quality workouts; controlled loading may continue only inside conservative pain limits."
+    limits: "Clinical tendinopathy population; does not authorize ignoring worsening pain, red flags, or professional evaluation."
+    tags:
+      - achilles
+      - load_management
+      - injury_modification
+    approved: true
+    approved_date: 2026-05-29
+    notes: "Supports symptom-gated Achilles decisions rather than blanket rest or blanket continuation."
+
+  - science_ref_id: sleep-fatigue-load-management
+    title: "Sleep Interventions Designed to Improve Athletic Performance and Recovery: A Systematic Review of Current Approaches"
+    authors:
+      - Lin Shen Bonnar
+      - Charli S. Bartel
+      - Shona L. Kakoschke
+      - Ian C. Skinner
+      - Drew Dawson
+    year: 2018
+    source_type: peer_reviewed_study
+    journal_or_publisher: "Sports Medicine"
+    doi_or_url: "https://doi.org/10.1007/s40279-017-0832-x"
+    population: "Athletes studied in sleep intervention research"
+    finding: "Sleep is important for aspects of athletic performance and recovery, although intervention evidence varies by population and protocol."
+    practical_application: "Treat poor sleep as a load-management input and reduce the next workout when paired with fatigue or hard prior efforts."
+    limits: "Systematic review notes heterogeneous methods and incomplete guidance for all athlete groups."
+    tags:
+      - sleep_recovery
+      - load_management
+      - recovery
+    approved: true
+    approved_date: 2026-05-29
+    notes: "Supports conservative handling of poor sleep."
+
+  - science_ref_id: volleyball-neuromuscular-load
+    title: "Using the VERT wearable device to monitor jumping loads in elite volleyball athletes"
+    authors:
+      - Faraz Damji
+      - Kerry MacDonald
+      - Michael A. Hunt
+      - Jack Taunton
+      - Alex Scott
+    year: 2021
+    source_type: peer_reviewed_study
+    journal_or_publisher: "PLOS ONE"
+    doi_or_url: "https://doi.org/10.1371/journal.pone.0245299"
+    population: "Elite volleyball athletes"
+    finding: "Jump-load monitoring can quantify volleyball-specific external load."
+    practical_application: "Treat volleyball the previous day as a meaningful neuromuscular and tendon-load signal before prescribing running quality."
+    limits: "Validates jump-load monitoring; does not directly quantify next-day running performance or injury risk."
+    tags:
+      - volleyball
+      - neuromuscular_load
+      - load_management
+    approved: true
+    approved_date: 2026-05-29
+    notes: "Retains Task 5 provisional rule identity with auditable source backing."
+
+  - science_ref_id: training-consistency-principle
+    title: "American College of Sports Medicine position stand. Quantity and quality of exercise for developing and maintaining cardiorespiratory, musculoskeletal, and neuromotor fitness in apparently healthy adults"
+    authors:
+      - Carol Ewing Garber
+      - Bryan Blissmer
+      - Michael R. Deschenes
+      - Barry A. Franklin
+      - Michael J. Lamonte
+      - I-Min Lee
+      - David C. Nieman
+      - David P. Swain
+    year: 2011
+    source_type: position_stand
+    journal_or_publisher: "Medicine & Science in Sports & Exercise"
+    doi_or_url: "https://doi.org/10.1249/MSS.0b013e318213fefb"
+    population: "Apparently healthy adults"
+    finding: "Regular cardiorespiratory and resistance exercise supports maintenance and improvement of physical fitness."
+    practical_application: "When guardrails are clear, maintain the planned easy or long aerobic work rather than adding unnecessary complexity."
+    limits: "General adult prescription guidance, not runner-specific periodization."
+    tags:
+      - training_consistency
+      - easy_run
+      - long_run
+      - strength
+    approved: true
+    approved_date: 2026-05-29
+    notes: "General consistency source for default maintain decisions."
+
+  - science_ref_id: seiler-intensity-distribution
+    title: "Quantifying training intensity distribution in elite endurance athletes: is there evidence for an optimal distribution?"
+    authors:
+      - K. Stephen Seiler
+      - Glenn Oevrevik Kjerland
+    year: 2006
+    source_type: peer_reviewed_study
+    journal_or_publisher: "Scandinavian Journal of Medicine & Science in Sports"
+    doi_or_url: "https://doi.org/10.1111/j.1600-0838.2004.00418.x"
+    population: "Nationally competitive junior cross-country skiers"
+    finding: "Observed endurance training was organized with most sessions below the first ventilatory threshold and a smaller share of high-intensity work."
+    practical_application: "Keep most weekly running easy and avoid turning easy or long runs into threshold work."
+    limits: "Descriptive evidence from elite skiers; not a universal prescription for recreational runners."
+    tags:
+      - polarized
+      - easy_run
+      - long_run
+      - intensity_distribution
+    approved: true
+    approved_date: 2026-05-29
+    notes: "Used as intensity-distribution evidence, not as rigid 80/20 dogma."
+
+  - science_ref_id: threshold-training-lactate
+    title: "Effect of training on lactate/ventilatory thresholds: a meta-analysis"
+    authors:
+      - D. A. Londeree
+    year: 1997
+    source_type: peer_reviewed_study
+    journal_or_publisher: "Medicine & Science in Sports & Exercise"
+    doi_or_url: "https://doi.org/10.1097/00005768-199706000-00016"
+    population: "Sedentary and active subjects in threshold-training studies"
+    finding: "Training near lactate or ventilatory threshold can improve thresholds, with conditioned athletes often needing higher intensities."
+    practical_application: "Use threshold work as a bounded quality stimulus, and defer it when recovery or injury guardrails are active."
+    limits: "Meta-analysis spans mixed populations and protocols; pace prescriptions still need individual calibration."
+    tags:
+      - threshold
+      - race_calibration
+      - intensity_distribution
+    approved: true
+    approved_date: 2026-05-29
+    notes: "Supports threshold as a valid but bounded training stimulus."
+
+  - science_ref_id: strength-running-economy
+    title: "Effects of Strength Training on Running Economy in Highly Trained Runners: A Systematic Review With Meta-Analysis of Controlled Trials"
+    authors:
+      - Richard C. Blagrove
+      - Glyn Howatson
+      - Philip R. Hayes
+    year: 2016
+    source_type: peer_reviewed_study
+    journal_or_publisher: "Journal of Strength and Conditioning Research"
+    doi_or_url: "https://pubmed.ncbi.nlm.nih.gov/26694507/"
+    population: "Highly trained middle- and long-distance runners"
+    finding: "Strength training programs can improve running economy in trained runners."
+    practical_application: "Include strength as supportive training, while avoiding heavy strength work when recovery flags suggest load reduction."
+    limits: "Focused on trained runners and controlled trials; transfer depends on exercise selection and recovery management."
+    tags:
+      - strength
+      - running_economy
+      - load_management
+    approved: true
+    approved_date: 2026-05-29
+    notes: "PubMed record used as stable URL because DOI was not surfaced in the verified result."
