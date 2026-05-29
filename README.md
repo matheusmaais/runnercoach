@@ -144,13 +144,28 @@ Token GitHub para o navegador:
 - Permissoes minimas: Contents read/write e Actions read/write.
 - O token fica no `localStorage` do navegador para uso pessoal; nao e commitado no repo.
 
-Secret GitHub para LLM:
+Secret GitHub para LLM via Bedrock:
 
-- Crie `OPENAI_API_KEY` em repository secrets.
-- Opcionalmente crie variable `OPENAI_MODEL`; padrao do workflow: `gpt-4.1`.
-- A chave OpenAI nunca deve ser colocada no frontend.
-- O workflow usa Structured Outputs (`json_schema`) e valida a resposta com o schema local antes de publicar `reports/llm/latest-recommendation.json`.
+- Crie `AWS_BEARER_TOKEN_BEDROCK` em repository secrets.
+- Opcionalmente crie variables `BEDROCK_MODEL_ID` e `BEDROCK_REGION`.
+- Padroes do workflow: `us.anthropic.claude-sonnet-4-6` e `us-east-1`.
+- O bearer token Bedrock nunca deve ser colocado no frontend.
+- O workflow valida a resposta com o schema local antes de publicar `reports/llm/latest-recommendation.json`.
 - Depois de enviar pelo frontend, use o link "Acompanhar workflow no GitHub" para ver o processamento em tempo real.
+
+Para carregar o token Bedrock a partir do Secrets Manager local e salvar no GitHub sem imprimir a secret:
+
+```bash
+AWS_PROFILE=darede-iam AWS_REGION=us-east-1 \
+  aws secretsmanager get-secret-value \
+    --secret-id darede-assessment-automation/dev/bedrock-api-key \
+    --query SecretString \
+    --output text |
+  gh secret set AWS_BEARER_TOKEN_BEDROCK --repo matheusmaais/runnercoach
+
+gh variable set BEDROCK_MODEL_ID --repo matheusmaais/runnercoach --body us.anthropic.claude-sonnet-4-6
+gh variable set BEDROCK_REGION --repo matheusmaais/runnercoach --body us-east-1
+```
 
 Publicacao:
 

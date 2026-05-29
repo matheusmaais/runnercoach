@@ -7,6 +7,7 @@ from pathlib import Path
 import yaml
 
 from running_coach.operational import FrontendIntake, process_frontend_intake
+from scripts.call_bedrock_recommendation import _extract_bedrock_text, _strip_json_fences
 from scripts.call_openai_recommendation import _extract_response_text, _response_json_schema
 
 
@@ -147,3 +148,19 @@ def test_openai_structured_output_schema_is_strict() -> None:
     assert schema["additionalProperties"] is False
     assert schema["properties"]["schema_version"]["const"] == 1
     assert set(schema["required"]) == set(schema["properties"])
+
+
+def test_extract_bedrock_text_and_strip_json_fences() -> None:
+    payload = {
+        "output": {
+            "message": {
+                "content": [
+                    {
+                        "text": '```json\n{"recommendation_id":"rec-bedrock"}\n```',
+                    }
+                ]
+            }
+        }
+    }
+
+    assert _strip_json_fences(_extract_bedrock_text(payload)) == '{"recommendation_id":"rec-bedrock"}'

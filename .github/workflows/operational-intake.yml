@@ -72,9 +72,10 @@ jobs:
       - name: Call LLM securely
         if: ${{ inputs.run_llm == 'true' && steps.intake.outputs.run_llm == 'true' }}
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4.1' }}
-        run: python scripts/call_openai_recommendation.py
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+          BEDROCK_MODEL_ID: ${{ vars.BEDROCK_MODEL_ID || 'us.anthropic.claude-sonnet-4-6' }}
+          BEDROCK_REGION: ${{ vars.BEDROCK_REGION || 'us-east-1' }}
+        run: python scripts/call_bedrock_recommendation.py
 
       - name: Build dashboard and frontend data
         run: |
