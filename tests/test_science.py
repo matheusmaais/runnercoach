@@ -113,12 +113,22 @@ def test_volleyball_source_caveats_next_day_running_risk():
     refs = load_science_refs(Path("data/knowledge/science_refs.yaml"))
     ref = refs["volleyball-neuromuscular-load"]
 
-    title = ref.title.lower()
-    assert "training stress" in title
-    assert "neuromuscular fatigue" in title
-    assert "volleyball" in title
+    assert ref.title == (
+        "Training stress, neuromuscular fatigue and well-being in volleyball: "
+        "a systematic review"
+    )
+    assert ref.authors == [
+        "Andre Rebelo",
+        "Joao R. Pereira",
+        "Paulo Cunha",
+        "Manuel J. Coelho-e-Silva",
+        "Joao Valente-dos-Santos",
+    ]
     assert ref.year == 2024
-    assert "10.1186/s13102-024-00807-7" in ref.doi_or_url
+    assert "BMC Sports Science, Medicine and Rehabilitation" in (
+        ref.journal_or_publisher
+    )
+    assert ref.doi_or_url == "https://doi.org/10.1186/s13102-024-00807-7"
     caveat_text = f"{ref.practical_application} {ref.limits}".lower()
     assert "does not quantify next-day running risk" in caveat_text
     assert {"volleyball", "neuromuscular_load"} <= set(ref.tags)
