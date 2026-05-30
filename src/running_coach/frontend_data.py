@@ -101,6 +101,7 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
         "recent_workouts": recent_workouts,
         "weekly_summary": _weekly_summary(workouts),
         "week_narrative": _week_narrative(_weekly_summary(workouts)),
+        "readiness": _readiness(workouts),
         "trends": trends,
         "decisions": [_present_decision(row) for row in _latest_rows(decisions, 10)],
         "science_refs": [_present_science_ref(row) for row in science_refs if _truthy(row.get("approved"))],
@@ -311,17 +312,26 @@ def _benchmark_candidates(repo_root: Path) -> list[Any]:
         try:
             import csv
 
+            from running_coach.pacing import classify_effort, select_best, zones_from_benchmark
+
+            # First pass: zones from races only, to classify training efforts against.
+            base_zones = zones_from_benchmark(select_best(cands)) if cands else {}
             for row in csv.DictReader(workouts.open(encoding="utf-8")):
                 if (row.get("local_date") or "") < cutoff:
                     continue
                 # Bruna evidence is mandatory: never calibrate her from Matheus-only data.
                 if not (_truthy(row.get("shared_run")) and _truthy(row.get("bruna_present"))):
                     continue
-                cat = (row.get("category") or "").strip().lower()
-                hard = cat in {"race", "quality", "threshold"} or _truthy(row.get("all_out_race"))
                 dist = _number(row.get("distance_km")) or 0.0
                 secs = _pace_to_seconds(row.get("avg_pace") or "")
-                if hard and dist >= 5.0 and secs:
+                if dist < 5.0 or not secs:
+                    continue
+                cat = (row.get("category") or "").strip().lower()
+                pse = _number(row.get("bruna_pse"))
+                labelled_hard = cat in {"race", "quality", "threshold"} or _truthy(row.get("all_out_race"))
+                # auto-detect a strong effort from pace vs zone + PSE
+                auto = base_zones and classify_effort(secs, base_zones, int(pse) if pse else None) in {"race", "threshold"}
+                if labelled_hard or auto:
                     cands.append(Benchmark(dist, int(secs * dist), "normal"))
         except Exception:
             pass
@@ -535,6 +545,25 @@ def _present_science_ref(row: dict[str, str]) -> dict[str, Any]:
         "limits": row.get("limits", ""),
         "tags": _as_list(row.get("tags")),
     }
+
+
+def _readiness(workouts: list[dict[str, str]]) -> dict[str, Any]:
+    """Deterministic PT-BR readiness read from the most recent evidence."""
+    recent = [w for w in workouts if (w.get("local_date") or w.get("date"))][-5:]
+    if not recent:
+        return {"level": "indefinido", "message": "Sem dados recentes para avaliar prontidão."}
+    last = recent[-1]
+    ach = max(_number(last.get("matheus_achilles_after")) or 0,
+              _number(last.get("matheus_achilles_morning")) or 0)
+    pse = _number(last.get("bruna_pse")) or 0
+    symptoms = (last.get("bruna_symptoms") or "").strip()
+    if ach >= 5 or pse >= 9:
+        return {"level": "recuperar",
+                "message": "Sinais de fadiga/dor altos: priorize recuperação antes de qualquer qualidade."}
+    if ach >= 3 or pse >= 8 or symptoms:
+        return {"level": "cautela",
+                "message": "Prontidão parcial: mantenha leve e observe a resposta antes de subir a carga."}
+    return {"level": "boa", "message": "Prontidão boa: pode seguir o plano na intensidade prevista."}
 
 
 def _week_narrative(summary: list[dict[str, Any]]) -> str:

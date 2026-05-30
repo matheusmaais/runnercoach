@@ -150,6 +150,11 @@ function Cockpit({ payload }: { payload: FrontendPayload }) {
         <p className="eyebrow">O que fazer hoje</p>
         <h2>{payload.today.headline}</h2>
         <p className="today-why">{payload.today.why}</p>
+        {payload.readiness && (
+          <p className={`readiness readiness-${payload.readiness.level}`}>
+            Prontidão: <strong>{payload.readiness.level}</strong> — {payload.readiness.message}
+          </p>
+        )}
         <div className="badge-row">
           {payload.today.next_planned && (
             <span className="badge teal">Próximo: {formatToken(payload.today.next_planned)}</span>

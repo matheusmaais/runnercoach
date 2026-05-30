@@ -82,3 +82,29 @@ def test_hard_training_effort_calibrates(tmp_path):
     )
     cands = _benchmark_candidates(tmp_path)
     assert len(cands) == 1 and abs(cands[0].distance_km - 6.0) < 1e-6
+
+
+def test_classify_effort_detects_strong_and_ignores_easy():
+    from running_coach.pacing import classify_effort
+    z = zones_from_benchmark(Benchmark(5.0, 29 * 60 + 10))  # race 5:50, tempo 6:10
+    assert classify_effort(350, z) == "race"          # 5:50 == 5K pace
+    assert classify_effort(370, z, pse=7) == "threshold"  # 6:10 threshold band
+    assert classify_effort(400, z) == "easy"          # 6:40 easy
+    assert classify_effort(0, z) == "easy"            # invalid
+    assert classify_effort(350, {}) == "easy"         # no zones -> safe
+
+
+def test_readiness_levels():
+    from running_coach.frontend_data import _readiness
+    assert _readiness([])["level"] == "indefinido"
+    assert _readiness([{"local_date": "2026-06-01", "matheus_achilles_after": "6"}])["level"] == "recuperar"
+    assert _readiness([{"local_date": "2026-06-01", "bruna_pse": "8"}])["level"] == "cautela"
+    assert _readiness([{"local_date": "2026-06-01", "bruna_pse": "5"}])["level"] == "boa"
+
+
+def test_heat_adjusted_pace():
+    from running_coach.pacing import heat_adjusted_pace
+    assert heat_adjusted_pace(360, 15) == 360       # no change at/below 15C
+    assert heat_adjusted_pace(360, 30) == 360 + 45  # +3s/km * 15C
+    assert heat_adjusted_pace(360, 100) == 360 + 90 # capped
+    assert heat_adjusted_pace(0, 30) == 0           # invalid safe

@@ -1011,6 +1011,10 @@
     }
   ],
   "week_narrative": "Semana: 4 corrida(s), 15.0 km no total, sem sessão de qualidade, 1 com a Bruna, consistência boa.",
+  "readiness": {
+    "level": "cautela",
+    "message": "Prontidão parcial: mantenha leve e observe a resposta antes de subir a carga."
+  },
   "trends": {
     "pace": [
       {

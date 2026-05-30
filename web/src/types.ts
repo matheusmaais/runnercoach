@@ -37,6 +37,7 @@ export type FrontendPayload = {
     empty_message: string;
   };
   pace_zones?: Record<string, string>;
+  readiness?: { level: string; message: string };
   recent_workouts: Workout[];
   weekly_summary: WeeklySummary[];
   week_narrative?: string;

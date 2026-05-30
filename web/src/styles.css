@@ -902,3 +902,9 @@ main {
 @media (max-width: 760px) { .zones-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 
 .week-narrative { background: rgba(45,212,191,0.08); border-left: 3px solid #2dd4bf; border-radius: 6px; color: #cbd5e1; font-size: 0.92rem; margin: 0 0 18px; padding: 12px 14px; }
+
+.readiness { border-radius: 6px; font-size: 0.9rem; margin: 8px 0 0; padding: 8px 12px; }
+.readiness-boa { background: rgba(34,197,94,0.12); color: #86efac; }
+.readiness-cautela { background: rgba(234,179,8,0.12); color: #fde047; }
+.readiness-recuperar { background: rgba(239,68,68,0.12); color: #fca5a5; }
+.readiness-indefinido { background: rgba(148,163,184,0.12); color: #cbd5e1; }
