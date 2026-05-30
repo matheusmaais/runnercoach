@@ -880,3 +880,15 @@ main {
 @media (max-width: 760px) {
   .week-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+.stale-banner {
+  align-items: center;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 8px;
+  color: #fbbf24;
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+}
+.stale-banner svg { flex: 0 0 auto; }

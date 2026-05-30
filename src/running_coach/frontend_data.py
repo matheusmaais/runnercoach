@@ -16,7 +16,16 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
     decisions = _read_csv(root / "data/processed/decisions.csv")
     science_refs = _read_csv(root / "data/processed/science_refs.csv")
     plan_status = _read_csv(root / "data/processed/plan_status.csv")
-    llm_request = _read_json(root / "reports/llm/latest-request.json")
+    # Build the LLM-context request fresh from current processed data so the
+    # frontend never shows a stale 'latest shared workout' from an old artifact.
+    try:
+        from running_coach.llm import build_llm_request
+
+        llm_request = build_llm_request(root)
+        llm_request_source = "fresh"
+    except (FileNotFoundError, KeyError, ValueError):
+        llm_request = _read_json(root / "reports/llm/latest-request.json")
+        llm_request_source = "fallback_artifact"
     latest_recommendation_path = root / "reports/llm/latest-recommendation.json"
     latest_recommendation = _read_json(latest_recommendation_path)
 
@@ -34,10 +43,35 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
         root,
         request_generated_at,
     )
+    if presented_latest_recommendation is not None:
+        rec_action = presented_latest_recommendation.get("next_workout_action", "")
+        evidence = set(presented_latest_recommendation.get("evidence_used", []))
+        # Compare against the decision the recommendation actually covers (its
+        # evidence workout), falling back to the latest decision. Avoids
+        # false positives from an unrelated later decision.
+        scoped = next(
+            (
+                row
+                for row in _latest_rows(decisions, 20)
+                if row.get("related_workout_id") in evidence
+                or row.get("workout_id") in evidence
+            ),
+            (_latest_rows(decisions, 1) or [{}])[0],
+        )
+        current_action = scoped.get("recommendation_action", "")
+        is_stale = bool(current_action and rec_action and current_action != rec_action)
+        presented_latest_recommendation["stale"] = is_stale
+        presented_latest_recommendation["current_decision_action"] = current_action
+        if is_stale:
+            presented_latest_recommendation["stale_message"] = (
+                "Análise da IA desatualizada para o último treino. "
+                "A decisão atual está em 'O que fazer hoje'. Rode a análise para atualizar."
+            )
 
     return {
         "generated_at": request_generated_at,
         "today": _today_directive(decisions, next_workouts),
+        "llm_request_source": llm_request_source,
         "mission": {
             "name": "Meia Forte Janeiro 2027",
             "target_race_window": "late January 2027",

@@ -79,6 +79,9 @@ export type LlmRecommendation = {
   science_refs: string[];
   evidence_used: string[];
   missing_evidence: string[];
+  stale?: boolean;
+  stale_message?: string;
+  current_decision_action?: string;
 };
 
 export type Athlete = {

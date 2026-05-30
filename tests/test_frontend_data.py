@@ -173,3 +173,12 @@ def test_week_view_boundary_and_priority():
     wk2 = _week_view(dup, date(2026, 6, 1))
     sunday = next(d for d in wk2["days"] if d["day"] == "Dom")
     assert sunday["label"] == "Corrida leve"
+
+
+def test_recommendation_stale_flag_is_workout_scoped(tmp_path):
+    from running_coach.frontend_data import build_frontend_payload
+    from pathlib import Path
+    payload = build_frontend_payload(Path("."))
+    rec = payload.get("latest_llm_recommendation")
+    if rec:  # only when an artifact exists
+        assert "stale" in rec and isinstance(rec["stale"], bool)

@@ -801,6 +801,12 @@ function CoachRoom({ payload }: { payload: FrontendPayload }) {
               </p>
             </div>
           </div>
+          {recommendation.stale && (
+            <div className="stale-banner">
+              <ShieldAlert />
+              <span>{recommendation.stale_message}</span>
+            </div>
+          )}
           <div className="signal-row">
             <Signal label="Ação" value={formatToken(recommendation.next_workout_action)} tone="good" />
             <Signal label="Decisão" value={formatToken(recommendation.decision_type)} tone="neutral" />
