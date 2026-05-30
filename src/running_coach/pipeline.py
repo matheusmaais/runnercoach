@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import csv
+import re
+import unicodedata
 from dataclasses import dataclass
+from datetime import date
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -30,6 +33,7 @@ from running_coach.recommendations import (
     RecommendationResult,
     recommend_next_action,
 )
+from running_coach.accumulation import WorkoutHistoryPoint, build_athlete_state
 from running_coach.reports import write_text_report
 from running_coach.science import ScienceRef, load_science_refs
 
@@ -168,7 +172,7 @@ def run_pipeline(
     ]
     _attach_planned_workouts(repo_root, workouts)
     recommendations = {
-        workout.workout_id: _recommendation_for_workout(repo_root, workout)
+        workout.workout_id: _recommendation_for_workout(repo_root, workout, workouts)
         for workout in workouts
     }
     workouts = [
@@ -483,8 +487,21 @@ def _planned_category_matches_workout(
     return bool(intended and category and intended == category)
 
 
+def _history_point(workout: WorkoutRecord) -> WorkoutHistoryPoint:
+    return WorkoutHistoryPoint(
+        local_date=date.fromisoformat(workout.local_date),
+        distance_km=workout.distance_km,
+        is_running=(workout.activity_type or "").strip().casefold() == "corrida",
+        bruna_pse=workout.bruna_pse,
+        matheus_achilles_morning=workout.matheus_achilles_morning,
+        matheus_achilles_after=workout.matheus_achilles_after,
+        poor_sleep=_is_poor_sleep(workout.sleep_quality),
+        all_out_race=_is_all_out_race(workout),
+    )
+
+
 def _recommendation_for_workout(
-    repo_root: Path, workout: WorkoutRecord
+    repo_root: Path, workout: WorkoutRecord, history: list[WorkoutRecord]
 ) -> RecommendationResult:
     if "checkin" in workout.missing_evidence:
         return RecommendationResult(
@@ -503,6 +520,14 @@ def _recommendation_for_workout(
             planned_workout_id=workout.planned_workout_id or "unplanned-next-workout",
         )
 
+    reference_date = date.fromisoformat(workout.local_date)
+    points = [
+        _history_point(w)
+        for w in history
+        if w.workout_id != workout.workout_id and w.local_date
+    ]
+    accumulated = build_athlete_state(points, reference_date)
+
     planned = _next_planned_workout(repo_root, workout.local_date)
     recommendation_input = RecommendationInput(
         bruna_pse=workout.bruna_pse,
@@ -520,6 +545,7 @@ def _recommendation_for_workout(
             or workout.planned_workout_id
             or "unplanned-next-workout"
         ),
+        accumulated=accumulated,
     )
     return recommend_next_action(recommendation_input)
 
@@ -564,30 +590,85 @@ def _is_all_out_race(workout: WorkoutRecord) -> bool:
     )
 
 
+def _normalize_symptom(value: str) -> str:
+    decomposed = unicodedata.normalize("NFKD", value.strip().lower())
+    stripped = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    return " ".join(stripped.split())
+
+
+# Only these explicit benign phrases keep the workout non-reducing.
+_BENIGN_SYMPTOMS = {
+    "",
+    "sem sintomas",
+    "none",
+    "no symptoms",
+    "assintomatica",
+    "assintomatico",
+    "nenhum",
+    "nenhuma",
+    "n/a",
+}
+
+# Acute / medical signals that must STOP performance-seeking (fail-closed hard stop).
+_RED_FLAG_TERMS = [
+    "tontura",
+    "desmaio",
+    "dor no peito",
+    "visao turva",
+    "neurologico",
+    "heat",
+    "calor extremo",
+    # acute musculoskeletal red flags
+    "dor aguda",
+    "fratura",
+    "estalo",
+    "estalou",
+    "manca",
+    "mancar",
+    "mancou",
+    "apoiar",
+    "dormencia",
+    "formigamento",
+    "agulhada",
+    "luxacao",
+    "torcao",
+    "torceu",
+    "inchaco agudo",
+]
+
+_STRONG_TERMS = ["forte", "severo", "severa", "alterou", "limitou", "mecanica"]
+
+# Negation tokens that neutralize the term immediately following them.
+_NEGATIONS = ("sem", "nao", "nenhum", "nenhuma", "ausencia")
+
+
+def _has_term(symptom: str, terms: list[str]) -> bool:
+    # Word-boundary match so 'torcao' does not fire inside 'distorcao' and
+    # 'manca' matches 'manca'/'mancar'/'mancando' but not unrelated words.
+    # A term is ignored when the token immediately before it is a negation,
+    # so 'sem dor no peito' does not hard-stop, but 'sem tontura mas com dor
+    # aguda' still fires on the non-negated 'dor aguda'.
+    for term in terms:
+        for match in re.finditer(rf"\b{re.escape(term)}\w*", symptom):
+            preceding = symptom[: match.start()].split()
+            if preceding and preceding[-1] in _NEGATIONS:
+                continue
+            return True
+    return False
+
+
 def _classify_symptom_severity(symptoms: list[str]) -> SymptomSeverity:
-    normalized = [symptom.strip().lower() for symptom in symptoms if symptom.strip()]
-    if not normalized or all(
-        symptom in {"sem sintomas", "none", "no symptoms", "assintomatica", "assintomática"}
-        for symptom in normalized
-    ):
+    normalized = [_normalize_symptom(symptom) for symptom in symptoms]
+    normalized = [symptom for symptom in normalized if symptom]
+    if not normalized or all(symptom in _BENIGN_SYMPTOMS for symptom in normalized):
         return SymptomSeverity.NONE
-    red_flag_terms = [
-        "tontura",
-        "desmaio",
-        "dor no peito",
-        "visao turva",
-        "visão turva",
-        "neurologico",
-        "neurológico",
-        "heat",
-        "calor extremo",
-    ]
-    if any(any(term in symptom for term in red_flag_terms) for symptom in normalized):
+    if any(_has_term(symptom, _RED_FLAG_TERMS) for symptom in normalized):
         return SymptomSeverity.RED_FLAG
-    strong_terms = ["forte", "severo", "severa", "alterou", "limitou", "mecanica", "mecânica"]
-    if any(any(term in symptom for term in strong_terms) for symptom in normalized):
+    if any(_has_term(symptom, _STRONG_TERMS) for symptom in normalized):
         return SymptomSeverity.MODERATE
-    return SymptomSeverity.MILD
+    # Fail-closed: any unrecognized, non-benign symptom text reduces the next
+    # workout rather than silently maintaining it.
+    return SymptomSeverity.MODERATE
 
 
 def _checkin_missing_evidence(checkin: CheckIn) -> list[str]:
