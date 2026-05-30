@@ -560,7 +560,7 @@ Reverse-anchored from the A-race. `quality_intent` and `allowed_intensity_envelo
 
 | Phase | min/max wk | focus | weekly quality cap | allowed_intensity_envelope | long-run target (end of phase) |
 |---|---|---|---|---|---|
-| `base` | 4 / 8 | aerobic base, durability | 0 (all easy) | `{easy}` | 10 → 12 km |
+| `base` | 4 / 8 | aerobic base, durability, MAINTAIN built velocity | 1 maintenance interval (when safety gates allow; off on deload/reduce) | `{easy, intervals_5_10k}` | 10 → 12 km |
 | `five_ten_k_sharpening` | 4 / 6 | speed/economy at 5–10k | 1 | `{easy, threshold, intervals_5_10k}` | 12 → 14 km |
 | `half_base` | 6 / 8 | aerobic ceiling + tempo | 1 | `{easy, tempo_hmp, long_progressive}` | 14 → 18 km |
 | `half_specific` | 4 / 6 | half-marathon specificity | 2 (long counts as 1) | `{easy, tempo_hmp, hmp_intervals, long_progressive}` | 18 → 20–21 km |

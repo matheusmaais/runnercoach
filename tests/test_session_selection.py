@@ -36,9 +36,19 @@ def test_base_phase_maintains_velocity_with_one_quality():
     quality_slots = [x for x in s if x.session in quality]
     assert len(quality_slots) == 1
     assert quality_slots[0].session == SessionType.INTERVALS_5_10K
-    # most runs still easy (Seiler distribution)
+    # easy must still be the MAJORITY (Seiler by session count)
     easy = [x for x in s if x.session in {SessionType.EASY, SessionType.LONG_EASY}]
-    assert len(easy) >= len(quality_slots)
+    assert len(easy) > len(quality_slots)
+
+
+def test_base_quality_is_gated_off_on_deload_and_when_disabled():
+    quality = {SessionType.TEMPO_HMP, SessionType.HMP_INTERVALS, SessionType.INTERVALS_5_10K}
+    # safety/adaptive layer disables quality -> base has NO intervals
+    s_off = select_week_sessions(Phase.BASE, BUILD_WEEK, allow_quality=False)
+    assert all(x.session not in quality for x in s_off)
+    # deload week -> no quality either
+    s_deload = select_week_sessions(Phase.BASE, DELOAD_WEEK, allow_quality=True)
+    assert all(x.session not in quality for x in s_deload)
 
 
 def test_most_runs_are_easy():
