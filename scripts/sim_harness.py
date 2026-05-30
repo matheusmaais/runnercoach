@@ -96,7 +96,9 @@ def run_cycle(
     result = CycleResult()
     for i in range(total_weeks):
         ref = _monday(start) + timedelta(days=7 * i + 6)  # Sunday
-        phase = _phase_on(blocks, ref) or Phase.BASE
+        phase = _phase_on(blocks, ref)
+        if phase is None:
+            continue  # past the taper end (race week): no training week, like production
         week = volume[min(i, len(volume) - 1)]
         fb = feedback(i, phase)
 
