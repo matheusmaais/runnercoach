@@ -250,3 +250,25 @@ def test_week_narrative_is_ptbr_summary():
     assert "3 corrida" in n and "32.4 km" in n and "qualidade" in n and "Bruna" in n
     assert _week_narrative([]) == ""
     assert "sem corridas" in _week_narrative([{"runs": 0, "distance_km": 0}])
+
+
+def test_payload_exposes_all_coach_feature_fields():
+    from running_coach.frontend_data import build_frontend_payload
+    from pathlib import Path
+    p = build_frontend_payload(Path("."))
+    # these must always be present so a regression can't silently drop them
+    for key in ("pace_zones", "readiness", "progression_suggestion", "goal_feasibility",
+                "week_narrative", "week"):
+        assert key in p, key
+    assert p["readiness"].get("level")            # readiness always has a level
+    assert p["goal_feasibility"].get("verdict")   # goal radar populated from cycle.yaml
+
+
+def test_progression_message_is_goal_aware():
+    from running_coach.progression import suggest_fourth_day
+    from running_coach.accumulation import AccumulatedState
+    st = AccumulatedState(24.0, 24.0, 1.0, 0, False, None, False, 40, False)
+    aggressive = suggest_fourth_day(st, 3, 6, "agressivo").message
+    plain = suggest_fourth_day(st, 3, 6, None).message
+    assert "alavanca" in aggressive          # aggressive goal -> 4th day is THE lever
+    assert "alavanca" not in plain           # no goal -> neutral framing

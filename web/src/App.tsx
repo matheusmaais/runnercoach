@@ -182,6 +182,13 @@ function Cockpit({ payload }: { payload: FrontendPayload }) {
             <span>Precisa <strong>{payload.goal_feasibility.required_monthly_pct}%/mês</strong></span>
           </div>
           <p className="goal-message">{payload.goal_feasibility.message}</p>
+          {payload.goal_feasibility.science_refs && payload.goal_feasibility.science_refs.length > 0 && (
+            <div className="badge-row">
+              {payload.goal_feasibility.science_refs.map((ref) => (
+                <span className="badge amber" key={ref}>{formatToken(ref)}</span>
+              ))}
+            </div>
+          )}
         </article>
       )}
       <div className="mission-grid">

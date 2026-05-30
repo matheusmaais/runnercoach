@@ -17,6 +17,7 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
     science_refs = _read_csv(root / "data/processed/science_refs.csv")
     plan_status = _read_csv(root / "data/processed/plan_status.csv")
     _benchmark_zones = _load_benchmark_zones(root)
+    _goal = _goal_feasibility(root, _benchmark_zones)
     # Build the LLM-context request fresh from current processed data so the
     # frontend never shows a stale 'latest shared workout' from an old artifact.
     try:
@@ -102,8 +103,8 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
         "weekly_summary": _weekly_summary(workouts),
         "week_narrative": _week_narrative(_weekly_summary(workouts)),
         "readiness": _readiness(workouts),
-        "progression_suggestion": _progression_suggestion(workouts),
-        "goal_feasibility": _goal_feasibility(root, _benchmark_zones),
+        "progression_suggestion": _progression_suggestion(workouts, _goal.get("verdict")),
+        "goal_feasibility": _goal,
         "trends": trends,
         "decisions": [_present_decision(row) for row in _latest_rows(decisions, 10)],
         "science_refs": [_present_science_ref(row) for row in science_refs if _truthy(row.get("approved"))],
@@ -580,7 +581,7 @@ def _present_science_ref(row: dict[str, str]) -> dict[str, Any]:
     }
 
 
-def _progression_suggestion(workouts: list[dict[str, str]]) -> dict[str, Any]:
+def _progression_suggestion(workouts: list[dict[str, str]], goal_verdict: str | None = None) -> dict[str, Any]:
     """Advisory 'add a 4th easy day' nudge when readiness is sustained green.
     Never alters safety — purely additive coach voice."""
     from running_coach.accumulation import WorkoutHistoryPoint, build_athlete_state
@@ -627,7 +628,7 @@ def _progression_suggestion(workouts: list[dict[str, str]]) -> dict[str, Any]:
     last = max(p.local_date for p in points)
     runs_per_week = sum(1 for p in points if (last - p.local_date).days < 7)
     state = build_athlete_state(points, last + timedelta(days=1))
-    s = suggest_fourth_day(state, runs_per_week, green)
+    s = suggest_fourth_day(state, runs_per_week, green, goal_verdict)
     return {"should_suggest": s.should_suggest, "message": s.message,
             "science_refs": list(s.science_refs)}
 

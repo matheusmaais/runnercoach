@@ -28,9 +28,12 @@ def suggest_fourth_day(
     state: AccumulatedState,
     run_days_per_week: int,
     consecutive_green_weeks: int,
+    goal_verdict: str | None = None,
 ) -> ProgressionSuggestion:
     """Propose a 4th easy run only when ALL readiness gates are green and
-    sustained. Otherwise returns should_suggest=False (no nudge)."""
+    sustained. Otherwise returns should_suggest=False (no nudge).
+    goal_verdict (optional) tunes the framing: for an 'agressivo' goal the 4th
+    day is the lever to reach it; otherwise it is optional reinforcement."""
     blocked = (
         run_days_per_week >= MAX_RUN_DAYS
         or state.insufficient_history
@@ -43,15 +46,25 @@ def suggest_fourth_day(
     )
     if blocked:
         return ProgressionSuggestion(False, "", ())
+    if goal_verdict == "agressivo":
+        why = ("Seu objetivo (sub-2h) está agressivo: um 4º dia de corrida LEVE é "
+               "a principal alavanca para construir o volume aeróbico que falta. "
+               "É o passo recomendado para aproximar a meta.")
+    elif goal_verdict == "fora_de_alcance":
+        why = ("Considere um 4º dia de corrida LEVE para evoluir com consistência. "
+               "A meta atual está distante no prazo, então trate o ganho como "
+               "progresso real, não como garantia de sub-2h.")
+    else:
+        why = ("Considere adicionar um 4º dia de corrida LEVE para reforçar a base "
+               "aeróbica rumo à meia.")
     return ProgressionSuggestion(
         True,
         (
             f"Você está absorvendo bem há {consecutive_green_weeks} semanas "
-            "(sem dor no Aquiles, esforço controlado, carga estável). "
-            "Considere adicionar um 4º dia de corrida LEVE para construir base "
-            "aeróbica rumo à meia. Comece curto (~30-40 min fáceis) e mantenha "
-            "os outros treinos iguais. Se a Bruna quiser, ela pode fazer esse dia "
-            "sozinha caso o Aquiles do Matheus não permita."
+            f"(sem dor no Aquiles, esforço controlado, carga estável). {why} "
+            "Comece curto (~30-40 min fáceis) e mantenha os outros treinos iguais. "
+            "Se a Bruna quiser, ela pode fazer esse dia sozinha caso o Aquiles do "
+            "Matheus não permita."
         ),
         ("load-management-recovery", "seiler-intensity-distribution"),
     )
