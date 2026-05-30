@@ -103,6 +103,7 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
         "week_narrative": _week_narrative(_weekly_summary(workouts)),
         "readiness": _readiness(workouts),
         "progression_suggestion": _progression_suggestion(workouts),
+        "goal_feasibility": _goal_feasibility(root, _benchmark_zones),
         "trends": trends,
         "decisions": [_present_decision(row) for row in _latest_rows(decisions, 10)],
         "science_refs": [_present_science_ref(row) for row in science_refs if _truthy(row.get("approved"))],
@@ -629,6 +630,48 @@ def _progression_suggestion(workouts: list[dict[str, str]]) -> dict[str, Any]:
     s = suggest_fourth_day(state, runs_per_week, green)
     return {"should_suggest": s.should_suggest, "message": s.message,
             "science_refs": list(s.science_refs)}
+
+
+def _goal_feasibility(repo_root: Path, zones: dict[str, str]) -> dict[str, Any]:
+    """Assess the aspirational time goal vs current fitness (objective methodology)."""
+    cycle = repo_root / "data/plan/cycle.yaml"
+    if not cycle.exists() or not zones.get("calibrated_from"):
+        return {}
+    try:
+        import re
+
+        import yaml
+
+        from running_coach.feasibility import assess_goal
+
+        data = yaml.safe_load(cycle.read_text(encoding="utf-8")) or {}
+        target = data.get("target") or {}
+        goal = target.get("goal_half_seconds")
+        window = target.get("date_window", "")
+        if not goal or "/" not in window:
+            return {}
+        race = date.fromisoformat(window.split("/")[0])
+        # current 5K seconds from the calibrated benchmark string "5K em M:SS/km"
+        m = re.search(r"(\d+)K em (\d+):(\d+)", zones["calibrated_from"])
+        if not m:
+            return {}
+        dist_km, mm, ss = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        sec_per_km = mm * 60 + ss
+        from running_coach.pacing import HALF_KM, predict_time
+        # normalize the benchmark to an equivalent 5K time
+        eq_5k = predict_time(sec_per_km * dist_km, dist_km, 5.0)
+        v = assess_goal(int(eq_5k), int(goal), date.today(), race)
+        return {
+            "verdict": v.verdict,
+            "goal_type": target.get("goal_type", "aspiration"),
+            "target_pace": v.target_pace_per_km,
+            "current_projection": v.current_projection_pace,
+            "required_monthly_pct": round(v.required_monthly_pct * 100, 1),
+            "message": v.message,
+            "science_refs": list(v.science_refs),
+        }
+    except Exception:
+        return {}
 
 
 def _readiness(workouts: list[dict[str, str]]) -> dict[str, Any]:

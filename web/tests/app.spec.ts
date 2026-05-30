@@ -342,3 +342,19 @@ test("progression nudge renders when the coach suggests a 4th day", async ({ pag
   await page.goto("/");
   await expect(page.getByText(/adicionar um 4º dia de corrida LEVE/)).toBeVisible();
 });
+
+test("goal radar shows the sub-2h feasibility verdict", async ({ page }) => {
+  await page.route("**/data/app-data.json**", async (route) => {
+    const payload = structuredClone(appData);
+    payload.goal_feasibility = {
+      verdict: "agressivo", goal_type: "aspiration", target_pace: "5:41/km",
+      current_projection: "6:33/km", required_monthly_pct: 1.8,
+      message: "Agressivo mas possível: precisa ~1.8%/mês.", science_refs: [],
+    };
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify(payload) });
+  });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Radar da meta (sub-2h)" })).toBeVisible();
+  await expect(page.getByText("5:41/km")).toBeVisible();
+  await expect(page.getByText(/Agressivo mas possível/)).toBeVisible();
+});

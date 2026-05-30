@@ -39,6 +39,7 @@ export type FrontendPayload = {
   pace_zones?: Record<string, string>;
   readiness?: { level: string; message: string };
   progression_suggestion?: { should_suggest: boolean; message?: string; science_refs?: string[] };
+  goal_feasibility?: { verdict: string; goal_type?: string; target_pace?: string; current_projection?: string; required_monthly_pct?: number; message?: string; science_refs?: string[] };
   recent_workouts: Workout[];
   weekly_summary: WeeklySummary[];
   week_narrative?: string;

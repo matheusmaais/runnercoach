@@ -173,6 +173,17 @@ function Cockpit({ payload }: { payload: FrontendPayload }) {
           ))}
         </div>
       </article>
+      {payload.goal_feasibility?.verdict && (
+        <article className={`goal-radar goal-${payload.goal_feasibility.verdict}`}>
+          <div className="panel-title"><Gauge /><h3>Radar da meta (sub-2h)</h3></div>
+          <div className="goal-row">
+            <span>Alvo <strong>{payload.goal_feasibility.target_pace}</strong></span>
+            <span>Projeção hoje <strong>{payload.goal_feasibility.current_projection}</strong></span>
+            <span>Precisa <strong>{payload.goal_feasibility.required_monthly_pct}%/mês</strong></span>
+          </div>
+          <p className="goal-message">{payload.goal_feasibility.message}</p>
+        </article>
+      )}
       <div className="mission-grid">
         <div className="mission-copy">
           <p className="eyebrow">Missão ativa</p>

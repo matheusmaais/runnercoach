@@ -5,6 +5,8 @@ current_week_number: 1
 target:
   name: Meia forte janeiro 2027
   date_window: 2027-01-24/2027-01-31
+  goal_half_seconds: 7200      # aspiração: sub-2h (2:00:00)
+  goal_type: aspiration        # aspiration|firm — aspiration não força ritmo
 weekly_baseline:
   monday: strength
   tuesday: run

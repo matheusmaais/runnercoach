@@ -1027,6 +1027,18 @@
     "message": "",
     "science_refs": []
   },
+  "goal_feasibility": {
+    "verdict": "agressivo",
+    "goal_type": "aspiration",
+    "target_pace": "5:41/km",
+    "current_projection": "6:33/km",
+    "required_monthly_pct": 1.8,
+    "message": "Agressivo mas possível: precisa ~1.8%/mês (limite superior). Exige tudo dando certo — consistência total, talvez um 4º dia, zero lesão. O sistema vai reavaliar a cada prova.",
+    "science_refs": [
+      "training-consistency-principle",
+      "riegel-race-prediction"
+    ]
+  },
   "trends": {
     "pace": [
       {
