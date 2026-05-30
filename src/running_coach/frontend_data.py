@@ -301,7 +301,7 @@ def _benchmark_candidates(repo_root: Path) -> list[Any]:
             data = yaml.safe_load(races.read_text(encoding="utf-8")) or {}
             for r in data.get("races") or []:
                 if (r.get("status") == "done" and r.get("time_seconds") and r.get("distance_km")
-                        and (r.get("date") or "") >= cutoff):
+                        and str(r.get("date") or "") >= cutoff):
                     cands.append(Benchmark(float(r["distance_km"]), int(r["time_seconds"]),
                                            str(r.get("conditions", "normal"))))
         except Exception:
@@ -329,8 +329,15 @@ def _benchmark_candidates(repo_root: Path) -> list[Any]:
                 cat = (row.get("category") or "").strip().lower()
                 pse = _number(row.get("bruna_pse"))
                 labelled_hard = cat in {"race", "quality", "threshold"} or _truthy(row.get("all_out_race"))
-                # auto-detect a strong effort from pace vs zone + PSE
-                auto = base_zones and classify_effort(secs, base_zones, int(pse) if pse else None) in {"race", "threshold"}
+                # Auto-detect a strong effort, but a hard effort must FEEL hard:
+                # require PSE>=7 corroboration and never accept an easy-category run.
+                # This blocks a fast downhill/GPS-glitch easy day from tightening zones.
+                auto = (
+                    bool(base_zones)
+                    and cat != "easy"
+                    and pse is not None and pse >= 7
+                    and classify_effort(secs, base_zones, int(pse)) in {"race", "threshold"}
+                )
                 if labelled_hard or auto:
                     cands.append(Benchmark(dist, int(secs * dist), "normal"))
         except Exception:
@@ -553,10 +560,15 @@ def _readiness(workouts: list[dict[str, str]]) -> dict[str, Any]:
     if not recent:
         return {"level": "indefinido", "message": "Sem dados recentes para avaliar prontidão."}
     last = recent[-1]
-    ach = max(_number(last.get("matheus_achilles_after")) or 0,
-              _number(last.get("matheus_achilles_morning")) or 0)
-    pse = _number(last.get("bruna_pse")) or 0
+    ach_after = _number(last.get("matheus_achilles_after"))
+    ach_morning = _number(last.get("matheus_achilles_morning"))
+    pse_val = _number(last.get("bruna_pse"))
     symptoms = (last.get("bruna_symptoms") or "").strip()
+    # No readiness evidence at all -> unknown, not "good" (fail-closed honesty).
+    if ach_after is None and ach_morning is None and pse_val is None and not symptoms:
+        return {"level": "indefinido", "message": "Sem evidência de prontidão no último registro."}
+    ach = max(ach_after or 0, ach_morning or 0)
+    pse = pse_val or 0
     if ach >= 5 or pse >= 9:
         return {"level": "recuperar",
                 "message": "Sinais de fadiga/dor altos: priorize recuperação antes de qualquer qualidade."}
