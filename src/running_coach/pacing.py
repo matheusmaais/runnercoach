@@ -51,12 +51,16 @@ def classify_effort(pace_sec: float, zones: dict[str, str], pse: int | None = No
         return "easy"
     race = _pace_sec(zones.get("intervals_5_10k"))
     thr = _pace_sec(zones.get("tempo_hmp"))
+    easy = _pace_sec(zones.get("easy"))
+    # Threshold band must stay clearly faster than easy: cap the band a third of
+    # the way from HMP toward easy, so a true easy run never reads as threshold.
+    band = min(10.0, (easy - thr) / 3) if (easy and thr and easy > thr) else 10.0
     if race and pace_sec <= race + 8:        # at/near 5K pace
         return "race"
-    if thr and pace_sec <= thr + 10:          # threshold / HMP band
+    if thr and pace_sec <= thr + band:        # threshold / HMP band
         return "threshold" if (pse is None or pse >= 7) else "quality"
-    if pse is not None and pse >= 8 and thr and pace_sec <= thr + 30:
-        return "quality"                      # felt very hard at a quick-ish pace
+    if pse is not None and pse >= 8 and thr and easy and pace_sec < easy:
+        return "quality"                      # felt very hard at a faster-than-easy pace
     return "easy"
 
 
@@ -97,6 +101,13 @@ def zones_from_benchmark(b: Benchmark) -> dict[str, str]:
     zones: dict[str, str] = {}
     for name, off in _ZONE_OFFSET.items():
         zones[name] = f"{_fmt(race_pace + off)}/km"
+    # Half-marathon-pace work must train the ACTUAL race pace (Riegel projection),
+    # not a fixed offset — otherwise the athlete trains faster than they can hold
+    # for 21 km. These zones are anchored on the projection and stay dynamic.
+    zones["half_marathon"] = f"{_fmt(half_proj)}/km"
+    zones["tempo_hmp"] = f"{_fmt(half_proj)}/km"               # continuous at HMP
+    zones["long_progressive_finish"] = f"{_fmt(half_proj)}/km"  # long run finishes at HMP
+    zones["hmp_intervals"] = f"{_fmt(half_proj - 5)}/km"        # reps a touch quicker than HMP
     zones["half_projection"] = f"{_fmt(half_proj)}/km"
     zones["calibrated_from"] = f"{b.distance_km:.0f}K em {_fmt(race_pace)}/km"
     return zones

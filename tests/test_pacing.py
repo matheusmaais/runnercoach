@@ -6,7 +6,7 @@ def test_bruna_5k_calibration_is_sane():
     z = zones_from_benchmark(Benchmark(5.0, 29 * 60 + 10))  # 5:50/km
     # Anchored on race pace: easy near race pace (endurance profile), intervals == 5K.
     assert z["intervals_5_10k"] == "5:50/km"
-    assert z["tempo_hmp"] == "6:10/km"
+    assert z["tempo_hmp"] == "6:33/km"  # HMP work = real half projection
     assert z["easy"] == "6:38/km"
     assert z["long_easy"] == "6:40/km"
     assert z["half_projection"] == "6:33/km"
@@ -21,7 +21,7 @@ def test_riegel_half_slower_than_5k():
 def test_prescribe_pace_and_heat():
     z = zones_from_benchmark(Benchmark(5.0, 29 * 60 + 10))
     assert prescribe_pace(SessionType.EASY, z) == "6:38/km"
-    assert "6:10/km" in prescribe_pace(SessionType.LONG_PROGRESSIVE, z)
+    assert "6:33/km" in prescribe_pace(SessionType.LONG_PROGRESSIVE, z)
     assert prescribe_pace(SessionType.TEMPO_HMP, z, heat=True) == "por esforço/PSE (calor)"
     assert prescribe_pace(SessionType.OFF, z) == "—"
 
@@ -86,9 +86,9 @@ def test_hard_training_effort_calibrates(tmp_path):
 
 def test_classify_effort_detects_strong_and_ignores_easy():
     from running_coach.pacing import classify_effort
-    z = zones_from_benchmark(Benchmark(5.0, 29 * 60 + 10))  # race 5:50, tempo 6:10
+    z = zones_from_benchmark(Benchmark(5.0, 29 * 60 + 10))  # race 5:50, HMP=proj 6:33
     assert classify_effort(350, z) == "race"          # 5:50 == 5K pace
-    assert classify_effort(370, z, pse=7) == "threshold"  # 6:10 threshold band
+    assert classify_effort(393, z, pse=7) == "threshold"  # 6:33 = HMP/threshold
     assert classify_effort(400, z) == "easy"          # 6:40 easy
     assert classify_effort(0, z) == "easy"            # invalid
     assert classify_effort(350, {}) == "easy"         # no zones -> safe
@@ -158,5 +158,5 @@ def test_prescribe_workout_is_concrete():
     assert "14 km" in prescribe_workout(SessionType.LONG_EASY, z, long_km=14.0)
     assert prescribe_workout(SessionType.OFF, z).startswith("Folga")
     tempo = prescribe_workout(SessionType.TEMPO_HMP, z)
-    assert "Aquecer" in tempo and "ritmo de meia" in tempo and "soltar" in tempo
+    assert "Aquecer" in tempo and "ritmo de meia" in tempo and "6:33/km" in tempo and "soltar" in tempo
     assert "esforço/PSE" in prescribe_workout(SessionType.EASY, z, heat=True)
