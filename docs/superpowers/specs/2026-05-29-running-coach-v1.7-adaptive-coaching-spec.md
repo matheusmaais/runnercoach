@@ -1069,3 +1069,25 @@ The architecture (deterministic spine, DIV-1, explainability, append-only, fail-
 3. Tag every symbol EXISTS/TO_BUILD and fix the phase enum (C.3, C.5).
 
 Only after 1–3 is the spec safe to hand to Codex for implementation. The honest headline for the athlete: on 3 runs/week with an Achilles limiter, this system will coach you safely and adaptively to **complete a strong half** — a true competitive peak would require a 4th run (Achilles permitting) or a longer runway, and the system will say so explicitly rather than pretend.
+
+## D. v2.0 — Pacing calibration, race-via-UI, and full-cycle proof (shipped)
+
+This section records the v2.0 increment (all reproduced by committed scripts + golden tests, each Codex-reviewed read-only).
+
+### D.1 Race-calibrated pacing (`pacing.py`)
+- `Benchmark(distance_km, time_seconds, conditions)` + `zones_from_benchmark` derive PT-BR pace zones from a real race via Riegel (exponent 1.08). Zones are **anchored on measured race pace**, not generic VDOT offsets, to fit an endurance profile (easy sits near race pace). Bruna's 5K (29:10) → easy 6:40, limiar/HMP 6:10, tiros 5:50, projeção meia 6:33 — verified against her demonstrated paces.
+- `select_best` picks the strongest recent effort (fastest normalized to 5K); zones **auto-tighten** as fitness improves, never loosen on easy days.
+- `classify_effort` auto-detects a strong effort (race/threshold) from pace-vs-zone + PSE. **Binding safety rule (Codex):** auto-calibration requires `PSE>=7` AND `category!=easy` AND Bruna-evidence (`shared_run+bruna_present`) — a fast downhill/GPS-glitch easy run can NEVER tighten zones (injury risk). Stale (>120d) and <5km efforts are excluded.
+- `heat_adjusted_pace`: +3s/km per °C above 15°C (cap +90s); heat conditions switch prescriptions to effort/PSE.
+
+### D.2 Race entry via UI (no repo edits)
+- `RaceIntake` model + `_write_race` (append-only to `races.yaml`, dedup by `race_id = {dist}k-{date}`). `process_frontend_intake` writes it; the Operar tab has a race form (`buildRaceIntakePayload`/`validateRaceForm`). The operational workflow handles a Garmin-less race intake (runs `build_plan.py`, commits `data/plan`). A submitted race recalibrates zones automatically.
+
+### D.3 Full-cycle harness + taper fix
+- `scripts/sim_harness.py::run_cycle(feedback)` drives the REAL engine week-by-week to the Jan race. It feeds **action-adjusted executed load** back into history (off=0, easy=0.5×, reduce=0.7× of the planned long), so interruptions genuinely lower future load (Codex faithfulness fix — proven: perfect=467km vs U-inverted=326km executed long total).
+- **Harness-exposed periodization bug (fixed):** `generate_volume_plan` was blind to the taper phase, so the final week could return to peak. `select_week_sessions` now caps the `HALF_TAPER` long run to `TAPER_LONG_FRACTION=0.55` of peak.
+
+### D.4 26 scenarios locked (`tests/test_full_cycle_scenarios.py`)
+26 edge-case cycles (V, inverted-U, perfect, weeks off, Achilles injury+recovery, sustained illness, red flag, chronic poor sleep, heavy volleyball, tune-up race, taper injury, etc.) run through the real engine. Invariants asserted: full cycle reached (specific+taper present), long-run progression, taper reduces below peak, red_flag → off/easy (never maintain), PSE≥9 → pullback then resume, Achilles≥5 → `bruna_without_matheus` (the Achilles limits Matheus, not Bruna). **Non-vacuous (Codex):** each safety scenario asserts its intended trigger actually fires. Plus a readiness summary (`boa/cautela/recuperar/indefinido`, fail-closed) and weekly narrative recap.
+
+Net: race calibration + concrete per-session pace + a living plan that auto-refreshes and tapers correctly, proven adaptive across 26 cycles. 330 Python tests + 24 Playwright e2e + frontend build green.
