@@ -56,11 +56,11 @@ import type { FrontendPayload, PlannedWorkout, ScienceRef, Workout } from "./typ
 type View = "cockpit" | "operate" | "timeline" | "plan" | "coach" | "science";
 
 const nav: { id: View; label: string }[] = [
-  { id: "cockpit", label: "Cockpit" },
+  { id: "cockpit", label: "Painel" },
   { id: "operate", label: "Operar" },
-  { id: "timeline", label: "Timeline" },
+  { id: "timeline", label: "Histórico" },
   { id: "plan", label: "Plano" },
-  { id: "coach", label: "Coach Room" },
+  { id: "coach", label: "Sala do coach" },
   { id: "science", label: "Ciência" },
 ];
 
@@ -489,9 +489,9 @@ function OperateView({
             <h3>GitHub</h3>
           </div>
           <div className="form-grid two">
-            <TextInput label="Owner" value={settings.owner} onChange={(value) => updateSettings("owner", value)} />
-            <TextInput label="Repo" value={settings.repo} onChange={(value) => updateSettings("repo", value)} />
-            <TextInput label="Branch" value={settings.branch} onChange={(value) => updateSettings("branch", value)} />
+            <TextInput label="Dono (owner)" value={settings.owner} onChange={(value) => updateSettings("owner", value)} />
+            <TextInput label="Repositório" value={settings.repo} onChange={(value) => updateSettings("repo", value)} />
+            <TextInput label="Ramo (branch)" value={settings.branch} onChange={(value) => updateSettings("branch", value)} />
             <TextInput label="Token" type="password" value={settings.token} onChange={(value) => updateSettings("token", value)} />
           </div>
           <p className="helper">
@@ -690,7 +690,7 @@ function Timeline({ payload }: { payload: FrontendPayload }) {
     <section className="view" aria-label="Timeline">
       <SectionHeader
         eyebrow="Evidência treino a treino"
-        title="Timeline"
+        title="Histórico"
         copy="Cada sessão carrega contexto de atleta, qualidade da evidência e decisão posterior."
       />
       <div className="timeline-list">
@@ -783,10 +783,10 @@ function CoachRoom({ payload }: { payload: FrontendPayload }) {
   const history = payload.recommendation_history ?? [];
 
   return (
-    <section className="view" aria-label="Coach Room">
+    <section className="view" aria-label="Sala do coach">
       <SectionHeader
         eyebrow="LLM auditável"
-        title="Coach Room"
+        title="Sala do coach"
         copy="A IA interpreta um pacote já preparado. A fronteira de segurança continua no pipeline determinístico."
       />
       {recommendation ? (

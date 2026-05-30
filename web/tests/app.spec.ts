@@ -39,15 +39,15 @@ test("cockpit does not overflow horizontally on mobile", async ({ page }) => {
 test("navigates through all product sections", async ({ page }) => {
   await page.goto("/");
 
-  await page.getByRole("button", { name: "Timeline" }).click();
-  await expect(page.getByRole("heading", { name: "Timeline" })).toBeVisible();
+  await page.getByRole("button", { name: "Histórico" }).click();
+  await expect(page.getByRole("heading", { name: "Histórico" })).toBeVisible();
   await expect(page.getByText("Garmin Matheus: não usar como evolução da Bruna.").first()).toBeVisible();
 
   await page.getByRole("button", { name: "Plano" }).click();
   await expect(page.getByRole("heading", { name: "O que fazer esta semana" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Coach Room" }).click();
-  await expect(page.getByRole("heading", { name: "Coach Room" })).toBeVisible();
+  await page.getByRole("button", { name: "Sala do coach" }).click();
+  await expect(page.getByRole("heading", { name: "Sala do coach" })).toBeVisible();
   const recommendationPanel = page.locator(".recommendation-panel");
   await expect(recommendationPanel.getByRole("heading", { name: "Recomendação validada" })).toBeVisible();
   await expect(recommendationPanel.getByText("reduce next workout")).toBeVisible();
