@@ -515,10 +515,10 @@ def _week_narrative(summary: list[dict[str, Any]]) -> str:
     if not summary:
         return ""
     w = summary[-1]
-    runs = w.get("runs", 0)
-    km = round(w.get("distance_km", 0.0), 1)
-    quality = w.get("quality_runs", 0)
-    shared = w.get("shared_runs", 0)
+    runs = int(_number(w.get("runs")) or 0)
+    km = round(_number(w.get("distance_km")) or 0.0, 1)
+    quality = int(_number(w.get("quality_runs")) or 0)
+    shared = int(_number(w.get("shared_runs")) or 0)
     if runs == 0:
         return "Semana sem corridas registradas."
     parts = [f"Semana: {runs} corrida(s), {km} km no total"]

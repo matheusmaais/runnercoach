@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -74,11 +75,15 @@ def regenerate(repo_root: Path, today: date) -> int:
     new_rows = [planned_session_to_row(s) for s in sessions]
     planned_path = repo_root / "data/plan/planned_workouts.csv"
     merged = merge_future_only(_read_existing(planned_path), new_rows, today)
-    with planned_path.open("w", encoding="utf-8", newline="") as handle:
+    tmp = planned_path.with_suffix(".csv.tmp")
+    with tmp.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=PLANNED_CSV_FIELDS, lineterminator="\n")
         writer.writeheader()
         for row in merged:
             writer.writerow({k: row.get(k, "") for k in PLANNED_CSV_FIELDS})
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp, planned_path)  # atomic: original intact if write above fails
     return len(merged)
 
 

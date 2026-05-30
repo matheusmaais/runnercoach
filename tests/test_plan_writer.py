@@ -53,3 +53,29 @@ def test_seed_race_row_is_preserved_not_deleted():
 
 def test_no_sessions_after_race():
     assert plan_horizon(date(2027, 2, 1), RACE, BRUNA_HALF, baseline_km=16.0) == []
+
+
+def test_regenerate_is_atomic_on_write_failure(tmp_path, monkeypatch):
+    import sys, csv as _csv
+    sys.path.insert(0, str((tmp_path / "..").resolve()))
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "build_plan", str((__import__("pathlib").Path(__file__).resolve().parents[1] / "scripts/build_plan.py")))
+    bp = importlib.util.module_from_spec(spec); spec.loader.exec_module(bp)
+    planned = tmp_path / "data/plan/planned_workouts.csv"
+    planned.parent.mkdir(parents=True)
+    (tmp_path / "data/plan/cycle.yaml").write_text("target:\n  date_window: 2027-01-24/2027-01-31\n")
+    original = "planned_workout_id,date\nseed-1,2020-01-01\n"
+    planned.write_text(original)
+    # force the writer to blow up mid-write
+    monkeypatch.setattr(bp, "plan_horizon", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    import pytest
+    with pytest.raises(RuntimeError):
+        bp.regenerate(tmp_path, __import__("datetime").date(2026, 6, 1))
+    assert planned.read_text() == original  # untouched
+
+
+def test_week_narrative_handles_malformed():
+    from running_coach.frontend_data import _week_narrative
+    assert _week_narrative([{"runs": None, "distance_km": None}])  # no crash
+    assert _week_narrative([{"runs": "3", "distance_km": "32.4", "quality_runs": "1", "shared_runs": "0"}])
