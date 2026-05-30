@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt
 
+from running_coach.accumulation import AccumulatedState, accumulated_reasons
 from running_coach.models import (
     Confidence,
     DecisionType,
@@ -11,7 +12,7 @@ from running_coach.models import (
 
 
 class RecommendationInput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True)
 
     bruna_pse: StrictInt | None = Field(default=None, ge=0, le=10)
     symptom_severity: SymptomSeverity
@@ -24,6 +25,7 @@ class RecommendationInput(BaseModel):
     phase: str = Field(min_length=1)
     week_number: StrictInt = Field(ge=1)
     planned_workout_id: str = Field(min_length=1)
+    accumulated: AccumulatedState | None = None
 
 
 class RecommendationResult(BaseModel):
@@ -60,6 +62,13 @@ def recommend_next_action(input_data: RecommendationInput) -> RecommendationResu
     assumptions.extend(_assumptions_for(reasons))
     if _is_high_confidence_hard_stop(action, blocked_by_red_flag):
         confidence = Confidence.HIGH
+    elif "insufficient_history" in reasons:
+        # Sparse/empty history: never high-confidence; fail-closed on certainty.
+        assumptions.append(
+            "Historico insuficiente para tendencias de carga; confianca reduzida."
+        )
+        if confidence == Confidence.HIGH:
+            confidence = Confidence.MEDIUM
 
     science_refs = _rule_refs_for(reasons)
     return RecommendationResult(
@@ -127,7 +136,24 @@ def _select_action(
             False,
         )
 
-    if reasons:
+    # Accumulated (multi-workout) reasons lower the envelope but never raise it.
+    if reason_tags & {"weekly_load_spike", "post_race_recovery"}:
+        return (
+            _not_more_aggressive(RecommendationAction.REDUCE_NEXT_WORKOUT, input_data.planned_action),
+            reasons,
+            False,
+        )
+
+    if "achilles_trend_rising" in reason_tags:
+        return (
+            _not_more_aggressive(RecommendationAction.DEFER_QUALITY, input_data.planned_action),
+            reasons,
+            False,
+        )
+
+    # insufficient_history is a confidence signal only, not an action trigger.
+    action_reasons = reason_tags - {"insufficient_history"}
+    if action_reasons:
         return (
             RecommendationAction.REDUCE_NEXT_WORKOUT,
             reasons,
@@ -136,13 +162,39 @@ def _select_action(
 
     return (
         input_data.planned_action,
-        ["within_guardrails"],
+        ["insufficient_history", "within_guardrails"]
+        if "insufficient_history" in reason_tags
+        else ["within_guardrails"],
         False,
     )
 
 
 def _max_achilles(input_data: RecommendationInput) -> int:
     return max(input_data.matheus_achilles_morning, input_data.matheus_achilles_after)
+
+
+# Conservativeness order (low -> high). Accumulated reasons may move the action
+# DOWN this ladder (more conservative) but never UP (less conservative) than the
+# already-planned action.
+_CONSERVATIVENESS = {
+    RecommendationAction.MAINTAIN_NEXT_WORKOUT: 0,
+    RecommendationAction.DEFER_QUALITY: 1,
+    RecommendationAction.REDUCE_NEXT_WORKOUT: 2,
+    RecommendationAction.REPLACE_WITH_CROSS_TRAINING: 3,
+    RecommendationAction.REPLACE_WITH_EASY: 3,
+    RecommendationAction.BRUNA_WITHOUT_MATHEUS: 4,
+    RecommendationAction.REPLACE_WITH_OFF: 5,
+    RecommendationAction.REQUEST_MANUAL_RESOLUTION: 5,
+}
+
+
+def _not_more_aggressive(
+    proposed: RecommendationAction, planned: RecommendationAction
+) -> RecommendationAction:
+    # If the planned action is already at least as conservative, keep it.
+    if _CONSERVATIVENESS.get(planned, 0) >= _CONSERVATIVENESS.get(proposed, 0):
+        return planned
+    return proposed
 
 
 def _load_reduction_reasons(input_data: RecommendationInput) -> list[str]:
@@ -167,6 +219,8 @@ def _guardrail_reasons(input_data: RecommendationInput) -> list[str]:
     elif _max_achilles(input_data) >= 3:
         reasons.append("matheus_achilles_ge_3")
     reasons.extend(_load_reduction_reasons(input_data))
+    if input_data.accumulated is not None:
+        reasons.extend(accumulated_reasons(input_data.accumulated))
     return reasons
 
 
@@ -194,6 +248,10 @@ def _decision_for(action: RecommendationAction, reasons: list[str]) -> DecisionT
         return DecisionType.ALTER
     if "matheus_achilles_ge_3" in reason_tags:
         return DecisionType.DEFER
+    if "achilles_trend_rising" in reason_tags:
+        return DecisionType.DEFER
+    if reason_tags & {"weekly_load_spike", "post_race_recovery"}:
+        return DecisionType.REDUCE
     if action == RecommendationAction.REDUCE_NEXT_WORKOUT:
         return DecisionType.REDUCE
     if action == RecommendationAction.DEFER_QUALITY:
@@ -210,8 +268,10 @@ def _rule_refs_for(reasons: list[str]) -> list[str]:
         refs.append("load-management-recovery")
     if "bruna_strong_symptoms" in reason_tags:
         refs.append("load-management-recovery")
-    if reason_tags & {"matheus_achilles_ge_5", "matheus_achilles_ge_3"}:
+    if reason_tags & {"matheus_achilles_ge_5", "matheus_achilles_ge_3", "achilles_trend_rising"}:
         refs.append("achilles-tendinopathy-load")
+    if reason_tags & {"weekly_load_spike", "post_race_recovery"}:
+        refs.append("load-management-recovery")
     if reason_tags & {"volleyball_previous_day", "poor_sleep", "all_out_race"}:
         if "volleyball_previous_day" in reason_tags:
             refs.append("volleyball-neuromuscular-load")

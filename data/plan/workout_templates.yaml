@@ -15,3 +15,28 @@ templates:
     allowed_intensity_range: controlled_aggressive
     contraindications: ["red_flag"]
     science_tags: ["race_calibration", "threshold"]
+  long_run:
+    purpose: Aerobic endurance long run kept easy.
+    allowed_intensity_range: easy
+    contraindications: ["red_flag", "achilles_ge_3"]
+    science_tags: ["long_run", "load_management"]
+  long_progressive:
+    purpose: Easy long run with a half-marathon-pace finish (half-specific endurance).
+    allowed_intensity_range: strong_controlled
+    contraindications: ["red_flag", "achilles_ge_3", "poor_sleep"]
+    science_tags: ["long_run", "threshold", "race_calibration"]
+  tempo_hmp:
+    purpose: Continuous tempo at half-marathon pace.
+    allowed_intensity_range: strong_controlled
+    contraindications: ["red_flag", "achilles_ge_3", "poor_sleep", "volleyball_previous_day_max"]
+    science_tags: ["threshold", "race_calibration"]
+  hmp_intervals:
+    purpose: Repetitions at half-marathon pace.
+    allowed_intensity_range: strong_controlled
+    contraindications: ["red_flag", "achilles_ge_3", "poor_sleep", "volleyball_previous_day_max"]
+    science_tags: ["threshold", "race_calibration"]
+  intervals_5_10k:
+    purpose: Faster intervals for 5-10K sharpening.
+    allowed_intensity_range: controlled_aggressive
+    contraindications: ["red_flag", "achilles_ge_3", "poor_sleep", "volleyball_previous_day_max"]
+    science_tags: ["threshold", "intensity_distribution"]

@@ -56,11 +56,11 @@ import type { FrontendPayload, PlannedWorkout, ScienceRef, Workout } from "./typ
 type View = "cockpit" | "operate" | "timeline" | "plan" | "coach" | "science";
 
 const nav: { id: View; label: string }[] = [
-  { id: "cockpit", label: "Cockpit" },
+  { id: "cockpit", label: "Painel" },
   { id: "operate", label: "Operar" },
-  { id: "timeline", label: "Timeline" },
+  { id: "timeline", label: "Histórico" },
   { id: "plan", label: "Plano" },
-  { id: "coach", label: "Coach Room" },
+  { id: "coach", label: "Sala do coach" },
   { id: "science", label: "Ciência" },
 ];
 
@@ -110,7 +110,7 @@ export function App() {
       <main>
         {activeView === "cockpit" && <Cockpit payload={payload} />}
         {activeView === "operate" && (
-          <OperateView onOpenCoach={() => setActiveView("coach")} onPayloadReloaded={reloadPayload} />
+          <OperateView onOpenCoach={() => setActiveView("coach")} onOpenPlan={() => setActiveView("plan")} onPayloadReloaded={reloadPayload} />
         )}
         {activeView === "timeline" && <Timeline payload={payload} />}
         {activeView === "plan" && <PlanView payload={payload} />}
@@ -143,6 +143,22 @@ function Cockpit({ payload }: { payload: FrontendPayload }) {
 
   return (
     <section className="view cockpit" aria-label="Cockpit">
+      <article className="today-card">
+        <p className="eyebrow">O que fazer hoje</p>
+        <h2>{payload.today.headline}</h2>
+        <p className="today-why">{payload.today.why}</p>
+        <div className="badge-row">
+          {payload.today.next_planned && (
+            <span className="badge teal">Próximo: {formatToken(payload.today.next_planned)}</span>
+          )}
+          {payload.today.confidence && (
+            <span className="badge neutral">Confiança {formatToken(payload.today.confidence)}</span>
+          )}
+          {payload.today.science_refs.slice(0, 3).map((ref) => (
+            <span className="badge amber" key={ref}>{formatToken(ref)}</span>
+          ))}
+        </div>
+      </article>
       <div className="mission-grid">
         <div className="mission-copy">
           <p className="eyebrow">Missão ativa</p>
@@ -305,9 +321,11 @@ function NextWorkoutCard({ workout }: { workout?: PlannedWorkout }) {
 
 function OperateView({
   onOpenCoach,
+  onOpenPlan,
   onPayloadReloaded,
 }: {
   onOpenCoach: () => void;
+  onOpenPlan: () => void;
   onPayloadReloaded: () => Promise<void>;
 }) {
   const [form, setForm] = useState<OperationalFormState>(() => defaultOperationalForm());
@@ -429,7 +447,7 @@ function OperateView({
         updateOperationalStep(current, "publish", "done", "app-data.json recarregado; recomendação pronta."),
       );
       setCoachReady(true);
-      setStatus("Workflow concluído com sucesso.");
+      setStatus("Workflow concluído com sucesso. Sua semana está pronta.");
     } catch (err) {
       if (err instanceof WorkflowRunFailedError) {
         setWorkflowUrl(err.run.html_url);
@@ -471,9 +489,9 @@ function OperateView({
             <h3>GitHub</h3>
           </div>
           <div className="form-grid two">
-            <TextInput label="Owner" value={settings.owner} onChange={(value) => updateSettings("owner", value)} />
-            <TextInput label="Repo" value={settings.repo} onChange={(value) => updateSettings("repo", value)} />
-            <TextInput label="Branch" value={settings.branch} onChange={(value) => updateSettings("branch", value)} />
+            <TextInput label="Dono (owner)" value={settings.owner} onChange={(value) => updateSettings("owner", value)} />
+            <TextInput label="Repositório" value={settings.repo} onChange={(value) => updateSettings("repo", value)} />
+            <TextInput label="Ramo (branch)" value={settings.branch} onChange={(value) => updateSettings("branch", value)} />
             <TextInput label="Token" type="password" value={settings.token} onChange={(value) => updateSettings("token", value)} />
           </div>
           <p className="helper">
@@ -544,7 +562,7 @@ function OperateView({
           )}
           <p className="helper">Caminho: {path}</p>
           <button className="primary-action" disabled={busy || errors.length > 0} onClick={commitAndDispatch} type="button">
-            {busy ? "Enviando..." : "Commitar intake e analisar"}
+            {busy ? "Enviando..." : "Salvar e ver minha semana"}
           </button>
           <OperationalProgress steps={steps} />
           <p className="helper">{status}</p>
@@ -554,9 +572,14 @@ function OperateView({
             </a>
           )}
           {coachReady && (
-            <button className="secondary-action" onClick={onOpenCoach} type="button">
-              Ir para Coach Room
-            </button>
+            <div className="result-cta">
+              <button className="primary-action" onClick={onOpenPlan} type="button">
+                Ver plano da semana
+              </button>
+              <button className="secondary-action" onClick={onOpenCoach} type="button">
+                Ver análise do coach
+              </button>
+            </div>
           )}
         </article>
         <article className="operate-panel">
@@ -667,7 +690,7 @@ function Timeline({ payload }: { payload: FrontendPayload }) {
     <section className="view" aria-label="Timeline">
       <SectionHeader
         eyebrow="Evidência treino a treino"
-        title="Timeline"
+        title="Histórico"
         copy="Cada sessão carrega contexto de atleta, qualidade da evidência e decisão posterior."
       />
       <div className="timeline-list">
@@ -701,27 +724,48 @@ function WorkoutRow({ workout }: { workout: Workout }) {
 }
 
 function PlanView({ payload }: { payload: FrontendPayload }) {
+  const next = payload.next_workouts[0];
+  const week = payload.week;
   return (
     <section className="view" aria-label="Plano">
       <SectionHeader
-        eyebrow="Coerência do ciclo"
-        title="Plano ligado ao que já aconteceu"
-        copy="As próximas sessões não são aleatórias: elas respeitam fase, última evidência, carga de vôlei/academia e regras de segurança."
+        eyebrow="Minha semana de treinos"
+        title="O que fazer esta semana"
+        copy="Próximo treino em destaque e a semana inteira (Seg–Dom) para você organizar a rotina."
       />
-      <div className="plan-grid">
-        {payload.next_workouts.map((workout) => (
-          <article className="plan-card" key={workout.planned_workout_id}>
-            <p className="eyebrow">{workout.date} · Semana {workout.week_number}</p>
-            <h3>{formatToken(workout.intended_category)}</h3>
-            <p>{workout.decision_basis}</p>
-            <div className="rule-list">
-              {workout.safety_triggers.map((trigger) => (
-                <span key={trigger}>{formatToken(trigger)}</span>
-              ))}
+
+      {next ? (
+        <article className="next-highlight">
+          <p className="eyebrow">Próximo treino</p>
+          <h3>{formatToken(next.intended_category)}</h3>
+          <p className="date-line">{next.date} · Semana {next.week_number}</p>
+          <p>{next.decision_basis}</p>
+        </article>
+      ) : (
+        <article className="next-highlight">
+          <p className="eyebrow">Próximo treino</p>
+          <h3>Semana ainda não atualizada</h3>
+          <p>Registre o último treino em Operar para gerar a semana.</p>
+        </article>
+      )}
+
+      <div className="panel-title"><CalendarDays /><h3>Semana</h3></div>
+      {week.generated ? (
+        <div className="week-grid">
+          {week.days.map((d) => (
+            <div className={`week-day ${d.kind}`} key={d.date}>
+              <p className="week-dow">{d.day}</p>
+              <p className="week-label">{d.label}</p>
             </div>
-          </article>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <article className="empty-week">
+          <ShieldAlert />
+          <p>{week.empty_message}</p>
+        </article>
+      )}
+
       <div className="principles-strip">
         {payload.evidence_contracts.hard_rules.map((rule) => (
           <div key={rule}>
@@ -739,10 +783,10 @@ function CoachRoom({ payload }: { payload: FrontendPayload }) {
   const history = payload.recommendation_history ?? [];
 
   return (
-    <section className="view" aria-label="Coach Room">
+    <section className="view" aria-label="Sala do coach">
       <SectionHeader
         eyebrow="LLM auditável"
-        title="Coach Room"
+        title="Sala do coach"
         copy="A IA interpreta um pacote já preparado. A fronteira de segurança continua no pipeline determinístico."
       />
       {recommendation ? (

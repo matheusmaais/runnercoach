@@ -17,6 +17,7 @@ class Confidence(StrEnum):
 
 
 class Phase(StrEnum):
+    BASE = "base"
     TEN_K_POLISH = "ten_k_polish"
     POST_TEN_K_RECOVERY = "post_ten_k_recovery"
     FIVE_TEN_K_DEVELOPMENT = "five_ten_k_development"

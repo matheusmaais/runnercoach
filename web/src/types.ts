@@ -1,5 +1,13 @@
 export type FrontendPayload = {
   generated_at: string;
+  today: {
+    headline: string;
+    why: string;
+    next_planned: string;
+    confidence: string;
+    science_refs: string[];
+    date: string;
+  };
   mission: {
     name: string;
     target_race_window: string;
@@ -22,6 +30,12 @@ export type FrontendPayload = {
     summary_markdown: string;
   };
   next_workouts: PlannedWorkout[];
+  week: {
+    generated: boolean;
+    week_of: string;
+    days: { day: string; date: string; label: string; kind: string }[];
+    empty_message: string;
+  };
   recent_workouts: Workout[];
   weekly_summary: WeeklySummary[];
   trends: {
