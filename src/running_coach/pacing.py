@@ -132,3 +132,40 @@ def prescribe_pace(session: SessionType, zones: dict[str, str], heat: bool = Fal
     if session == SessionType.LONG_PROGRESSIVE:
         return f"leve, finalizando em {zones.get('long_progressive_finish', '—')}"
     return zones.get(zone, "—")
+
+
+def prescribe_workout(
+    session: SessionType,
+    zones: dict[str, str],
+    long_km: float | None = None,
+    heat: bool = False,
+) -> str:
+    """Full PT-BR session prescription: reps × distance @pace + recovery, or
+    duration. Answers 'exactly what do I do today'. Deterministic.
+    A interval session is reps, never a vague 'tiros'."""
+    easy = zones.get("easy", "—")
+    hmp = zones.get("tempo_hmp", "—")
+    rep = zones.get("intervals_5_10k", "—")
+    effort = " (ajuste por esforço/PSE no calor)" if heat else ""
+
+    if session == SessionType.OFF:
+        return "Folga — sem corrida. Recuperação ou mobilidade leve."
+    if session == SessionType.EASY:
+        return f"40 min contínuos em ritmo leve @{easy}{effort}."
+    if session == SessionType.LONG_EASY:
+        d = f"{long_km:g} km" if long_km else "longão"
+        return f"{d} contínuos em ritmo leve @{easy}{effort}."
+    if session == SessionType.LONG_PROGRESSIVE:
+        d = f"{long_km:g} km" if long_km else "longão"
+        return (f"{d}: primeiros 2/3 leve @{easy}, último 1/3 progredindo até "
+                f"ritmo de meia @{hmp}{effort}.")
+    if session == SessionType.TEMPO_HMP:
+        return (f"Aquecer 12 min leve · 20 min contínuos em ritmo de meia @{hmp} · "
+                f"soltar 8 min leve{effort}.")
+    if session == SessionType.HMP_INTERVALS:
+        return (f"Aquecer 12 min leve · 4 × 1,5 km @{hmp} com 90 s de trote leve "
+                f"entre as repetições · soltar 8 min leve{effort}.")
+    if session == SessionType.INTERVALS_5_10K:
+        return (f"Aquecer 12 min leve · 5 × 1 km @{rep} com 2 min de trote leve "
+                f"entre as repetições · soltar 8 min leve{effort}.")
+    return "—"

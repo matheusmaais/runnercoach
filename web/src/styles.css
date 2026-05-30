@@ -910,3 +910,5 @@ main {
 .readiness-indefinido { background: rgba(148,163,184,0.12); color: #cbd5e1; }
 
 .progression-nudge { align-items: center; background: rgba(59,130,246,0.12); border-left: 3px solid #3b82f6; border-radius: 6px; color: #bfdbfe; display: flex; font-size: 0.9rem; gap: 8px; margin: 8px 0 0; padding: 10px 12px; }
+
+.week-workout { color: #94a3b8; font-size: 0.74rem; line-height: 1.35; margin: 6px 0 0; }

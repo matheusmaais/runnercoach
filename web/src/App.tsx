@@ -820,6 +820,7 @@ function PlanView({ payload }: { payload: FrontendPayload }) {
               <p className="week-dow">{d.day}</p>
               <p className="week-label">{d.label}</p>
               {d.pace && <p className="week-pace">{d.pace}</p>}
+              {d.workout && <p className="week-workout">{d.workout}</p>}
             </div>
           ))}
         </div>

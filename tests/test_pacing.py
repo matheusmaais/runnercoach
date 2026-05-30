@@ -147,3 +147,16 @@ def test_hard_corroborated_run_does_auto_calibrate(tmp_path):
 def test_readiness_dated_without_evidence_is_indefinido():
     from running_coach.frontend_data import _readiness
     assert _readiness([{"local_date": "2026-06-01"}])["level"] == "indefinido"
+
+
+def test_prescribe_workout_is_concrete():
+    from running_coach.pacing import prescribe_workout
+    z = zones_from_benchmark(Benchmark(5.0, 1750))
+    iv = prescribe_workout(SessionType.INTERVALS_5_10K, z)
+    assert "5 × 1 km" in iv and "@5:50/km" in iv and "trote" in iv  # reps, pace, recovery
+    assert "min" in prescribe_workout(SessionType.EASY, z)          # duration
+    assert "14 km" in prescribe_workout(SessionType.LONG_EASY, z, long_km=14.0)
+    assert prescribe_workout(SessionType.OFF, z).startswith("Folga")
+    tempo = prescribe_workout(SessionType.TEMPO_HMP, z)
+    assert "Aquecer" in tempo and "ritmo de meia" in tempo and "soltar" in tempo
+    assert "esforço/PSE" in prescribe_workout(SessionType.EASY, z, heat=True)

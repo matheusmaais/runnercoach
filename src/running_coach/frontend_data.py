@@ -470,6 +470,28 @@ def _date_obj(value: str):
         return None
 
 
+_LABEL_TO_SESSION = {
+    "Corrida leve": "EASY",
+    "Longo leve": "LONG_EASY",
+    "Longo progressivo": "LONG_PROGRESSIVE",
+    "Tempo (ritmo de meia)": "TEMPO_HMP",
+    "Tiros em ritmo de meia": "HMP_INTERVALS",
+    "Tiros 5-10K": "INTERVALS_5_10K",
+}
+
+
+def _workout_for_label(label: str, zones: dict[str, str]) -> str:
+    """Full PT-BR session structure (reps/distance/duration) for a week-day label."""
+    if not zones:
+        return ""
+    name = _LABEL_TO_SESSION.get(label)
+    if not name:
+        return ""
+    from running_coach.pacing import prescribe_workout
+    from running_coach.periodization import SessionType
+    return prescribe_workout(getattr(SessionType, name), zones)
+
+
 def _pace_for_label(label: str, zones: dict[str, str]) -> str:
     if not zones:
         return ""
@@ -512,7 +534,8 @@ def _week_view(plan_rows: list[dict[str, str]], reference_date: date, zones: dic
         else:
             label, kind = "Descanso", "rest"
         days.append({"day": _WEEK_DAYS_PT[i], "date": d.isoformat(), "label": label, "kind": kind,
-                     "pace": _pace_for_label(label, zones or {})})
+                     "pace": _pace_for_label(label, zones or {}),
+                     "workout": _workout_for_label(label, zones or {})})
 
     return {
         "generated": has_future,

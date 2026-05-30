@@ -33,7 +33,7 @@ export type FrontendPayload = {
   week: {
     generated: boolean;
     week_of: string;
-    days: { day: string; date: string; label: string; kind: string; pace?: string }[];
+    days: { day: string; date: string; label: string; kind: string; pace?: string; workout?: string }[];
     empty_message: string;
   };
   pace_zones?: Record<string, string>;
