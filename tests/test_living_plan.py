@@ -40,11 +40,16 @@ def test_horizon_is_future_only():
 
 def test_horizon_sessions_are_phase_correct():
     sessions = plan_horizon(TODAY, RACE, BRUNA_HALF, baseline_km=20.0, horizon_weeks=8)
-    # Early weeks are BASE -> all easy/long, no quality intervals.
-    quality = {SessionType.TEMPO_HMP, SessionType.HMP_INTERVALS, SessionType.INTERVALS_5_10K}
+    # Early weeks are BASE -> easy/long plus ONE maintenance interval slot (no
+    # tempo/hmp quality yet; that belongs to later phases).
+    higher_quality = {SessionType.TEMPO_HMP, SessionType.HMP_INTERVALS}
     base_sessions = [s for s in sessions if s.phase == Phase.BASE]
     assert base_sessions
-    assert all(s.session not in quality for s in base_sessions)
+    assert all(s.session not in higher_quality for s in base_sessions)
+    base_intervals = [s for s in base_sessions if s.session == SessionType.INTERVALS_5_10K]
+    base_easy = [s for s in base_sessions
+                 if s.session in {SessionType.EASY, SessionType.LONG_EASY}]
+    assert base_intervals and len(base_easy) >= len(base_intervals)
     # Sundays are long runs with a distance.
     sundays = [s for s in sessions if s.day == "sunday"]
     assert sundays and all(s.distance_km is not None for s in sundays)

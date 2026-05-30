@@ -155,7 +155,7 @@ class SessionType(StrEnum):
 # The quality session a phase is allowed to use (besides easy/long). One entry =
 # the phase's intended weekly quality stimulus. None = aerobic only (all easy).
 _PHASE_QUALITY: dict[Phase, SessionType | None] = {
-    Phase.BASE: None,
+    Phase.BASE: SessionType.INTERVALS_5_10K,  # maintain built velocity (1 light quality/wk)
     Phase.TEN_K_POLISH: SessionType.INTERVALS_5_10K,
     Phase.POST_TEN_K_RECOVERY: None,
     Phase.FIVE_TEN_K_DEVELOPMENT: SessionType.INTERVALS_5_10K,
@@ -318,10 +318,26 @@ def derive_phase_schedule(today: _date, race_date: _date) -> list[PhaseBlock]:
         if take > 0:
             allocated.append((phase, take))
             remaining -= take
-    # If time remains after the full ladder, extend the base phase.
+    # If time remains after the full ladder, spread the extra weeks across the
+    # quality-bearing phases (half_base gets most, development next) so a longer
+    # runway adds varied SHARPENING, not endless easy base or one monotonous block.
     if remaining > 0 and allocated:
-        phase, weeks = allocated[-1]
-        allocated[-1] = (phase, weeks + remaining)
+        weights = {Phase.HALF_BASE: 2, Phase.FIVE_TEN_K_DEVELOPMENT: 1}
+        targets = [(i, weights[ph]) for i, (ph, _) in enumerate(allocated) if ph in weights]
+        if not targets:
+            targets = [(len(allocated) - 1, 1)]  # fallback: earliest phase
+        total_w = sum(w for _, w in targets)
+        # proportional split, remainder to the first (highest-weight) target
+        assigned = 0
+        for idx, w in targets:
+            add = remaining * w // total_w
+            ph, weeks = allocated[idx]
+            allocated[idx] = (ph, weeks + add)
+            assigned += add
+        if assigned < remaining:
+            idx = targets[0][0]
+            ph, weeks = allocated[idx]
+            allocated[idx] = (ph, weeks + (remaining - assigned))
     allocated.reverse()  # back to chronological order
 
     blocks: list[PhaseBlock] = []

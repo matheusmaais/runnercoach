@@ -28,10 +28,17 @@ def test_quality_is_on_tuesday_not_after_volleyball():
     assert s["thursday"].session == SessionType.EASY  # day after Wed volleyball stays easy
 
 
-def test_base_phase_is_all_easy_no_quality():
+def test_base_phase_maintains_velocity_with_one_quality():
+    # Base is no longer all-easy: it keeps ONE light interval slot to maintain the
+    # velocity/limiar the athletes already built (per real-fitness coaching).
     s = select_week_sessions(Phase.BASE, BUILD_WEEK, allow_quality=True)
     quality = {SessionType.TEMPO_HMP, SessionType.HMP_INTERVALS, SessionType.INTERVALS_5_10K}
-    assert all(x.session not in quality for x in s)
+    quality_slots = [x for x in s if x.session in quality]
+    assert len(quality_slots) == 1
+    assert quality_slots[0].session == SessionType.INTERVALS_5_10K
+    # most runs still easy (Seiler distribution)
+    easy = [x for x in s if x.session in {SessionType.EASY, SessionType.LONG_EASY}]
+    assert len(easy) >= len(quality_slots)
 
 
 def test_most_runs_are_easy():
