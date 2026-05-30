@@ -44,7 +44,7 @@ test("navigates through all product sections", async ({ page }) => {
   await expect(page.getByText("Garmin Matheus: não usar como evolução da Bruna.").first()).toBeVisible();
 
   await page.getByRole("button", { name: "Plano" }).click();
-  await expect(page.getByRole("heading", { name: "Plano ligado ao que já aconteceu" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "O que fazer esta semana" })).toBeVisible();
 
   await page.getByRole("button", { name: "Coach Room" }).click();
   await expect(page.getByRole("heading", { name: "Coach Room" })).toBeVisible();
@@ -132,7 +132,7 @@ test("operational GitHub token stays in memory and defaults to the runnercoach o
   });
   await page.getByLabel("Token").fill("ghp_should_not_persist");
 
-  await page.getByRole("button", { name: "Commitar intake e analisar" }).click();
+  await page.getByRole("button", { name: "Salvar e ver minha semana" }).click();
   await expect(page.getByRole("list", { name: "Progresso operacional" }).getByText("Workflow em fila no GitHub Actions.")).toBeVisible();
 
   await expect.poll(() => page.evaluate(() => window.localStorage.getItem("runnercoach.github"))).toBeNull();
@@ -197,7 +197,7 @@ test("operational submit polls workflow to success and reloads coach payload", a
   });
   await page.getByLabel("Token").fill("ghp_should_not_persist");
 
-  await page.getByRole("button", { name: "Commitar intake e analisar" }).click();
+  await page.getByRole("button", { name: "Salvar e ver minha semana" }).click();
   const progress = page.getByRole("list", { name: "Progresso operacional" });
   await expect(page.getByText("Commit/payload")).toBeVisible();
   await expect(progress.getByText("Workflow", { exact: true })).toBeVisible();
@@ -206,15 +206,14 @@ test("operational submit polls workflow to success and reloads coach payload", a
   await expect(progress.getByText(/Workflow em fila|Workflow rodando/)).toBeVisible();
   await expect(page.getByText("Workflow concluído com sucesso.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Abrir run no GitHub Actions" })).toHaveAttribute("href", runUrl);
-  await expect(page.getByRole("button", { name: "Ir para Coach Room" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ver plano da semana" })).toBeVisible();
 
   await expect.poll(() => runPolls).toBeGreaterThanOrEqual(3);
   await expect.poll(() => appDataRequests).toBeGreaterThanOrEqual(2);
   await expect(page.getByText("OPENAI_API_KEY")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Ir para Coach Room" }).click();
-  await expect(page.getByRole("heading", { name: "Coach Room" })).toBeVisible();
-  await expect(page.getByText("Nova recomendação operacional recarregada sem refresh manual.")).toBeVisible();
+  await page.getByRole("button", { name: "Ver plano da semana" }).click();
+  await expect(page.getByRole("heading", { name: "O que fazer esta semana" })).toBeVisible();
 });
 
 test("operational submit failure keeps the Actions URL actionable", async ({ page }) => {
@@ -263,14 +262,24 @@ test("operational submit failure keeps the Actions URL actionable", async ({ pag
   });
   await page.getByLabel("Token").fill("ghp_should_not_persist");
 
-  await page.getByRole("button", { name: "Commitar intake e analisar" }).click();
+  await page.getByRole("button", { name: "Salvar e ver minha semana" }).click();
 
   await expect(page.getByText("Workflow falhou: failure. Abra o run no GitHub Actions para ver logs e rerun.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Abrir run no GitHub Actions" })).toHaveAttribute("href", runUrl);
-  await expect(page.getByRole("button", { name: "Ir para Coach Room" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Salvar e ver minha semana" })).toBeVisible();
 });
 
 test("cockpit shows a single PT-BR 'what to do today' directive", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("O que fazer hoje")).toBeVisible();
+});
+
+test("Plano shows the week-ahead (Semana) in PT-BR", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Plano" }).click();
+  await expect(page.getByRole("heading", { name: "O que fazer esta semana" })).toBeVisible();
+  await expect(page.getByText("Próximo treino", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Semana", exact: true })).toBeVisible();
+  await expect(page.getByText("Seg", { exact: true })).toBeVisible();
+  await expect(page.getByText("Dom", { exact: true })).toBeVisible();
 });

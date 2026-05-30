@@ -175,6 +175,55 @@
       ]
     }
   ],
+  "week": {
+    "generated": true,
+    "week_of": "2026-05-25",
+    "days": [
+      {
+        "day": "Seg",
+        "date": "2026-05-25",
+        "label": "Forca (academia)",
+        "kind": "support"
+      },
+      {
+        "day": "Ter",
+        "date": "2026-05-26",
+        "label": "Descanso",
+        "kind": "rest"
+      },
+      {
+        "day": "Qua",
+        "date": "2026-05-27",
+        "label": "Volei",
+        "kind": "support"
+      },
+      {
+        "day": "Qui",
+        "date": "2026-05-28",
+        "label": "Descanso",
+        "kind": "rest"
+      },
+      {
+        "day": "Sex",
+        "date": "2026-05-29",
+        "label": "Forca (academia)",
+        "kind": "support"
+      },
+      {
+        "day": "Sab",
+        "date": "2026-05-30",
+        "label": "Descanso",
+        "kind": "rest"
+      },
+      {
+        "day": "Dom",
+        "date": "2026-05-31",
+        "label": "Prova diagnostica 10K",
+        "kind": "quality"
+      }
+    ],
+    "empty_message": ""
+  },
   "recent_workouts": [
     {
       "workout_id": "workout-garmin-20260528T171417-1p33km-349s-245ee321",

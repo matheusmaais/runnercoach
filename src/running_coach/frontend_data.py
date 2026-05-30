@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 import json
 from collections import defaultdict
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -57,6 +57,10 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
             "risk_summary": risk_summary,
         },
         "next_workouts": next_workouts,
+        "week": _week_view(
+            plan_status,
+            _date_obj(_fallback_generated_at(workouts)[:10]) or date.today(),
+        ),
         "recent_workouts": recent_workouts,
         "weekly_summary": _weekly_summary(workouts),
         "trends": trends,
@@ -280,6 +284,79 @@ _TODAY_REASON_PT = {
     "within_guardrails": "dentro das margens de seguranca",
 }
 
+
+
+_WEEK_DAYS_PT = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"]
+
+_CATEGORY_PT = {
+    "easy_run": ("Corrida leve", "easy"),
+    "long_run": ("Longo leve", "easy"),
+    "long_progressive": ("Longo progressivo", "quality"),
+    "tempo_hmp": ("Tempo (ritmo de meia)", "quality"),
+    "hmp_intervals": ("Tiros em ritmo de meia", "quality"),
+    "intervals_5_10k": ("Tiros 5-10K", "quality"),
+    "diagnostic_race_10k": ("Prova diagnostica 10K", "quality"),
+    "off": ("Descanso", "rest"),
+}
+
+# cycle.yaml baseline non-run days (Mon/Fri strength, Wed volleyball)
+_DEFAULT_WEEKLY_PATTERN = {
+    0: ("Forca (academia)", "support"),
+    2: ("Volei", "support"),
+    4: ("Forca (academia)", "support"),
+}
+
+
+def _date_obj(value: str):
+    try:
+        return date.fromisoformat(value)
+    except (ValueError, TypeError):
+        return None
+
+
+def _week_view(plan_rows: list[dict[str, str]], reference_date: date) -> dict[str, Any]:
+    """7-day (Seg-Dom) week-ahead view in PT-BR from planned rows; honest empty state."""
+    planned = [
+        {"date": _date_obj(r.get("date", "")), "category": r.get("intended_category", "")}
+        for r in plan_rows
+        if r.get("planned_status") == "planned" and _date_obj(r.get("date", ""))
+    ]
+    monday = reference_date - timedelta(days=reference_date.weekday())
+    week_end = monday + timedelta(days=6)
+    has_future = any(p["date"] and monday <= p["date"] <= week_end for p in planned)
+
+    # Priority so a real run beats an off/support row on the same date.
+    _priority = {"quality": 0, "easy": 1, "rest": 2}
+
+    days = []
+    for i in range(7):
+        d = monday + timedelta(days=i)
+        matches = [p for p in planned if p["date"] == d]
+        chosen = None
+        for p in matches:
+            label, kind = _CATEGORY_PT.get(
+                p["category"], (p["category"].replace("_", " ").capitalize(), "easy")
+            )
+            if chosen is None or _priority.get(kind, 1) < _priority.get(chosen[1], 1):
+                chosen = (label, kind)
+        if chosen:
+            label, kind = chosen
+        elif i in _DEFAULT_WEEKLY_PATTERN:
+            label, kind = _DEFAULT_WEEKLY_PATTERN[i]
+        else:
+            label, kind = "Descanso", "rest"
+        days.append({"day": _WEEK_DAYS_PT[i], "date": d.isoformat(), "label": label, "kind": kind})
+
+    return {
+        "generated": has_future,
+        "week_of": monday.isoformat(),
+        "days": days,
+        "empty_message": (
+            ""
+            if has_future
+            else "Semana ainda não atualizada. Registre o último treino em Operar para gerar a semana."
+        ),
+    }
 
 
 def _present_decision(row: dict[str, str]) -> dict[str, Any]:

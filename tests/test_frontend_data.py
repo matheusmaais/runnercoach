@@ -138,3 +138,38 @@ def test_today_block_is_present_and_ptbr(tmp_path):
     assert set(today) >= {"headline", "why", "next_planned", "confidence", "science_refs", "date"}
     assert today["headline"]  # non-empty PT-BR headline
     assert "evidence" not in today["why"].lower()  # no leaked EN engine string
+
+
+def test_week_view_seven_days_ptbr_and_empty_state():
+    from datetime import date
+    from running_coach.frontend_data import _week_view
+    rows = [
+        {"date": "2026-05-31", "intended_category": "diagnostic_race_10k", "planned_status": "planned"},
+    ]
+    wk = _week_view(rows, date(2026, 5, 28))
+    assert wk["generated"] is True
+    assert [d["day"] for d in wk["days"]] == ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"]
+    assert any(d["label"] == "Prova diagnostica 10K" and d["kind"] == "quality" for d in wk["days"])
+    assert any(d["label"] == "Volei" for d in wk["days"])  # Wed baseline
+    # empty state when no future plan
+    empty = _week_view([], date(2026, 5, 28))
+    assert empty["generated"] is False
+    assert "Operar" in empty["empty_message"]
+
+
+def test_week_view_boundary_and_priority():
+    from datetime import date
+    from running_coach.frontend_data import _week_view
+    # A plan row in NEXT week must not mark THIS week as generated.
+    next_week = [{"date": "2026-06-08", "intended_category": "easy_run", "planned_status": "planned"}]
+    wk = _week_view(next_week, date(2026, 6, 1))  # week of 2026-06-01..07
+    assert wk["generated"] is False
+    assert "não atualizada" in wk["empty_message"]
+    # Duplicate rows same date: a run beats an 'off'.
+    dup = [
+        {"date": "2026-06-07", "intended_category": "off", "planned_status": "planned"},
+        {"date": "2026-06-07", "intended_category": "easy_run", "planned_status": "planned"},
+    ]
+    wk2 = _week_view(dup, date(2026, 6, 1))
+    sunday = next(d for d in wk2["days"] if d["day"] == "Dom")
+    assert sunday["label"] == "Corrida leve"

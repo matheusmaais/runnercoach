@@ -110,7 +110,7 @@ export function App() {
       <main>
         {activeView === "cockpit" && <Cockpit payload={payload} />}
         {activeView === "operate" && (
-          <OperateView onOpenCoach={() => setActiveView("coach")} onPayloadReloaded={reloadPayload} />
+          <OperateView onOpenCoach={() => setActiveView("coach")} onOpenPlan={() => setActiveView("plan")} onPayloadReloaded={reloadPayload} />
         )}
         {activeView === "timeline" && <Timeline payload={payload} />}
         {activeView === "plan" && <PlanView payload={payload} />}
@@ -321,9 +321,11 @@ function NextWorkoutCard({ workout }: { workout?: PlannedWorkout }) {
 
 function OperateView({
   onOpenCoach,
+  onOpenPlan,
   onPayloadReloaded,
 }: {
   onOpenCoach: () => void;
+  onOpenPlan: () => void;
   onPayloadReloaded: () => Promise<void>;
 }) {
   const [form, setForm] = useState<OperationalFormState>(() => defaultOperationalForm());
@@ -445,7 +447,7 @@ function OperateView({
         updateOperationalStep(current, "publish", "done", "app-data.json recarregado; recomendação pronta."),
       );
       setCoachReady(true);
-      setStatus("Workflow concluído com sucesso.");
+      setStatus("Workflow concluído com sucesso. Sua semana está pronta.");
     } catch (err) {
       if (err instanceof WorkflowRunFailedError) {
         setWorkflowUrl(err.run.html_url);
@@ -560,7 +562,7 @@ function OperateView({
           )}
           <p className="helper">Caminho: {path}</p>
           <button className="primary-action" disabled={busy || errors.length > 0} onClick={commitAndDispatch} type="button">
-            {busy ? "Enviando..." : "Commitar intake e analisar"}
+            {busy ? "Enviando..." : "Salvar e ver minha semana"}
           </button>
           <OperationalProgress steps={steps} />
           <p className="helper">{status}</p>
@@ -570,9 +572,14 @@ function OperateView({
             </a>
           )}
           {coachReady && (
-            <button className="secondary-action" onClick={onOpenCoach} type="button">
-              Ir para Coach Room
-            </button>
+            <div className="result-cta">
+              <button className="primary-action" onClick={onOpenPlan} type="button">
+                Ver plano da semana
+              </button>
+              <button className="secondary-action" onClick={onOpenCoach} type="button">
+                Ver análise do coach
+              </button>
+            </div>
           )}
         </article>
         <article className="operate-panel">
@@ -717,27 +724,48 @@ function WorkoutRow({ workout }: { workout: Workout }) {
 }
 
 function PlanView({ payload }: { payload: FrontendPayload }) {
+  const next = payload.next_workouts[0];
+  const week = payload.week;
   return (
     <section className="view" aria-label="Plano">
       <SectionHeader
-        eyebrow="Coerência do ciclo"
-        title="Plano ligado ao que já aconteceu"
-        copy="As próximas sessões não são aleatórias: elas respeitam fase, última evidência, carga de vôlei/academia e regras de segurança."
+        eyebrow="Minha semana de treinos"
+        title="O que fazer esta semana"
+        copy="Próximo treino em destaque e a semana inteira (Seg–Dom) para você organizar a rotina."
       />
-      <div className="plan-grid">
-        {payload.next_workouts.map((workout) => (
-          <article className="plan-card" key={workout.planned_workout_id}>
-            <p className="eyebrow">{workout.date} · Semana {workout.week_number}</p>
-            <h3>{formatToken(workout.intended_category)}</h3>
-            <p>{workout.decision_basis}</p>
-            <div className="rule-list">
-              {workout.safety_triggers.map((trigger) => (
-                <span key={trigger}>{formatToken(trigger)}</span>
-              ))}
+
+      {next ? (
+        <article className="next-highlight">
+          <p className="eyebrow">Próximo treino</p>
+          <h3>{formatToken(next.intended_category)}</h3>
+          <p className="date-line">{next.date} · Semana {next.week_number}</p>
+          <p>{next.decision_basis}</p>
+        </article>
+      ) : (
+        <article className="next-highlight">
+          <p className="eyebrow">Próximo treino</p>
+          <h3>Semana ainda não atualizada</h3>
+          <p>Registre o último treino em Operar para gerar a semana.</p>
+        </article>
+      )}
+
+      <div className="panel-title"><CalendarDays /><h3>Semana</h3></div>
+      {week.generated ? (
+        <div className="week-grid">
+          {week.days.map((d) => (
+            <div className={`week-day ${d.kind}`} key={d.date}>
+              <p className="week-dow">{d.day}</p>
+              <p className="week-label">{d.label}</p>
             </div>
-          </article>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <article className="empty-week">
+          <ShieldAlert />
+          <p>{week.empty_message}</p>
+        </article>
+      )}
+
       <div className="principles-strip">
         {payload.evidence_contracts.hard_rules.map((rule) => (
           <div key={rule}>
