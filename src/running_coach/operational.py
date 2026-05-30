@@ -51,11 +51,24 @@ class RaceIntake(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     date: str
-    distance_km: float = Field(gt=0)
-    time_seconds: int = Field(gt=0)
+    distance_km: float = Field(gt=0, le=200)
+    time_seconds: int = Field(gt=0, le=24 * 3600)
     conditions: Literal["normal", "heat"] = "normal"
-    max_hr: int | None = None
+    max_hr: int | None = Field(default=None, ge=30, le=240)
     notes: str | None = None
+
+    @model_validator(mode="after")
+    def _finite_and_dated(self) -> RaceIntake:
+        import math
+        from datetime import date as _d
+
+        if not math.isfinite(self.distance_km):
+            raise ValueError("distance_km must be finite")
+        try:
+            _d.fromisoformat(self.date)
+        except ValueError as exc:
+            raise ValueError("date must be ISO YYYY-MM-DD") from exc
+        return self
 
 
 class FrontendIntake(BaseModel):
@@ -125,7 +138,7 @@ def _write_race(repo_root: Path, race: RaceIntake) -> Path:
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     data.setdefault("schema_version", 1)
     races = data.setdefault("races", [])
-    race_id = f"{int(race.distance_km)}k-{race.date}"
+    race_id = f"{race.distance_km:g}k-{race.date}"
     entry = {
         "race_id": race_id,
         "date": race.date,

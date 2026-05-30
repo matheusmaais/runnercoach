@@ -60,3 +60,32 @@ def test_race_recalibrates_zones(tmp_path):
     racefile.write_text(yaml.safe_dump(d))
     z = _load_benchmark_zones(tmp_path)
     assert z.get("intervals_5_10k") == "5:50/km"
+
+
+def test_race_id_does_not_collide_on_close_distances(tmp_path):
+    (tmp_path / "data/plan").mkdir(parents=True)
+    process_frontend_intake(tmp_path, write_frontend_intake(tmp_path, _race_payload("2026-06-14", 10.0, 3600)))
+    process_frontend_intake(tmp_path, write_frontend_intake(tmp_path, _race_payload("2026-06-14", 10.4, 3700)))
+    import yaml
+    races = yaml.safe_load((tmp_path / "data/plan/races.yaml").read_text())["races"]
+    assert len(races) == 2  # 10.0 and 10.4 must NOT collapse
+
+
+def test_race_validation_rejects_bad_values():
+    import pytest
+    from running_coach.operational import RaceIntake
+    with pytest.raises(Exception):
+        RaceIntake(date="2026-06-14", distance_km=float("inf"), time_seconds=3600)
+    with pytest.raises(Exception):
+        RaceIntake(date="not-a-date", distance_km=5.0, time_seconds=3600)
+    with pytest.raises(Exception):
+        RaceIntake(date="2026-06-14", distance_km=5.0, time_seconds=10**9)
+
+
+def test_future_race_does_not_calibrate(tmp_path):
+    from running_coach.frontend_data import _benchmark_candidates
+    (tmp_path / "data/plan").mkdir(parents=True)
+    (tmp_path / "data/plan/races.yaml").write_text(
+        "schema_version: 1\nraces:\n"
+        "  - race_id: 5k-future\n    date: '2099-01-01'\n    distance_km: 5.0\n    time_seconds: 1500\n    status: done\n")
+    assert _benchmark_candidates(tmp_path) == []

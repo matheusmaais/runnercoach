@@ -299,9 +299,10 @@ def _benchmark_candidates(repo_root: Path) -> list[Any]:
             import yaml
 
             data = yaml.safe_load(races.read_text(encoding="utf-8")) or {}
+            today_str = date.today().isoformat()
             for r in data.get("races") or []:
                 if (r.get("status") == "done" and r.get("time_seconds") and r.get("distance_km")
-                        and str(r.get("date") or "") >= cutoff):
+                        and cutoff <= str(r.get("date") or "") <= today_str):
                     cands.append(Benchmark(float(r["distance_km"]), int(r["time_seconds"]),
                                            str(r.get("conditions", "normal"))))
         except Exception:

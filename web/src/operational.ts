@@ -201,11 +201,16 @@ export function buildIntakePayload(form: OperationalFormState) {
 }
 
 export function parseRaceTimeSeconds(value: string): number | null {
-  const parts = value.trim().split(":").map((p) => Number(p));
-  if (!parts.length || parts.some((n) => !Number.isFinite(n) || n < 0)) return null;
-  if (parts.length === 2) return parts[0] * 60 + parts[1];
-  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  return null;
+  const parts = value.trim().split(":");
+  if (parts.length < 2 || parts.length > 3) return null;
+  const nums = parts.map((p) => Number(p));
+  if (nums.some((n) => !Number.isInteger(n) || n < 0)) return null;
+  const ss = nums[nums.length - 1];
+  const mm = nums[nums.length - 2];
+  if (ss >= 60) return null;
+  if (parts.length === 3 && mm >= 60) return null;
+  const total = parts.length === 2 ? mm * 60 + ss : nums[0] * 3600 + mm * 60 + ss;
+  return total > 0 ? total : null;
 }
 
 export function validateRaceForm(form: OperationalFormState): string[] {
