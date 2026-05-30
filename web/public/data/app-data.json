@@ -112,7 +112,7 @@
       "evidence_confidence": "low",
       "display_context": "Esforço Garmin apenas do Matheus; não usar como evolução da Bruna."
     },
-    "summary_markdown": "# Running Coach State\n\n## Last Update\n\n- Mode: after-workout\n- Latest Garmin activity: 2026-05-28 garmin-20260528T171417-1p33km-349s-245ee321 1.33km @4:22\n- Latest shared coaching evidence: 2026-05-28 garmin-20260528T161736-7p47km-3039s-17b463bc 7.47km @6:47\n- Activities processed: 20\n- Workouts modeled: 20\n- Missing check-in evidence: 19\n- Approved science refs available: 9\n\n## Current Phase\n\n- Phase: ten_k_polish\n- Week number: 1\n- Weekly rhythm: run Tuesday, Thursday, Sunday; strength Monday/Friday and sometimes Saturday; volleyball Wednesday.\n\n## Current Paces\n\n- Bruna easy/long run estimate: 6:40-7:00/km.\n- Bruna strong sustainable estimate: 6:10-6:20/km.\n- Bruna threshold estimate: around 6:00/km when recovered.\n- Bruna short all-out ceiling from recent rustic race: around 5:50/km; not continuous training pace.\n- Matheus recent solo residual speed: 1.33 km at 4:22/km; not used as Bruna evolution evidence.\n\n## Current Risks\n\n- Missing check-ins: 19.\n- Matheus Achilles remains the strategic limiter.\n- Volleyball counts as neuromuscular load before Thursday sessions.\n- Poor sleep, high PSE, strong symptoms, or heavy legs reduce the next workout.\n\n## Next Milestones\n\n- 2026-05-31: diagnostic_race_10k (ten_k_polish) -> planned\n- 2026-06-02: easy_run (post_ten_k_recovery) -> planned\n- 2026-06-04: easy_run (base) -> planned\n\n## Active Decisions\n\n- Do not compensate missed workouts with volume.\n- Keep long runs easy.\n- Treat Matheus Garmin physiology as Matheus-only.\n- Use shared pace for Bruna only when check-in confirms shared run and Bruna presence.\n",
+    "summary_markdown": "# Running Coach State\n\n## Last Update\n\n- Mode: after-workout\n- Latest Garmin activity: 2026-05-28 garmin-20260528T171417-1p33km-349s-245ee321 1.33km @4:22\n- Latest shared coaching evidence: 2026-05-28 garmin-20260528T161736-7p47km-3039s-17b463bc 7.47km @6:47\n- Activities processed: 20\n- Workouts modeled: 20\n- Missing check-in evidence: 19\n- Approved science refs available: 10\n\n## Current Phase\n\n- Phase: ten_k_polish\n- Week number: 1\n- Weekly rhythm: run Tuesday, Thursday, Sunday; strength Monday/Friday and sometimes Saturday; volleyball Wednesday.\n\n## Current Paces\n\n- Bruna easy/long run estimate: 6:40-7:00/km.\n- Bruna strong sustainable estimate: 6:10-6:20/km.\n- Bruna threshold estimate: around 6:00/km when recovered.\n- Bruna short all-out ceiling from recent rustic race: around 5:50/km; not continuous training pace.\n- Matheus recent solo residual speed: 1.33 km at 4:22/km; not used as Bruna evolution evidence.\n\n## Current Risks\n\n- Missing check-ins: 19.\n- Matheus Achilles remains the strategic limiter.\n- Volleyball counts as neuromuscular load before Thursday sessions.\n- Poor sleep, high PSE, strong symptoms, or heavy legs reduce the next workout.\n\n## Next Milestones\n\n- 2026-05-31: diagnostic_race_10k (ten_k_polish) -> planned\n- 2026-06-02: easy_run (post_ten_k_recovery) -> planned\n- 2026-06-04: easy_run (base) -> planned\n\n## Active Decisions\n\n- Do not compensate missed workouts with volume.\n- Keep long runs easy.\n- Treat Matheus Garmin physiology as Matheus-only.\n- Use shared pace for Bruna only when check-in confirms shared run and Bruna presence.\n",
     "risk_level": "moderate",
     "risk_drivers": [
       {
@@ -1569,6 +1569,21 @@
         "strength",
         "running_economy",
         "load_management"
+      ]
+    },
+    {
+      "science_ref_id": "riegel-race-prediction",
+      "title": "Athletic Records and Human Endurance",
+      "authors": "[\"Peter S. Riegel\"]",
+      "year": "1981",
+      "journal_or_publisher": "American Scientist",
+      "doi_or_url": "https://www.jstor.org/stable/27850427",
+      "finding": "Race time scales with distance by t2 = t1 * (d2/d1)^1.06, enabling cross-distance performance prediction.",
+      "practical_application": "Project half-marathon pace and training zones from a recent shorter race; a conservative exponent (1.08) suits recreational runners.",
+      "limits": "An empirical model; individual endurance profiles and training specificity shift the true exponent.",
+      "tags": [
+        "race_calibration",
+        "prediction"
       ]
     }
   ],

@@ -48,8 +48,8 @@ def suggest_fourth_day(
         return ProgressionSuggestion(False, "", ())
     if goal_verdict == "agressivo":
         why = ("Seu objetivo (sub-2h) está agressivo: um 4º dia de corrida LEVE é "
-               "a principal alavanca para construir o volume aeróbico que falta. "
-               "É o passo recomendado para aproximar a meta.")
+               "uma das principais alavancas de volume para aproximar a meta — "
+               "sem garantia, mas é o passo recomendado se o corpo permitir.")
     elif goal_verdict == "fora_de_alcance":
         why = ("Considere um 4º dia de corrida LEVE para evoluir com consistência. "
                "A meta atual está distante no prazo, então trate o ganho como "
