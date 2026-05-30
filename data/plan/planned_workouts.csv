@@ -1,3 +1,23 @@
 planned_workout_id,week_number,date,phase,slot,intended_category,purpose,primary_athlete,planned_distance_or_duration,planned_intensity_range,allowed_fallbacks,contraindications,status
 plan-20260531-10k,1,2026-05-31,ten_k_polish,sunday,diagnostic_race_10k,10K diagnostic race,bruna,10 km,6:15-6:20/km,"[""replace_with_easy"",""replace_with_off""]","[""red_flag""]",planned
 plan-20260602-recovery,2,2026-06-02,post_ten_k_recovery,tuesday,easy_run,Post-race recovery,bruna,30-45 min,easy,"[""replace_with_off""]","[""red_flag"",""severe_fatigue""]",planned
+plan-2026-06-04-thursday,23,2026-06-04,base,thursday,easy_run,easy,bruna,by_feel,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-06-07-sunday,23,2026-06-07,base,sunday,long_run,long_easy,bruna,8.6 km,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-06-09-tuesday,24,2026-06-09,base,tuesday,easy_run,easy,bruna,by_feel,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-06-11-thursday,24,2026-06-11,base,thursday,easy_run,easy,bruna,by_feel,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-06-14-sunday,24,2026-06-14,base,sunday,long_run,long_easy,bruna,9.0 km,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-06-16-tuesday,25,2026-06-16,base,tuesday,easy_run,easy,bruna,by_feel,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-06-18-thursday,25,2026-06-18,base,thursday,easy_run,easy,bruna,by_feel,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-06-21-sunday,25,2026-06-21,base,sunday,long_run,long_easy,bruna,6.3 km,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-06-23-tuesday,26,2026-06-23,base,tuesday,easy_run,easy,bruna,by_feel,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-06-25-thursday,26,2026-06-25,base,thursday,easy_run,easy,bruna,by_feel,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-06-28-sunday,26,2026-06-28,base,sunday,long_run,long_easy,bruna,9.2 km,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-06-30-tuesday,27,2026-06-30,base,tuesday,easy_run,easy,bruna,by_feel,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-07-02-thursday,27,2026-07-02,base,thursday,easy_run,easy,bruna,by_feel,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-07-05-sunday,27,2026-07-05,base,sunday,long_run,long_easy,bruna,9.5 km,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-07-07-tuesday,28,2026-07-07,base,tuesday,easy_run,easy,bruna,by_feel,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-07-09-thursday,28,2026-07-09,base,thursday,easy_run,easy,bruna,by_feel,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-07-12-sunday,28,2026-07-12,base,sunday,long_run,long_easy,bruna,9.8 km,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-07-14-tuesday,29,2026-07-14,base,tuesday,easy_run,easy,bruna,by_feel,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-07-16-thursday,29,2026-07-16,base,thursday,easy_run,easy,bruna,by_feel,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned
+plan-2026-07-19-sunday,29,2026-07-19,base,sunday,long_run,long_easy,bruna,6.8 km,easy,"[""replace_with_easy"", ""replace_with_off""]","[""red_flag""]",planned

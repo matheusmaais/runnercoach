@@ -112,7 +112,7 @@
       "evidence_confidence": "low",
       "display_context": "Esforço Garmin apenas do Matheus; não usar como evolução da Bruna."
     },
-    "summary_markdown": "# Running Coach State\n\n## Last Update\n\n- Mode: after-workout\n- Latest Garmin activity: 2026-05-28 garmin-20260528T171417-1p33km-349s-245ee321 1.33km @4:22\n- Latest shared coaching evidence: 2026-05-28 garmin-20260528T161736-7p47km-3039s-17b463bc 7.47km @6:47\n- Activities processed: 20\n- Workouts modeled: 20\n- Missing check-in evidence: 19\n- Approved science refs available: 9\n\n## Current Phase\n\n- Phase: ten_k_polish\n- Week number: 1\n- Weekly rhythm: run Tuesday, Thursday, Sunday; strength Monday/Friday and sometimes Saturday; volleyball Wednesday.\n\n## Current Paces\n\n- Bruna easy/long run estimate: 6:40-7:00/km.\n- Bruna strong sustainable estimate: 6:10-6:20/km.\n- Bruna threshold estimate: around 6:00/km when recovered.\n- Bruna short all-out ceiling from recent rustic race: around 5:50/km; not continuous training pace.\n- Matheus recent solo residual speed: 1.33 km at 4:22/km; not used as Bruna evolution evidence.\n\n## Current Risks\n\n- Missing check-ins: 19.\n- Matheus Achilles remains the strategic limiter.\n- Volleyball counts as neuromuscular load before Thursday sessions.\n- Poor sleep, high PSE, strong symptoms, or heavy legs reduce the next workout.\n\n## Next Milestones\n\n- 2026-05-31: diagnostic_race_10k (ten_k_polish) -> planned\n- 2026-06-02: easy_run (post_ten_k_recovery) -> planned\n\n## Active Decisions\n\n- Do not compensate missed workouts with volume.\n- Keep long runs easy.\n- Treat Matheus Garmin physiology as Matheus-only.\n- Use shared pace for Bruna only when check-in confirms shared run and Bruna presence.\n",
+    "summary_markdown": "# Running Coach State\n\n## Last Update\n\n- Mode: after-workout\n- Latest Garmin activity: 2026-05-28 garmin-20260528T171417-1p33km-349s-245ee321 1.33km @4:22\n- Latest shared coaching evidence: 2026-05-28 garmin-20260528T161736-7p47km-3039s-17b463bc 7.47km @6:47\n- Activities processed: 20\n- Workouts modeled: 20\n- Missing check-in evidence: 19\n- Approved science refs available: 9\n\n## Current Phase\n\n- Phase: ten_k_polish\n- Week number: 1\n- Weekly rhythm: run Tuesday, Thursday, Sunday; strength Monday/Friday and sometimes Saturday; volleyball Wednesday.\n\n## Current Paces\n\n- Bruna easy/long run estimate: 6:40-7:00/km.\n- Bruna strong sustainable estimate: 6:10-6:20/km.\n- Bruna threshold estimate: around 6:00/km when recovered.\n- Bruna short all-out ceiling from recent rustic race: around 5:50/km; not continuous training pace.\n- Matheus recent solo residual speed: 1.33 km at 4:22/km; not used as Bruna evolution evidence.\n\n## Current Risks\n\n- Missing check-ins: 19.\n- Matheus Achilles remains the strategic limiter.\n- Volleyball counts as neuromuscular load before Thursday sessions.\n- Poor sleep, high PSE, strong symptoms, or heavy legs reduce the next workout.\n\n## Next Milestones\n\n- 2026-05-31: diagnostic_race_10k (ten_k_polish) -> planned\n- 2026-06-02: easy_run (post_ten_k_recovery) -> planned\n- 2026-06-04: easy_run (base) -> planned\n\n## Active Decisions\n\n- Do not compensate missed workouts with volume.\n- Keep long runs easy.\n- Treat Matheus Garmin physiology as Matheus-only.\n- Use shared pace for Bruna only when check-in confirms shared run and Bruna presence.\n",
     "risk_level": "moderate",
     "risk_drivers": [
       {
@@ -168,6 +168,366 @@
       "evidence": "future_or_pending",
       "missing_evidence": [],
       "decision_basis": "Restaurar consistência e sinal aeróbico depois da prova sem compensar volume.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-06-04-thursday",
+      "week_number": "23",
+      "date": "2026-06-04",
+      "phase": "base",
+      "intended_category": "easy_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Restaurar consistência e sinal aeróbico depois da prova sem compensar volume.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-06-07-sunday",
+      "week_number": "23",
+      "date": "2026-06-07",
+      "phase": "base",
+      "intended_category": "long_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Manter coerência com a fase atual, última evidência e regras de segurança.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-06-09-tuesday",
+      "week_number": "24",
+      "date": "2026-06-09",
+      "phase": "base",
+      "intended_category": "easy_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Restaurar consistência e sinal aeróbico depois da prova sem compensar volume.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-06-11-thursday",
+      "week_number": "24",
+      "date": "2026-06-11",
+      "phase": "base",
+      "intended_category": "easy_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Restaurar consistência e sinal aeróbico depois da prova sem compensar volume.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-06-14-sunday",
+      "week_number": "24",
+      "date": "2026-06-14",
+      "phase": "base",
+      "intended_category": "long_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Manter coerência com a fase atual, última evidência e regras de segurança.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-06-16-tuesday",
+      "week_number": "25",
+      "date": "2026-06-16",
+      "phase": "base",
+      "intended_category": "easy_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Restaurar consistência e sinal aeróbico depois da prova sem compensar volume.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-06-18-thursday",
+      "week_number": "25",
+      "date": "2026-06-18",
+      "phase": "base",
+      "intended_category": "easy_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Restaurar consistência e sinal aeróbico depois da prova sem compensar volume.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-06-21-sunday",
+      "week_number": "25",
+      "date": "2026-06-21",
+      "phase": "base",
+      "intended_category": "long_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Manter coerência com a fase atual, última evidência e regras de segurança.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-06-23-tuesday",
+      "week_number": "26",
+      "date": "2026-06-23",
+      "phase": "base",
+      "intended_category": "easy_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Restaurar consistência e sinal aeróbico depois da prova sem compensar volume.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-06-25-thursday",
+      "week_number": "26",
+      "date": "2026-06-25",
+      "phase": "base",
+      "intended_category": "easy_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Restaurar consistência e sinal aeróbico depois da prova sem compensar volume.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-06-28-sunday",
+      "week_number": "26",
+      "date": "2026-06-28",
+      "phase": "base",
+      "intended_category": "long_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Manter coerência com a fase atual, última evidência e regras de segurança.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-06-30-tuesday",
+      "week_number": "27",
+      "date": "2026-06-30",
+      "phase": "base",
+      "intended_category": "easy_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Restaurar consistência e sinal aeróbico depois da prova sem compensar volume.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-07-02-thursday",
+      "week_number": "27",
+      "date": "2026-07-02",
+      "phase": "base",
+      "intended_category": "easy_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Restaurar consistência e sinal aeróbico depois da prova sem compensar volume.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-07-05-sunday",
+      "week_number": "27",
+      "date": "2026-07-05",
+      "phase": "base",
+      "intended_category": "long_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Manter coerência com a fase atual, última evidência e regras de segurança.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-07-07-tuesday",
+      "week_number": "28",
+      "date": "2026-07-07",
+      "phase": "base",
+      "intended_category": "easy_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Restaurar consistência e sinal aeróbico depois da prova sem compensar volume.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-07-09-thursday",
+      "week_number": "28",
+      "date": "2026-07-09",
+      "phase": "base",
+      "intended_category": "easy_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Restaurar consistência e sinal aeróbico depois da prova sem compensar volume.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-07-12-sunday",
+      "week_number": "28",
+      "date": "2026-07-12",
+      "phase": "base",
+      "intended_category": "long_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Manter coerência com a fase atual, última evidência e regras de segurança.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-07-14-tuesday",
+      "week_number": "29",
+      "date": "2026-07-14",
+      "phase": "base",
+      "intended_category": "easy_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Restaurar consistência e sinal aeróbico depois da prova sem compensar volume.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-07-16-thursday",
+      "week_number": "29",
+      "date": "2026-07-16",
+      "phase": "base",
+      "intended_category": "easy_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Restaurar consistência e sinal aeróbico depois da prova sem compensar volume.",
+      "safety_triggers": [
+        "bad_sleep_reduce_volume_or_intensity",
+        "bruna_symptoms_reduce_intensity",
+        "matheus_achilles_above_3_remove_speed",
+        "keep_easy_even_if_previous_session_was_missed"
+      ]
+    },
+    {
+      "planned_workout_id": "plan-2026-07-19-sunday",
+      "week_number": "29",
+      "date": "2026-07-19",
+      "phase": "base",
+      "intended_category": "long_run",
+      "planned_status": "planned",
+      "derived_status": "planned",
+      "evidence": "future_or_pending",
+      "missing_evidence": [],
+      "decision_basis": "Manter coerência com a fase atual, última evidência e regras de segurança.",
       "safety_triggers": [
         "bad_sleep_reduce_volume_or_intensity",
         "bruna_symptoms_reduce_intensity",
@@ -649,6 +1009,7 @@
       "shared_runs": 1
     }
   ],
+  "week_narrative": "Semana: 4 corrida(s), 15.0 km no total, sem sessão de qualidade, 1 com a Bruna, consistência boa.",
   "trends": {
     "pace": [
       {

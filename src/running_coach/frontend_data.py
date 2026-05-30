@@ -100,6 +100,7 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
         "pace_zones": _benchmark_zones,
         "recent_workouts": recent_workouts,
         "weekly_summary": _weekly_summary(workouts),
+        "week_narrative": _week_narrative(_weekly_summary(workouts)),
         "trends": trends,
         "decisions": [_present_decision(row) for row in _latest_rows(decisions, 10)],
         "science_refs": [_present_science_ref(row) for row in science_refs if _truthy(row.get("approved"))],
@@ -507,6 +508,26 @@ def _present_science_ref(row: dict[str, str]) -> dict[str, Any]:
         "limits": row.get("limits", ""),
         "tags": _as_list(row.get("tags")),
     }
+
+
+def _week_narrative(summary: list[dict[str, Any]]) -> str:
+    """Coach's plain PT-BR recap of the most recent completed week."""
+    if not summary:
+        return ""
+    w = summary[-1]
+    runs = w.get("runs", 0)
+    km = round(w.get("distance_km", 0.0), 1)
+    quality = w.get("quality_runs", 0)
+    shared = w.get("shared_runs", 0)
+    if runs == 0:
+        return "Semana sem corridas registradas."
+    parts = [f"Semana: {runs} corrida(s), {km} km no total"]
+    parts.append(f"{quality} de qualidade" if quality else "sem sessão de qualidade")
+    if shared:
+        parts.append(f"{shared} com a Bruna")
+    consist = "consistência boa" if runs >= 3 else "volume baixo, priorize regularidade"
+    parts.append(consist)
+    return ", ".join(parts) + "."
 
 
 def _weekly_summary(workouts: list[dict[str, str]]) -> list[dict[str, Any]]:

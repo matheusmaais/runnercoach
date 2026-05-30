@@ -900,3 +900,5 @@ main {
 .zone-label { color: #8fa3bb; font-size: 0.75rem; }
 .zone-chip strong { color: #f8fafc; font-size: 1.05rem; }
 @media (max-width: 760px) { .zones-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+
+.week-narrative { background: rgba(45,212,191,0.08); border-left: 3px solid #2dd4bf; border-radius: 6px; color: #cbd5e1; font-size: 0.92rem; margin: 0 0 18px; padding: 12px 14px; }

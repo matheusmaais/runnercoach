@@ -66,6 +66,22 @@ def _read_existing(path: Path) -> list[dict]:
         return list(csv.DictReader(handle))
 
 
+def regenerate(repo_root: Path, today: date) -> int:
+    """Regenerate the living plan (future rows only). Returns row count."""
+    race = _race_date(repo_root)
+    baseline = _baseline_km(repo_root)
+    sessions = plan_horizon(today, race, BRUNA_HALF, baseline_km=baseline)
+    new_rows = [planned_session_to_row(s) for s in sessions]
+    planned_path = repo_root / "data/plan/planned_workouts.csv"
+    merged = merge_future_only(_read_existing(planned_path), new_rows, today)
+    with planned_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=PLANNED_CSV_FIELDS, lineterminator="\n")
+        writer.writeheader()
+        for row in merged:
+            writer.writerow({k: row.get(k, "") for k in PLANNED_CSV_FIELDS})
+    return len(merged)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Regenerate the living plan (future rows only).")
     parser.add_argument("--repo-root", default=REPO_ROOT, type=Path)
@@ -74,22 +90,8 @@ def main() -> int:
 
     repo_root = args.repo_root.resolve()
     today = date.fromisoformat(args.today)
-    race = _race_date(repo_root)
-    baseline = _baseline_km(repo_root)
-
-    sessions = plan_horizon(today, race, BRUNA_HALF, baseline_km=baseline)
-    new_rows = [planned_session_to_row(s) for s in sessions]
-
-    planned_path = repo_root / "data/plan/planned_workouts.csv"
-    merged = merge_future_only(_read_existing(planned_path), new_rows, today)
-
-    with planned_path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=PLANNED_CSV_FIELDS, lineterminator="\n")
-        writer.writeheader()
-        for row in merged:
-            writer.writerow({k: row.get(k, "") for k in PLANNED_CSV_FIELDS})
-
-    print(f"plan_written rows={len(merged)} future={len(new_rows)} baseline_km={baseline} race={race}")
+    count = regenerate(repo_root, today)
+    print(f"plan_written rows={count} today={today}")
     return 0
 
 

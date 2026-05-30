@@ -241,3 +241,12 @@ def test_single_shared_run_uses_honest_wording():
     ])
     assert "amostra única" in a["bruna"]["current_training_state"]["easy_long"]
     assert "insuficiente" in a["bruna"]["current_training_state"]["strong_sustainable"]
+
+
+def test_week_narrative_is_ptbr_summary():
+    from running_coach.frontend_data import _week_narrative
+    s = [{"week": "2026-W22", "runs": 3, "distance_km": 32.4, "quality_runs": 1, "shared_runs": 1}]
+    n = _week_narrative(s)
+    assert "3 corrida" in n and "32.4 km" in n and "qualidade" in n and "Bruna" in n
+    assert _week_narrative([]) == ""
+    assert "sem corridas" in _week_narrative([{"runs": 0, "distance_km": 0}])

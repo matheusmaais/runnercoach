@@ -35,6 +35,7 @@
 
 - 2026-05-31: diagnostic_race_10k (ten_k_polish) -> planned
 - 2026-06-02: easy_run (post_ten_k_recovery) -> planned
+- 2026-06-04: easy_run (base) -> planned
 
 ## Active Decisions
 

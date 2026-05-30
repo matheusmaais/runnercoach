@@ -734,6 +734,10 @@ function PlanView({ payload }: { payload: FrontendPayload }) {
         copy="Próximo treino em destaque e a semana inteira (Seg–Dom) para você organizar a rotina."
       />
 
+      {payload.week_narrative && (
+        <p className="week-narrative">{payload.week_narrative}</p>
+      )}
+
       {next ? (
         <article className="next-highlight">
           <p className="eyebrow">Próximo treino</p>

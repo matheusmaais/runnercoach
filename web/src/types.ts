@@ -39,6 +39,7 @@ export type FrontendPayload = {
   pace_zones?: Record<string, string>;
   recent_workouts: Workout[];
   weekly_summary: WeeklySummary[];
+  week_narrative?: string;
   trends: {
     pace: PaceTrend[];
     long_runs: LongRunTrend[];
