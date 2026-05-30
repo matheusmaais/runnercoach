@@ -892,3 +892,11 @@ main {
   padding: 12px 14px;
 }
 .stale-banner svg { flex: 0 0 auto; }
+
+.week-pace { color: #5eead4; font-size: 0.8rem; font-weight: 700; margin: 6px 0 0; }
+.zones-card { background: rgba(15,23,42,0.82); border: 1px solid rgba(148,163,184,0.16); border-radius: 8px; padding: 18px; }
+.zones-grid { display: grid; gap: 10px; grid-template-columns: repeat(4, minmax(0,1fr)); }
+.zone-chip { background: rgba(45,212,191,0.10); border: 1px solid rgba(45,212,191,0.25); border-radius: 8px; display: grid; gap: 4px; padding: 12px; }
+.zone-label { color: #8fa3bb; font-size: 0.75rem; }
+.zone-chip strong { color: #f8fafc; font-size: 1.05rem; }
+@media (max-width: 760px) { .zones-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }

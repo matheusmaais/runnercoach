@@ -16,6 +16,7 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
     decisions = _read_csv(root / "data/processed/decisions.csv")
     science_refs = _read_csv(root / "data/processed/science_refs.csv")
     plan_status = _read_csv(root / "data/processed/plan_status.csv")
+    _benchmark_zones = _load_benchmark_zones(root)
     # Build the LLM-context request fresh from current processed data so the
     # frontend never shows a stale 'latest shared workout' from an old artifact.
     try:
@@ -94,7 +95,9 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
         "week": _week_view(
             plan_status,
             _date_obj(_fallback_generated_at(workouts)[:10]) or date.today(),
+            _benchmark_zones,
         ),
+        "pace_zones": _benchmark_zones,
         "recent_workouts": recent_workouts,
         "weekly_summary": _weekly_summary(workouts),
         "trends": trends,
@@ -279,6 +282,43 @@ def _present_workout(row: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def _load_benchmark_zones(repo_root: Path) -> dict[str, str]:
+    """Calibrated PT-BR pace zones from the most recent done race, if any."""
+    path = repo_root / "data/plan/races.yaml"
+    if not path.exists():
+        return {}
+    try:
+        import yaml
+
+        from running_coach.pacing import Benchmark, zones_from_benchmark
+
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        done = [
+            r for r in (data.get("races") or [])
+            if r.get("status") == "done" and r.get("time_seconds") and r.get("distance_km")
+        ]
+        if not done:
+            return {}
+        latest = max(done, key=lambda r: r.get("date", ""))
+        return zones_from_benchmark(
+            Benchmark(distance_km=float(latest["distance_km"]),
+                      time_seconds=int(latest["time_seconds"]),
+                      conditions=str(latest.get("conditions", "normal")))
+        )
+    except Exception:
+        return {}
+
+
+_DAY_KIND_TO_SESSION = {
+    "Corrida leve": "easy",
+    "Longo leve": "long_easy",
+    "Longo progressivo": "long_progressive_finish",
+    "Tempo (ritmo de meia)": "tempo_hmp",
+    "Tiros em ritmo de meia": "hmp_intervals",
+    "Tiros 5-10K": "intervals_5_10k",
+}
+
+
 def _present_plan(row: dict[str, str]) -> dict[str, Any]:
     category = row.get("intended_category", "")
     return {
@@ -383,7 +423,17 @@ def _date_obj(value: str):
         return None
 
 
-def _week_view(plan_rows: list[dict[str, str]], reference_date: date) -> dict[str, Any]:
+def _pace_for_label(label: str, zones: dict[str, str]) -> str:
+    if not zones:
+        return ""
+    zone = _DAY_KIND_TO_SESSION.get(label)
+    if zone == "long_progressive_finish":
+        fin = zones.get("long_progressive_finish", "")
+        return f"leve, final em {fin}" if fin else ""
+    return zones.get(zone, "") if zone else ""
+
+
+def _week_view(plan_rows: list[dict[str, str]], reference_date: date, zones: dict[str, str] | None = None) -> dict[str, Any]:
     """7-day (Seg-Dom) week-ahead view in PT-BR from planned rows; honest empty state."""
     planned = [
         {"date": _date_obj(r.get("date", "")), "category": r.get("intended_category", "")}
@@ -414,7 +464,8 @@ def _week_view(plan_rows: list[dict[str, str]], reference_date: date) -> dict[st
             label, kind = _DEFAULT_WEEKLY_PATTERN[i]
         else:
             label, kind = "Descanso", "rest"
-        days.append({"day": _WEEK_DAYS_PT[i], "date": d.isoformat(), "label": label, "kind": kind})
+        days.append({"day": _WEEK_DAYS_PT[i], "date": d.isoformat(), "label": label, "kind": kind,
+                     "pace": _pace_for_label(label, zones or {})})
 
     return {
         "generated": has_future,

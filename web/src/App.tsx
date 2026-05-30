@@ -756,6 +756,7 @@ function PlanView({ payload }: { payload: FrontendPayload }) {
             <div className={`week-day ${d.kind}`} key={d.date}>
               <p className="week-dow">{d.day}</p>
               <p className="week-label">{d.label}</p>
+              {d.pace && <p className="week-pace">{d.pace}</p>}
             </div>
           ))}
         </div>
@@ -763,6 +764,19 @@ function PlanView({ payload }: { payload: FrontendPayload }) {
         <article className="empty-week">
           <ShieldAlert />
           <p>{week.empty_message}</p>
+        </article>
+      )}
+
+      {payload.pace_zones && payload.pace_zones.calibrated_from && (
+        <article className="zones-card">
+          <div className="panel-title"><Gauge /><h3>Zonas de ritmo</h3></div>
+          <p className="helper">Calibradas por prova: {payload.pace_zones.calibrated_from}</p>
+          <div className="zones-grid">
+            <ZoneChip label="Leve" pace={payload.pace_zones.easy} />
+            <ZoneChip label="Forte sustentável" pace={payload.pace_zones.strong_sustainable} />
+            <ZoneChip label="Ritmo de meia" pace={payload.pace_zones.tempo_hmp} />
+            <ZoneChip label="Tiros 5-10K" pace={payload.pace_zones.intervals_5_10k} />
+          </div>
         </article>
       )}
 
@@ -969,6 +983,16 @@ function ScienceCard({ refItem }: { refItem: ScienceRef }) {
         Fonte <ArrowUpRight size={15} />
       </a>
     </article>
+  );
+}
+
+function ZoneChip({ label, pace }: { label: string; pace?: string }) {
+  if (!pace) return null;
+  return (
+    <div className="zone-chip">
+      <span className="zone-label">{label}</span>
+      <strong>{pace}</strong>
+    </div>
   );
 }
 

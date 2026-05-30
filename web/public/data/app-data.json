@@ -184,46 +184,64 @@
         "day": "Seg",
         "date": "2026-05-25",
         "label": "Forca (academia)",
-        "kind": "support"
+        "kind": "support",
+        "pace": ""
       },
       {
         "day": "Ter",
         "date": "2026-05-26",
         "label": "Descanso",
-        "kind": "rest"
+        "kind": "rest",
+        "pace": ""
       },
       {
         "day": "Qua",
         "date": "2026-05-27",
         "label": "Volei",
-        "kind": "support"
+        "kind": "support",
+        "pace": ""
       },
       {
         "day": "Qui",
         "date": "2026-05-28",
         "label": "Descanso",
-        "kind": "rest"
+        "kind": "rest",
+        "pace": ""
       },
       {
         "day": "Sex",
         "date": "2026-05-29",
         "label": "Forca (academia)",
-        "kind": "support"
+        "kind": "support",
+        "pace": ""
       },
       {
         "day": "Sab",
         "date": "2026-05-30",
         "label": "Descanso",
-        "kind": "rest"
+        "kind": "rest",
+        "pace": ""
       },
       {
         "day": "Dom",
         "date": "2026-05-31",
         "label": "Prova diagnostica 10K",
-        "kind": "quality"
+        "kind": "quality",
+        "pace": ""
       }
     ],
     "empty_message": ""
+  },
+  "pace_zones": {
+    "easy": "7:48/km",
+    "long_easy": "7:48/km",
+    "long_progressive_finish": "6:33/km",
+    "strong_sustainable": "6:43/km",
+    "tempo_hmp": "6:33/km",
+    "hmp_intervals": "6:28/km",
+    "intervals_5_10k": "5:50/km",
+    "half_marathon": "6:33/km",
+    "calibrated_from": "5K em 5:50/km"
   },
   "recent_workouts": [
     {

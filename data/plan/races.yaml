@@ -1,0 +1,16 @@
+schema_version: 1
+races:
+  - race_id: 5k-2026-05-24
+    date: '2026-05-24'
+    distance_km: 5.0
+    time_seconds: 1750        # 29:10 -> 5:50/km avg
+    max_hr: 192
+    priority: C
+    status: done
+    notes: Bruna all-out, parciais 5:25-6:03, FC max 192; bom balizador.
+  - race_id: meia-2027-01-24
+    date: '2027-01-24'
+    distance_km: 21.0975
+    priority: A
+    status: planned
+    notes: Objetivo - meia forte.
