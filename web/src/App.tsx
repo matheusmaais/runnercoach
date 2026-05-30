@@ -776,10 +776,10 @@ function PlanView({ payload }: { payload: FrontendPayload }) {
           <div className="panel-title"><Gauge /><h3>Zonas de ritmo</h3></div>
           <p className="helper">Calibradas por prova: {payload.pace_zones.calibrated_from}</p>
           <div className="zones-grid">
-            <ZoneChip label="Leve" pace={payload.pace_zones.easy} />
-            <ZoneChip label="Forte sustentável" pace={payload.pace_zones.strong_sustainable} />
-            <ZoneChip label="Ritmo de meia" pace={payload.pace_zones.tempo_hmp} />
+            <ZoneChip label="Leve / longo" pace={payload.pace_zones.easy} />
+            <ZoneChip label="Limiar / ritmo de meia" pace={payload.pace_zones.tempo_hmp} />
             <ZoneChip label="Tiros 5-10K" pace={payload.pace_zones.intervals_5_10k} />
+            <ZoneChip label="Projeção meia" pace={payload.pace_zones.half_projection} />
           </div>
         </article>
       )}

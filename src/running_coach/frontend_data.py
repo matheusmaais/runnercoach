@@ -283,31 +283,58 @@ def _present_workout(row: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def _benchmark_candidates(repo_root: Path) -> list[Any]:
+    """Hard efforts that can calibrate BRUNA's zones: recent done races + recent
+    Bruna-present quality/threshold/race runs (last ~120d, dist>=5km). Easy runs,
+    Matheus-only runs, sprints, and stale efforts never qualify — a zone is a
+    capacity ceiling proven by a recent hard Bruna effort."""
+    from running_coach.pacing import Benchmark
+
+    cutoff = (date.today() - timedelta(days=120)).isoformat()
+    cands: list[Benchmark] = []
+    races = repo_root / "data/plan/races.yaml"
+    if races.exists():
+        try:
+            import yaml
+
+            data = yaml.safe_load(races.read_text(encoding="utf-8")) or {}
+            for r in data.get("races") or []:
+                if (r.get("status") == "done" and r.get("time_seconds") and r.get("distance_km")
+                        and (r.get("date") or "") >= cutoff):
+                    cands.append(Benchmark(float(r["distance_km"]), int(r["time_seconds"]),
+                                           str(r.get("conditions", "normal"))))
+        except Exception:
+            pass
+
+    workouts = repo_root / "data/processed/workouts.csv"
+    if workouts.exists():
+        try:
+            import csv
+
+            for row in csv.DictReader(workouts.open(encoding="utf-8")):
+                if (row.get("local_date") or "") < cutoff:
+                    continue
+                # Bruna evidence is mandatory: never calibrate her from Matheus-only data.
+                if not (_truthy(row.get("shared_run")) and _truthy(row.get("bruna_present"))):
+                    continue
+                cat = (row.get("category") or "").strip().lower()
+                hard = cat in {"race", "quality", "threshold"} or _truthy(row.get("all_out_race"))
+                dist = _number(row.get("distance_km")) or 0.0
+                secs = _pace_to_seconds(row.get("avg_pace") or "")
+                if hard and dist >= 5.0 and secs:
+                    cands.append(Benchmark(dist, int(secs * dist), "normal"))
+        except Exception:
+            pass
+    return cands
+
+
 def _load_benchmark_zones(repo_root: Path) -> dict[str, str]:
-    """Calibrated PT-BR pace zones from the most recent done race, if any."""
-    path = repo_root / "data/plan/races.yaml"
-    if not path.exists():
-        return {}
-    try:
-        import yaml
+    """Calibrated PT-BR pace zones from the strongest recent effort (race or hard
+    training run). Auto-tightens as fitness improves; never loosens on easy days."""
+    from running_coach.pacing import select_best, zones_from_benchmark
 
-        from running_coach.pacing import Benchmark, zones_from_benchmark
-
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        done = [
-            r for r in (data.get("races") or [])
-            if r.get("status") == "done" and r.get("time_seconds") and r.get("distance_km")
-        ]
-        if not done:
-            return {}
-        latest = max(done, key=lambda r: r.get("date", ""))
-        return zones_from_benchmark(
-            Benchmark(distance_km=float(latest["distance_km"]),
-                      time_seconds=int(latest["time_seconds"]),
-                      conditions=str(latest.get("conditions", "normal")))
-        )
-    except Exception:
-        return {}
+    best = select_best(_benchmark_candidates(repo_root))
+    return zones_from_benchmark(best) if best else {}
 
 
 _DAY_KIND_TO_SESSION = {
@@ -836,7 +863,10 @@ def _number(value: str | None) -> float | None:
     if value is None or value == "":
         return None
     try:
-        return round(float(value), 2)
+        num = float(value)
+        if num != num or num in (float("inf"), float("-inf")):
+            return None
+        return round(num, 2)
     except ValueError:
         return None
 

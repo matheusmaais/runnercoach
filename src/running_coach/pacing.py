@@ -14,16 +14,19 @@ from running_coach.periodization import SessionType
 RIEGEL_EXPONENT = 1.08  # conservative for recreational, Achilles-limited athletes
 HALF_KM = 21.0975
 
-# Offsets (sec/km) from predicted half-marathon pace (HMP) for each zone.
-# Negative = faster than HMP. Bounded, conservative.
+# Offsets (sec/km) from the EQUIVALENT 5K race pace (the most reliable measured
+# max). Tuned for a recreational endurance profile whose easy pace sits close to
+# race pace (aerobic base ahead of top speed). A 5:50/km 5K yields easy ~6:40,
+# threshold ~6:00, half ~6:10 — matching demonstrated zones, not generic tables.
 _ZONE_OFFSET = {
-    "easy": +75,
-    "long_easy": +75,
-    "long_progressive_finish": 0,   # finishes at HMP
-    "strong_sustainable": +10,
-    "tempo_hmp": 0,
-    "hmp_intervals": -5,
-    "intervals_5_10k": None,        # uses recent race pace directly
+    "intervals_5_10k": 0,           # at 5K race pace (reps down to best split)
+    "strong_sustainable": 15,
+    "hmp_intervals": 18,
+    "tempo_hmp": 20,                # threshold / half-marathon pace work
+    "half_marathon": 20,
+    "long_progressive_finish": 20,  # long run finishing at HMP
+    "easy": 48,
+    "long_easy": 50,
 }
 
 
@@ -36,6 +39,16 @@ class Benchmark:
 
 def predict_time(t1_s: float, d1_km: float, d2_km: float) -> float:
     return t1_s * (d2_km / d1_km) ** RIEGEL_EXPONENT
+
+
+def select_best(benchmarks: list[Benchmark]) -> Benchmark | None:
+    """Pick the strongest effort: fastest performance normalized to 5K via Riegel.
+    Heat/invalid efforts are ignored. This is how fitness gains auto-tighten zones:
+    a faster recent race or tempo wins; easy runs never qualify (filtered upstream)."""
+    valid = [b for b in benchmarks if b.distance_km > 0 and b.time_seconds > 0 and b.conditions != "heat"]
+    if not valid:
+        return None
+    return min(valid, key=lambda b: predict_time(b.time_seconds, b.distance_km, 5.0))
 
 
 def _fmt(sec: float) -> str:
@@ -51,12 +64,11 @@ def zones_from_benchmark(b: Benchmark) -> dict[str, str]:
     if b.conditions == "heat":
         return {"calibrated_from": "prova no calor — zonas por esforço/PSE"}
     race_pace = b.time_seconds / b.distance_km
-    hmp = predict_time(b.time_seconds, b.distance_km, HALF_KM) / HALF_KM
+    half_proj = predict_time(b.time_seconds, b.distance_km, HALF_KM) / HALF_KM
     zones: dict[str, str] = {}
     for name, off in _ZONE_OFFSET.items():
-        pace = race_pace if off is None else hmp + off
-        zones[name] = f"{_fmt(pace)}/km"
-    zones["half_marathon"] = f"{_fmt(hmp)}/km"
+        zones[name] = f"{_fmt(race_pace + off)}/km"
+    zones["half_projection"] = f"{_fmt(half_proj)}/km"
     zones["calibrated_from"] = f"{b.distance_km:.0f}K em {_fmt(race_pace)}/km"
     return zones
 

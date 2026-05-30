@@ -4,10 +4,12 @@ from running_coach.periodization import SessionType
 
 def test_bruna_5k_calibration_is_sane():
     z = zones_from_benchmark(Benchmark(5.0, 29 * 60 + 10))  # 5:50/km
-    # HMP slower than 5K pace; easy slower than HMP; 5-10k intervals == race pace
-    assert z["half_marathon"] == "6:33/km"
+    # Anchored on race pace: easy near race pace (endurance profile), intervals == 5K.
     assert z["intervals_5_10k"] == "5:50/km"
-    assert z["easy"] == "7:48/km"
+    assert z["tempo_hmp"] == "6:10/km"
+    assert z["easy"] == "6:38/km"
+    assert z["long_easy"] == "6:40/km"
+    assert z["half_projection"] == "6:33/km"
     assert "5K em 5:50/km" in z["calibrated_from"]
 
 
@@ -18,8 +20,8 @@ def test_riegel_half_slower_than_5k():
 
 def test_prescribe_pace_and_heat():
     z = zones_from_benchmark(Benchmark(5.0, 29 * 60 + 10))
-    assert prescribe_pace(SessionType.EASY, z) == "7:48/km"
-    assert "6:33/km" in prescribe_pace(SessionType.LONG_PROGRESSIVE, z)
+    assert prescribe_pace(SessionType.EASY, z) == "6:38/km"
+    assert "6:10/km" in prescribe_pace(SessionType.LONG_PROGRESSIVE, z)
     assert prescribe_pace(SessionType.TEMPO_HMP, z, heat=True) == "por esforço/PSE (calor)"
     assert prescribe_pace(SessionType.OFF, z) == "—"
 
@@ -29,12 +31,12 @@ def test_payload_exposes_calibrated_zones():
     from pathlib import Path
     z = build_frontend_payload(Path(".")).get("pace_zones", {})
     assert z.get("calibrated_from")  # benchmark present
-    assert z.get("half_marathon")
+    assert z.get("half_projection")
 
 
 def test_heat_and_invalid_benchmark_fail_to_effort():
     z = zones_from_benchmark(Benchmark(5.0, 1750, conditions="heat"))
-    assert "calor" in z["calibrated_from"] and "half_marathon" not in z
+    assert "calor" in z["calibrated_from"] and "half_projection" not in z
     bad = zones_from_benchmark(Benchmark(0.0, 1750))
     assert "inválida" in bad["calibrated_from"]
     neg = zones_from_benchmark(Benchmark(5.0, -10))
@@ -45,3 +47,38 @@ def test_heat_off_is_dash_not_effort():
     z = zones_from_benchmark(Benchmark(5.0, 1750))
     assert prescribe_pace(SessionType.OFF, z, heat=True) == "—"
     assert prescribe_pace(SessionType.EASY, z, heat=True) == "por esforço/PSE (calor)"
+
+
+def test_select_best_picks_fastest_and_auto_tightens():
+    from running_coach.pacing import select_best
+    # a faster 5K wins; heat + invalid are ignored
+    best = select_best([
+        Benchmark(5.0, 29 * 60 + 10),
+        Benchmark(5.0, 27 * 60 + 30),
+        Benchmark(5.0, 25 * 60, conditions="heat"),
+        Benchmark(0.0, 1000),
+    ])
+    assert best.time_seconds == 27 * 60 + 30
+    z = zones_from_benchmark(best)
+    assert z["intervals_5_10k"] == "5:30/km" and z["long_easy"] == "6:20/km"
+    # a 10K effort can outrank a 5K if the normalized 5K is faster
+    mixed = select_best([Benchmark(5.0, 29 * 60 + 10), Benchmark(10.0, 58 * 60)])
+    assert mixed.distance_km == 10.0  # 58:00/10K ~ stronger than 29:10/5K
+    assert select_best([]) is None
+
+
+def test_hard_training_effort_calibrates(tmp_path):
+    from running_coach.frontend_data import _benchmark_candidates
+    proc = tmp_path / "data/processed"; proc.mkdir(parents=True)
+    (tmp_path / "data/plan").mkdir(parents=True)
+    from datetime import date
+    today = date.today().isoformat()
+    (proc / "workouts.csv").write_text(
+        "local_date,category,distance_km,avg_pace,all_out_race,shared_run,bruna_present,athlete_context\n"
+        f"{today},quality,6.0,5:55,,true,true,shared\n"            # qualifies
+        f"{today},easy,8.0,6:50,,true,true,shared\n"              # easy: NO
+        f"{today},quality,6.0,4:30,,false,false,matheus_garmin_only\n"  # Matheus-only: NO
+        f"{today},quality,4.0,5:00,,true,true,shared\n"          # <5km: NO
+    )
+    cands = _benchmark_candidates(tmp_path)
+    assert len(cands) == 1 and abs(cands[0].distance_km - 6.0) < 1e-6

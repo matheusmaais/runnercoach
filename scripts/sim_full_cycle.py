@@ -13,7 +13,12 @@ from running_coach.accumulation import WorkoutHistoryPoint, build_athlete_state
 from running_coach.explain import explain_change
 from running_coach.models import Phase, RecommendationAction, SymptomSeverity
 from running_coach.periodization import BRUNA_HALF, generate_volume_plan, select_week_sessions
+from running_coach.pacing import Benchmark, zones_from_benchmark, prescribe_pace
 from running_coach.recommendations import RecommendationInput, recommend_next_action
+
+ZONES = zones_from_benchmark(Benchmark(5.0, 29 * 60 + 10))  # Bruna 5K = 5:50/km
+print(f"Zonas calibradas (Bruna 5K @5:50/km): meia={ZONES['half_marathon']} "
+      f"leve={ZONES['easy']} tempo={ZONES['tempo_hmp']} tiros={ZONES['intervals_5_10k']}")
 
 START = date(2026, 6, 1)
 WEEKS = 12
@@ -60,9 +65,14 @@ for shape in ("V", "U_inv", "perfeito"):
             phase=ph.value, week_number=i + 1, planned_workout_id=f"w{i}", accumulated=state,
         )
         r = recommend_next_action(inp)
-        q = mid_quality[0].session.value if mid_quality else "—"
-        print(f"S{i+1:>2} {ph.value:<22} long {long.distance_km:>4}km/{long.session.value:<16} "
-              f"qual:{q:<14} PSE{pse} -> {r.action.value:<22} ({(r.reasons[0] if r.reasons!=['within_guardrails'] else 'ok')})")
+        long_pace = prescribe_pace(long.session, ZONES)
+        if mid_quality:
+            q = mid_quality[0].session.value
+            q_pace = prescribe_pace(mid_quality[0].session, ZONES)
+        else:
+            q, q_pace = "—", "—"
+        print(f"S{i+1:>2} {ph.value:<22} long {long.distance_km:>4}km @{long_pace:<22} "
+              f"qual:{q:<14}@{q_pace:<8} PSE{pse} -> {r.action.value:<22} ({(r.reasons[0] if r.reasons!=['within_guardrails'] else 'ok')})")
         history.append(WorkoutHistoryPoint(ref, week.long_km, True, pse, 0, 0, False, False))
 
 print("\n=== Checagem de especificidade/progressao ===")
