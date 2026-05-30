@@ -28,7 +28,7 @@
       },
       "current_training_state": {
         "residual_speed": "alta",
-        "latest_speed_signal": "1,33 km @ 4:22/km com Aquiles silencioso",
+        "latest_speed_signal": "1.33 km @ 4:22/km",
         "coaching_bias": "evitar máxima velocidade frequente; proteger Aquiles primeiro"
       }
     },
@@ -42,11 +42,11 @@
         "subjective": "manual_pse_symptoms_recovery"
       },
       "current_training_state": {
-        "easy_long": "6:40-7:00/km",
-        "strong_sustainable": "6:10-6:20/km",
-        "estimated_threshold": "~6:00/km",
-        "short_max_current": "~5:50/km",
-        "current_10k_projection": "6:10-6:20/km depending on course, weather, and pacing"
+        "easy_long": "6:47/km (amostra única)",
+        "strong_sustainable": "amostra insuficiente",
+        "estimated_threshold": "~6:00/km (estimativa até prova)",
+        "short_max_current": "~5:50/km (teto curto, não contínuo)",
+        "current_10k_projection": "calibrar com prova real"
       }
     }
   },

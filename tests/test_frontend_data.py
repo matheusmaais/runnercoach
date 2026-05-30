@@ -43,7 +43,7 @@ def test_frontend_payload_keeps_matheus_solo_separate_from_bruna_evidence() -> N
     assert latest_shared["bruna_evidence"] == "available"
     assert latest_solo["bruna_evidence"] == "not_applicable"
     assert latest_solo["avg_pace"] == "4:22"
-    assert bruna_state["short_max_current"] == "~5:50/km"
+    assert bruna_state["short_max_current"].startswith("~5:50/km")
     assert bruna_state["short_max_current"] != latest_solo["avg_pace"]
 
     warnings = " ".join(payload["presentation_warnings"])
@@ -182,3 +182,62 @@ def test_recommendation_stale_flag_is_workout_scoped(tmp_path):
     rec = payload.get("latest_llm_recommendation")
     if rec:  # only when an artifact exists
         assert "stale" in rec and isinstance(rec["stale"], bool)
+
+
+def test_athletes_card_is_data_derived():
+    from running_coach.frontend_data import _athletes
+    rows = [
+        {"athlete_context": "matheus_garmin_only", "avg_pace": "4:30", "distance_km": "2.0",
+         "local_datetime": "2026-05-20 07:00:00"},
+        {"athlete_context": "shared_run_with_manual_checkin", "avg_pace": "6:30", "distance_km": "8.0",
+         "local_datetime": "2026-05-22 07:00:00"},
+        {"athlete_context": "shared_run_with_manual_checkin", "avg_pace": "6:05", "distance_km": "6.0",
+         "local_datetime": "2026-05-24 07:00:00"},
+    ]
+    a = _athletes(rows)
+    assert "4:30" in a["matheus"]["current_training_state"]["latest_speed_signal"]
+    # easy = slowest shared, strong = fastest shared
+    assert "6:30" in a["bruna"]["current_training_state"]["easy_long"]
+    assert "6:05" in a["bruna"]["current_training_state"]["strong_sustainable"]
+
+
+def test_athletes_card_honest_fallback_without_data():
+    from running_coach.frontend_data import _athletes
+    a = _athletes([])
+    assert "sem corrida solo" in a["matheus"]["current_training_state"]["latest_speed_signal"]
+    assert "estimativa" in a["bruna"]["current_training_state"]["easy_long"]
+
+
+def test_charts_scale_with_more_workouts():
+    from running_coach.frontend_data import _trends, _weekly_summary
+    from datetime import date, timedelta
+    base = date(2026, 1, 6)
+    rows = []
+    for i in range(30):
+        d = (base + timedelta(days=i * 3)).isoformat()
+        rows.append({"local_date": d, "local_datetime": d + " 07:00:00",
+                     "avg_pace": "6:30", "distance_km": "10.0", "athlete_context": "shared_run_with_manual_checkin"})
+    trends = _trends(rows)
+    assert len(trends["pace"]) == 30           # one point per workout
+    assert len(trends["long_runs"]) == 30      # all >= 8km
+    assert len(_weekly_summary(rows)) <= 8     # capped, but populated
+
+
+def test_pace_to_seconds_rejects_malformed_and_outliers():
+    from running_coach.frontend_data import _pace_to_seconds
+    assert _pace_to_seconds("6:70") is None
+    assert _pace_to_seconds("-1:30") is None
+    assert _pace_to_seconds("6:-5") is None
+    assert _pace_to_seconds("1:30") is None   # 90s/km sprint outlier
+    assert _pace_to_seconds("20:00") is None  # 1200s walk outlier
+    assert _pace_to_seconds("6:30") == 390
+
+
+def test_single_shared_run_uses_honest_wording():
+    from running_coach.frontend_data import _athletes
+    a = _athletes([
+        {"athlete_context": "shared_run_with_manual_checkin", "avg_pace": "6:30",
+         "distance_km": "8.0", "local_datetime": "2026-05-22 07:00:00"},
+    ])
+    assert "amostra única" in a["bruna"]["current_training_state"]["easy_long"]
+    assert "insuficiente" in a["bruna"]["current_training_state"]["strong_sustainable"]

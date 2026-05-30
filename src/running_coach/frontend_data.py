@@ -79,7 +79,7 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
             "short_term_focus": "Maximizar 10K com pacing conservador, recuperação e decisões auditáveis.",
             "interface_role": "Interface principal de leitura gerada a partir dos dados versionados do repositório.",
         },
-        "athletes": _athletes(),
+        "athletes": _athletes(workouts),
         "current_state": {
             "phase": _phase_from_plan(plan_status),
             "status": _status_from_latest(latest_shared, latest_solo),
@@ -144,7 +144,9 @@ def _latest_rows(rows: list[dict[str, str]], limit: int) -> list[dict[str, str]]
     return sorted(rows, key=lambda row: row.get("local_datetime") or row.get("date") or "", reverse=True)[:limit]
 
 
-def _athletes() -> dict[str, Any]:
+def _athletes(workouts: list[dict[str, str]] | None = None) -> dict[str, Any]:
+    workouts = workouts or []
+    matheus_signal, bruna_easy, bruna_strong = _derived_pace_signals(workouts)
     return {
         "matheus": {
             "age": 39,
@@ -157,7 +159,7 @@ def _athletes() -> dict[str, Any]:
             },
             "current_training_state": {
                 "residual_speed": "alta",
-                "latest_speed_signal": "1,33 km @ 4:22/km com Aquiles silencioso",
+                "latest_speed_signal": matheus_signal,
                 "coaching_bias": "evitar máxima velocidade frequente; proteger Aquiles primeiro",
             },
         },
@@ -171,14 +173,47 @@ def _athletes() -> dict[str, Any]:
                 "subjective": "manual_pse_symptoms_recovery",
             },
             "current_training_state": {
-                "easy_long": "6:40-7:00/km",
-                "strong_sustainable": "6:10-6:20/km",
-                "estimated_threshold": "~6:00/km",
-                "short_max_current": "~5:50/km",
-                "current_10k_projection": "6:10-6:20/km depending on course, weather, and pacing",
+                "easy_long": bruna_easy,
+                "strong_sustainable": bruna_strong,
+                "estimated_threshold": "~6:00/km (estimativa até prova)",
+                "short_max_current": "~5:50/km (teto curto, não contínuo)",
+                "current_10k_projection": "calibrar com prova real",
             },
         },
     }
+
+
+def _derived_pace_signals(workouts: list[dict[str, str]]) -> tuple[str, str, str]:
+    """Latest Matheus solo signal + Bruna easy/strong shared paces from real data.
+    Falls back to honest placeholders when there is no matching evidence."""
+    chrono = sorted(workouts, key=lambda r: r.get("local_datetime") or r.get("local_date") or "")
+    solo = [r for r in chrono if r.get("athlete_context") == "matheus_garmin_only" and r.get("avg_pace")]
+    shared = [
+        r for r in chrono
+        if r.get("athlete_context") == "shared_run_with_manual_checkin" and r.get("avg_pace")
+    ]
+    matheus_signal = (
+        f"{solo[-1].get('distance_km')} km @ {solo[-1].get('avg_pace')}/km"
+        if solo
+        else "sem corrida solo recente"
+    )
+    shared_paces = sorted(
+        s for s in (_pace_to_seconds(r.get("avg_pace")) for r in shared) if s
+    )
+    if len(shared_paces) >= 2:
+        bruna_easy = f"{_fmt_pace(shared_paces[-1])}/km (compartilhado)"
+        bruna_strong = f"{_fmt_pace(shared_paces[0])}/km (compartilhado)"
+    elif len(shared_paces) == 1:
+        bruna_easy = f"{_fmt_pace(shared_paces[0])}/km (amostra única)"
+        bruna_strong = "amostra insuficiente"
+    else:
+        bruna_easy = "6:40-7:00/km (estimativa)"
+        bruna_strong = "6:10-6:20/km (estimativa)"
+    return matheus_signal, bruna_easy, bruna_strong
+
+
+def _fmt_pace(sec: int) -> str:
+    return f"{sec // 60}:{sec % 60:02d}"
 
 
 def _normalize_llm_workout(row: dict[str, Any]) -> dict[str, Any]:
@@ -739,6 +774,11 @@ def _pace_to_seconds(value: str | None) -> int | None:
         return None
     minutes, seconds = value.split(":", 1)
     try:
-        return int(minutes) * 60 + int(seconds)
+        m, s = int(minutes), int(seconds)
     except ValueError:
         return None
+    if m < 0 or not (0 <= s < 60):
+        return None
+    total = m * 60 + s
+    # Plausibility guard: ignore sprints/walks that would distort training bands.
+    return total if 180 <= total <= 900 else None
