@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -192,6 +193,73 @@ def write_llm_request(repo_root: Path | str, output_dir: Path | str) -> dict[str
     return {"json": json_path, "markdown": markdown_path}
 
 
+def _prose_fields(response: dict[str, Any]) -> list[str]:
+    return [
+        str(response.get(key, ""))
+        for key in ("summary", "what_workout_showed", "risk_assessment", "next_workout")
+    ]
+
+
+# Anti-hallucination prose lint. Prose is shown to the user in PT-BR and must
+# NOT cite studies/authors/orgs/DOIs/URLs directly; science is referenced only
+# via science_refs. We require a CITATION CUE (not a bare year), so legitimate
+# calendar/pace prose ("Em 2027 voce corre a meia", "5:30/km") is allowed.
+_CITATION_CUES = (
+    r"segundo|conforme|de acordo com|recomenda|sugere|consenso|"
+    r"meta[\s-]?analise|estudo de|artigo|revisao|publicacao|"
+    r"according to|recommends|suggests|consensus|study|meta[\s-]?analysis|et al|"
+    r"based on|per "
+)
+_PUBLICATION_NOUN = r"estudo|artigo|revisao|meta[\s-]?analise|consenso|publicacao|study|meta[\s-]?analysis|consensus"
+
+_CITATION_PATTERNS = [
+    re.compile(r"\bet al\.?", re.IGNORECASE),
+    re.compile(r"\b10\.\d{4,9}/\S+"),                 # DOI
+    re.compile(r"\bdoi:\s*\S+", re.IGNORECASE),       # doi: ...
+    re.compile(r"https?://|\bwww\.\S+", re.IGNORECASE),  # URL / bare domain
+    # citation cue followed (within a few words) by a Capitalized name or ACRONYM
+    re.compile(rf"(?:{_CITATION_CUES})\b[^.]{{0,40}}?\b([A-Z][a-zA-Z]+|[A-Z]{{2,}})", re.IGNORECASE),
+    # publication noun + "de <ProperName>" (e.g. "meta-analise de Bosquet")
+    re.compile(rf"(?:{_PUBLICATION_NOUN})\b[^.]{{0,20}}?\bde\s+[A-Z][a-zA-Z]+"),
+    # "<ProperName> et al" / "<ProperName> & <ProperName>" / "<ProperName> e colegas"
+    re.compile(r"\b[A-Z][a-zA-Z]+\s*(?:&|\be colegas\b)\s*[A-Z]?[a-zA-Z]*"),
+    # "<ProperName> YYYY" adjacent to a publication noun (e.g. "Smith 2024 meta-analysis")
+    re.compile(rf"\b[A-Z][a-zA-Z]+\s+\d{{4}}\b[^.]{{0,20}}?(?:{_PUBLICATION_NOUN})", re.IGNORECASE),
+    re.compile(rf"(?:{_PUBLICATION_NOUN})[^.]{{0,20}}?\b[A-Z][a-zA-Z]+\s+\d{{4}}\b", re.IGNORECASE),
+    # "<ProperName> YYYY" only when an author cue word is present nearby handled above;
+    # keep explicit "(YYYY)" parenthetical citation form
+    re.compile(r"\([^)]*\b\d{4}\b[^)]*\)"),
+]
+
+
+def _lint_prose_citations(response: dict[str, Any]) -> None:
+    for text in _prose_fields(response):
+        for pat in _CITATION_PATTERNS:
+            if pat.search(text):
+                raise LlmResponseValidationError(
+                    "prose must not cite studies/authors/DOIs directly; "
+                    "reference science only via science_refs"
+                )
+    _lint_prose_language(response)
+
+
+# Frontend prose must be PT-BR. Reject obvious English leakage via common English
+# function words that do not occur in Portuguese.
+_ENGLISH_MARKERS = re.compile(
+    r"\b(the|workout|keep|because|should|next|with|your|training|easy|"
+    r"risk|maintain|reduce|recovery|week|run)\b",
+    re.IGNORECASE,
+)
+
+
+def _lint_prose_language(response: dict[str, Any]) -> None:
+    for text in _prose_fields(response):
+        if len(_ENGLISH_MARKERS.findall(text)) >= 2:
+            raise LlmResponseValidationError(
+                "prose must be in Portuguese (PT-BR); detected English text"
+            )
+
+
 def validate_llm_response(
     response: dict[str, Any], request: dict[str, Any]
 ) -> dict[str, Any]:
@@ -206,6 +274,8 @@ def validate_llm_response(
         parsed = LlmRecommendationResponse.model_validate(response)
     except ValidationError as exc:
         raise LlmResponseValidationError(str(exc)) from exc
+
+    _lint_prose_citations(response)
 
     approved_refs = set(request.get("approved_science_refs", []))
     unapproved_refs = sorted(set(parsed.science_refs) - approved_refs)

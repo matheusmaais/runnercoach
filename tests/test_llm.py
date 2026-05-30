@@ -209,3 +209,70 @@ def _valid_response(**overrides):
     }
     response.update(overrides)
     return response
+
+
+def test_prose_lint_rejects_fabricated_study_citation():
+    request = build_llm_request(Path("."))
+    bad = _valid_response(
+        next_workout="10x400m at 5k pace based on Smith 2024 meta-analysis"
+    )
+    with pytest.raises(LlmResponseValidationError, match="prose must not cite"):
+        validate_llm_response(bad, request)
+
+
+def test_prose_lint_rejects_doi_in_prose():
+    request = build_llm_request(Path("."))
+    bad = _valid_response(risk_assessment="Risco alto conforme 10.1136/bjsports-2016-096581.")
+    with pytest.raises(LlmResponseValidationError, match="prose must not cite"):
+        validate_llm_response(bad, request)
+
+
+def test_prose_lint_allows_clean_portuguese_prose():
+    request = build_llm_request(Path("."))
+    ok = _valid_response()
+    # Clean PT-BR prose with no author-year/DOI must pass.
+    validate_llm_response(ok, request)
+
+
+_LINT_SHOULD_BLOCK = [
+    "Segundo Seiler, vamos manter 80% leve.",
+    "Conforme o estudo de 2016, a carga deve subir com cautela.",
+    "Meta-analise de Bosquet sugere respeitar recuperacao.",
+    "De acordo com a IOC, sintomas no tendao pedem cautela.",
+    "Pfitzinger recomenda manter o facil facil.",
+    "O consenso do ACSM reforca controlar volume.",
+    "Veja www.bjsm.com para a discussao.",
+    "Como descrito por Foster e colegas, monitore PSE.",
+    "Segundo Laursen & Buchheit, mantenha controlado.",
+    "10x400m based on Smith 2024 meta-analysis",
+    "Risco conforme doi:10.1136/bjsports-2016-096581.",
+]
+
+_LINT_SHOULD_ALLOW = [
+    "Em 2027 voce corre a meia com mais seguranca.",
+    "Semana 2024 do ciclo deve priorizar sono.",
+    "Sessao Janeiro 2027 deve ser leve.",
+    "24 de janeiro de 2027 e a prova.",
+    "Mantenha o ritmo em 5:30/km e o longao leve.",
+    "Reduza o volume nesta semana e priorize sono.",
+]
+
+
+@pytest.mark.parametrize("prose", _LINT_SHOULD_BLOCK)
+def test_prose_lint_blocks_citations(prose):
+    request = build_llm_request(Path("."))
+    with pytest.raises(LlmResponseValidationError, match="prose must not cite"):
+        validate_llm_response(_valid_response(summary=prose), request)
+
+
+@pytest.mark.parametrize("prose", _LINT_SHOULD_ALLOW)
+def test_prose_lint_allows_legit_ptbr(prose):
+    request = build_llm_request(Path("."))
+    validate_llm_response(_valid_response(summary=prose), request)
+
+
+def test_prose_lint_rejects_english_prose():
+    request = build_llm_request(Path("."))
+    bad = _valid_response(summary="Keep the planned workout because the risk is low.")
+    with pytest.raises(LlmResponseValidationError, match="Portuguese"):
+        validate_llm_response(bad, request)
