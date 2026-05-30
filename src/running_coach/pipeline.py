@@ -529,6 +529,7 @@ def _recommendation_for_workout(
     accumulated = build_athlete_state(points, reference_date)
 
     planned = _next_planned_workout(repo_root, workout.local_date)
+    exec_signals = _execution_signals(repo_root, workout)
     recommendation_input = RecommendationInput(
         bruna_pse=workout.bruna_pse,
         symptom_severity=workout.symptom_severity,
@@ -546,8 +547,61 @@ def _recommendation_for_workout(
             or "unplanned-next-workout"
         ),
         accumulated=accumulated,
+        gym_previous_day=bool(workout.gym_previous_day),
+        **exec_signals,
     )
     return recommend_next_action(recommendation_input)
+
+
+def _parse_target_km(text: str) -> float | None:
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*km", text or "", re.IGNORECASE)
+    return float(m.group(1).replace(",", ".")) if m else None
+
+
+def _pace_to_sec(pace: str | None) -> int | None:
+    if not pace or ":" not in pace:
+        return None
+    try:
+        mm, ss = pace.split(":", 1)
+        return int(mm) * 60 + int(ss)
+    except ValueError:
+        return None
+
+
+def _execution_signals(repo_root: Path, workout: WorkoutRecord) -> dict[str, bool]:
+    """Compare executed workout vs its matched plan: truncated / over / underpaced.
+    Only fires when a matched plan with a target is available (fail-safe otherwise)."""
+    signals = {"workout_truncated": False, "overpaced": False, "underpaced": False}
+    if not workout.planned_workout_id:
+        return signals
+    planned_path = repo_root / "data/plan/planned_workouts.csv"
+    if not planned_path.exists():
+        return signals
+    with planned_path.open(encoding="utf-8", newline="") as handle:
+        match = next(
+            (r for r in csv.DictReader(handle)
+             if r.get("planned_workout_id") == workout.planned_workout_id),
+            None,
+        )
+    if not match:
+        return signals
+    target_km = _parse_target_km(match.get("planned_distance_or_duration", ""))
+    if target_km and workout.distance_km is not None and target_km > 0:
+        if workout.distance_km < 0.7 * target_km:
+            signals["workout_truncated"] = True
+    # Pace target like "6:15-6:20/km": use the range bounds so a pace WITHIN
+    # the prescribed range never fires. overpaced = faster than the fast bound
+    # by >10%; underpaced = slower than the slow bound by >15%.
+    pace_nums = re.findall(r"(\d+:\d{2})", match.get("planned_intensity_range", ""))
+    bounds = [s for s in (_pace_to_sec(p) for p in pace_nums) if s]
+    exec_pace = _pace_to_sec(workout.avg_pace)
+    if bounds and exec_pace:
+        fast_bound, slow_bound = min(bounds), max(bounds)
+        if exec_pace < fast_bound * 0.90:
+            signals["overpaced"] = True
+        elif exec_pace > slow_bound * 1.15:
+            signals["underpaced"] = True
+    return signals
 
 
 def _next_planned_workout(repo_root: Path, local_date: str) -> dict[str, str]:

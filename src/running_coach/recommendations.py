@@ -26,6 +26,13 @@ class RecommendationInput(BaseModel):
     week_number: StrictInt = Field(ge=1)
     planned_workout_id: str = Field(min_length=1)
     accumulated: AccumulatedState | None = None
+    # Execution signals (executed-vs-planned + extra load). Default False keeps
+    # existing behaviour; all of these only LOWER the envelope (fail-closed).
+    gym_previous_day: StrictBool = False
+    lower_body_load_previous_day: StrictBool = False
+    workout_truncated: StrictBool = False     # executed distance << planned
+    overpaced: StrictBool = False             # ran much faster than target
+    underpaced: StrictBool = False            # ran much slower than target (fatigue)
 
 
 class RecommendationResult(BaseModel):
@@ -155,7 +162,7 @@ def _select_action(
     action_reasons = reason_tags - {"insufficient_history"}
     if action_reasons:
         return (
-            RecommendationAction.REDUCE_NEXT_WORKOUT,
+            _not_more_aggressive(RecommendationAction.REDUCE_NEXT_WORKOUT, input_data.planned_action),
             reasons,
             False,
         )
@@ -201,10 +208,18 @@ def _load_reduction_reasons(input_data: RecommendationInput) -> list[str]:
     reasons: list[str] = []
     if input_data.volleyball_previous_day:
         reasons.append("volleyball_previous_day")
+    if input_data.gym_previous_day or input_data.lower_body_load_previous_day:
+        reasons.append("lower_body_load_previous_day")
     if input_data.poor_sleep:
         reasons.append("poor_sleep")
     if input_data.all_out_race:
         reasons.append("all_out_race")
+    if input_data.workout_truncated:
+        reasons.append("workout_truncated")
+    if input_data.overpaced:
+        reasons.append("overpaced")
+    if input_data.underpaced:
+        reasons.append("underpaced")
     return reasons
 
 
@@ -277,6 +292,8 @@ def _rule_refs_for(reasons: list[str]) -> list[str]:
             refs.append("volleyball-neuromuscular-load")
         else:
             refs.append("sleep-fatigue-load-management")
+    if reason_tags & {"lower_body_load_previous_day", "workout_truncated", "overpaced", "underpaced"}:
+        refs.append("load-management-recovery")
     if refs:
         return refs
     return ["training-consistency-principle"]
