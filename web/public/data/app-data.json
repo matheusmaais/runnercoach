@@ -1,5 +1,13 @@
 {
   "generated_at": "2026-05-28 17:14:17",
+  "today": {
+    "headline": "Registrar check-in para liberar recomendacao",
+    "why": "Falta o check-in manual do treino; registre para liberar a recomendacao.",
+    "next_planned": "diagnostic_race_10k",
+    "confidence": "low",
+    "science_refs": [],
+    "date": "2026-05-28"
+  },
   "mission": {
     "name": "Meia Forte Janeiro 2027",
     "target_race_window": "late January 2027",
@@ -207,8 +215,8 @@
       "distance_km": 7.47,
       "duration_seconds": 3039.0,
       "avg_pace": "6:47",
-      "matheus_avg_hr": "",
-      "matheus_max_hr": "",
+      "matheus_avg_hr": "147",
+      "matheus_max_hr": "164",
       "bruna_avg_hr": "",
       "bruna_max_hr": "",
       "bruna_pse": "7",
