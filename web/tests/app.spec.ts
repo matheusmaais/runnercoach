@@ -328,3 +328,17 @@ test("race-only submit commits and dispatches the workflow without Garmin", asyn
   await page.getByRole("button", { name: "Salvar prova e recalibrar zonas" }).click();
   await expect.poll(() => posts).toBeGreaterThanOrEqual(1);
 });
+
+test("progression nudge renders when the coach suggests a 4th day", async ({ page }) => {
+  await page.route("**/data/app-data.json**", async (route) => {
+    const payload = structuredClone(appData);
+    payload.progression_suggestion = {
+      should_suggest: true,
+      message: "Você está absorvendo bem há 6 semanas. Considere adicionar um 4º dia de corrida LEVE.",
+      science_refs: ["load-management-recovery", "seiler-intensity-distribution"],
+    };
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify(payload) });
+  });
+  await page.goto("/");
+  await expect(page.getByText(/adicionar um 4º dia de corrida LEVE/)).toBeVisible();
+});

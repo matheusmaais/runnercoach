@@ -908,3 +908,5 @@ main {
 .readiness-cautela { background: rgba(234,179,8,0.12); color: #fde047; }
 .readiness-recuperar { background: rgba(239,68,68,0.12); color: #fca5a5; }
 .readiness-indefinido { background: rgba(148,163,184,0.12); color: #cbd5e1; }
+
+.progression-nudge { align-items: center; background: rgba(59,130,246,0.12); border-left: 3px solid #3b82f6; border-radius: 6px; color: #bfdbfe; display: flex; font-size: 0.9rem; gap: 8px; margin: 8px 0 0; padding: 10px 12px; }

@@ -102,6 +102,7 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
         "weekly_summary": _weekly_summary(workouts),
         "week_narrative": _week_narrative(_weekly_summary(workouts)),
         "readiness": _readiness(workouts),
+        "progression_suggestion": _progression_suggestion(workouts),
         "trends": trends,
         "decisions": [_present_decision(row) for row in _latest_rows(decisions, 10)],
         "science_refs": [_present_science_ref(row) for row in science_refs if _truthy(row.get("approved"))],
@@ -553,6 +554,58 @@ def _present_science_ref(row: dict[str, str]) -> dict[str, Any]:
         "limits": row.get("limits", ""),
         "tags": _as_list(row.get("tags")),
     }
+
+
+def _progression_suggestion(workouts: list[dict[str, str]]) -> dict[str, Any]:
+    """Advisory 'add a 4th easy day' nudge when readiness is sustained green.
+    Never alters safety — purely additive coach voice."""
+    from running_coach.accumulation import WorkoutHistoryPoint, build_athlete_state
+    from running_coach.progression import suggest_fourth_day
+
+    running = [w for w in workouts if (w.get("local_date") or w.get("date"))
+               and (w.get("activity_type") or "").strip().casefold() == "corrida"]
+    if not running:
+        return {"should_suggest": False}
+    # Sort chronologically so the streak reflects the LATEST evidence, not input order.
+    running.sort(key=lambda w: w.get("local_date") or w.get("date") or "")
+
+    # consecutive recent weeks with no Achilles flare and tolerable PSE. Suggesting
+    # MORE training is conservative: a row missing PSE/Achilles evidence breaks the
+    # streak (fail-closed — we never propose more on unknown readiness).
+    green = 0
+    for w in reversed(running[-8:]):
+        ach_a = _number(w.get("matheus_achilles_after"))
+        ach_m = _number(w.get("matheus_achilles_morning"))
+        pse = _number(w.get("bruna_pse"))
+        if ach_a is None and ach_m is None and pse is None:
+            break  # no readiness evidence -> cannot count this as a proven-green week
+        ach = max(ach_a or 0, ach_m or 0)
+        if ach <= 2 and (pse or 0) <= 7:
+            green += 1
+        else:
+            break
+
+    points = []
+    for w in running:
+        d = w.get("local_date") or w.get("date")
+        try:
+            points.append(WorkoutHistoryPoint(
+                date.fromisoformat(d), _number(w.get("distance_km")) or 0.0, True,
+                int(_number(w.get("bruna_pse")) or 0),
+                int(_number(w.get("matheus_achilles_morning")) or 0),
+                int(_number(w.get("matheus_achilles_after")) or 0), False, False))
+        except (ValueError, TypeError):
+            continue
+    if not points:
+        return {"should_suggest": False}
+
+    # approximate current weekly frequency from the last 7 days
+    last = max(p.local_date for p in points)
+    runs_per_week = sum(1 for p in points if (last - p.local_date).days < 7)
+    state = build_athlete_state(points, last + timedelta(days=1))
+    s = suggest_fourth_day(state, runs_per_week, green)
+    return {"should_suggest": s.should_suggest, "message": s.message,
+            "science_refs": list(s.science_refs)}
 
 
 def _readiness(workouts: list[dict[str, str]]) -> dict[str, Any]:

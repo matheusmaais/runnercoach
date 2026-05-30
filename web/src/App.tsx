@@ -14,6 +14,7 @@ import {
   LineChart as LineChartIcon,
   Rocket,
   Trophy,
+  TrendingUp,
   ShieldAlert,
   TimerReset,
   UploadCloud,
@@ -153,6 +154,11 @@ function Cockpit({ payload }: { payload: FrontendPayload }) {
         {payload.readiness && (
           <p className={`readiness readiness-${payload.readiness.level}`}>
             Prontidão: <strong>{payload.readiness.level}</strong> — {payload.readiness.message}
+          </p>
+        )}
+        {payload.progression_suggestion?.should_suggest && (
+          <p className="progression-nudge">
+            <TrendingUp size={16} /> {payload.progression_suggestion.message}
           </p>
         )}
         <div className="badge-row">

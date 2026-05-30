@@ -1015,6 +1015,11 @@
     "level": "cautela",
     "message": "Prontidão parcial: mantenha leve e observe a resposta antes de subir a carga."
   },
+  "progression_suggestion": {
+    "should_suggest": false,
+    "message": "",
+    "science_refs": []
+  },
   "trends": {
     "pace": [
       {
