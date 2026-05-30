@@ -134,3 +134,27 @@ def test_insufficient_history_is_not_high_confidence():
     # Maintain is acceptable on week 1, but confidence must not be HIGH (fail-closed).
     assert res.confidence.value != "high"
     assert "insufficient_history" in res.reasons
+
+
+def test_oversized_plan_cannot_suppress_real_overload():
+    from running_coach.accumulation import AccumulatedState
+    # prior 20, last 40, aspirational plan 80 -> must STILL be a spike (capped).
+    s = AccumulatedState(
+        last_7d_distance_km=40.0, prior_28d_mean_7d_distance_km=20.0, load_ratio=2.0,
+        achilles_recent_max=0, achilles_is_rising=False, days_since_all_out_race=None,
+        in_post_race_recovery=False, history_days=40, insufficient_history=False,
+        planned_week_km=80.0,
+    )
+    assert s.weekly_load_spike is True
+
+
+def test_moderate_planned_progression_not_flagged():
+    from running_coach.accumulation import AccumulatedState
+    # prior 30, planned 33 (~10% ramp), ran 33 -> not a spike.
+    s = AccumulatedState(
+        last_7d_distance_km=33.0, prior_28d_mean_7d_distance_km=30.0, load_ratio=1.1,
+        achilles_recent_max=0, achilles_is_rising=False, days_since_all_out_race=None,
+        in_post_race_recovery=False, history_days=40, insufficient_history=False,
+        planned_week_km=33.0,
+    )
+    assert s.weekly_load_spike is False

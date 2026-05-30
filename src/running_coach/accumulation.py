@@ -39,15 +39,25 @@ class AccumulatedState:
     in_post_race_recovery: bool
     history_days: int
     insufficient_history: bool
+    planned_week_km: float | None = None  # what the plan expected this week
 
     @property
     def weekly_load_spike(self) -> bool:
         if self.load_ratio is None:
             return False
+        history_baseline = self.prior_28d_mean_7d_distance_km
+        if history_baseline <= 0:
+            return False
+        # Planned progression raises the baseline, but ONLY up to a safe ramp
+        # over history. An aspirational/oversized plan can never silence a real
+        # overload: the plan can lift the baseline by at most LOAD_RATIO_CAP.
+        baseline = history_baseline
+        if self.planned_week_km is not None and self.planned_week_km > 0:
+            safe_plan = min(self.planned_week_km, history_baseline * LOAD_RATIO_CAP)
+            baseline = max(history_baseline, safe_plan)
         return (
-            self.load_ratio > LOAD_RATIO_CAP
-            and (self.last_7d_distance_km - self.prior_28d_mean_7d_distance_km)
-            > LOAD_ABS_FLOOR_KM
+            self.last_7d_distance_km / baseline > LOAD_RATIO_CAP
+            and (self.last_7d_distance_km - baseline) > LOAD_ABS_FLOOR_KM
         )
 
 
@@ -61,7 +71,8 @@ def _running_km(points: list[WorkoutHistoryPoint], lo: date, hi: date) -> float:
 
 
 def build_athlete_state(
-    history: list[WorkoutHistoryPoint], reference_date: date
+    history: list[WorkoutHistoryPoint], reference_date: date,
+    planned_week_km: float | None = None,
 ) -> AccumulatedState:
     past = [p for p in history if p.local_date < reference_date]
     if not past:
@@ -75,6 +86,7 @@ def build_athlete_state(
             in_post_race_recovery=False,
             history_days=0,
             insufficient_history=True,
+            planned_week_km=planned_week_km,
         )
 
     earliest = min(p.local_date for p in past)
@@ -138,6 +150,7 @@ def build_athlete_state(
         in_post_race_recovery=in_recovery,
         history_days=history_days,
         insufficient_history=insufficient,
+        planned_week_km=planned_week_km,
     )
 
 
