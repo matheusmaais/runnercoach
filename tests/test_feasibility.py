@@ -40,3 +40,19 @@ def test_checkpoint_sharpens_near_race():
     aug = checkpoint_status(1750, 1750, 7200, START, RACE, date(2026, 8, 30))["status"]
     nov = checkpoint_status(1750, 1750, 7200, START, RACE, date(2026, 11, 30))["status"]
     assert aug == "atras" and nov == "fora"
+
+
+def test_invalid_inputs_return_indisponivel():
+    assert assess_goal(0, 7200, START, RACE).verdict == "indisponivel"
+    assert assess_goal(1750, 0, START, RACE).verdict == "indisponivel"
+    assert assess_goal(1750, -1, START, RACE).verdict == "indisponivel"
+    assert assess_goal(1750, 7200, RACE, START).verdict == "indisponivel"  # race in past
+
+
+def test_riegel_ref_exists_in_registry():
+    import yaml
+    from pathlib import Path
+    data = yaml.safe_load(Path("data/knowledge/science_refs.yaml").read_text())
+    ids = {r["science_ref_id"] for r in data["refs"]}
+    assert "riegel-race-prediction" in ids
+    assert "training-consistency-principle" in ids

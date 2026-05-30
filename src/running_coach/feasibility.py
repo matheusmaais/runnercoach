@@ -7,11 +7,12 @@ Two questions answered deterministically:
 2. Are we ON TRACK at each checkpoint? -> a benchmark race must hit the pace the
    goal-trajectory predicts for that date (within tolerance).
 
-Ceilings (sec/km improvement as % of current pace, per month):
-- REALISTIC_CEILING 1.0%/mo: typical sustained improvement.
+Ceilings (sec/km improvement as % of current pace, per month) — a conservative
+HEURISTIC, not a hard physiological law (individual response varies widely):
+- REALISTIC_CEILING 1.0%/mo: commonly sustainable for a consistent runner.
 - AGGRESSIVE_CEILING 2.0%/mo: upper bound, everything going right.
-Above the aggressive ceiling -> out of reach. Pure, deterministic, cited
-(training-consistency-principle, riegel-race-prediction).
+Above the aggressive ceiling -> treat as out of reach for the timeframe. Pure,
+deterministic, cited (training-consistency-principle, riegel-race-prediction).
 """
 from __future__ import annotations
 
@@ -51,6 +52,11 @@ def assess_goal(
     tgt = _race_pace_for_half_goal(goal_half_seconds)
     months = max((race_date - today).days / _MONTH_DAYS, 0.1)
     refs = ("training-consistency-principle", "riegel-race-prediction")
+
+    if current_5k_seconds <= 0 or goal_half_seconds <= 0 or race_date <= today:
+        return FeasibilityVerdict(
+            "indisponivel", 0.0, "—", "—",
+            "Dados insuficientes ou prazo inválido para avaliar a meta.", refs)
 
     if tgt >= cur_half:  # already at/under goal pace
         return FeasibilityVerdict(
@@ -106,7 +112,7 @@ def checkpoint_status(
     predicted = predicted_pace_on(start_5k_seconds, goal_half_seconds, start, race_date, checkpoint)
     delta_pct = (actual_half - predicted) / predicted  # >0 = slower than needed
     if delta_pct <= ON_TRACK_TOLERANCE:
-        status, msg = "no_caminho", "No caminho do objetivo neste checkpoint."
+        status, msg = "no_caminho", "No caminho do objetivo neste marco."
     elif delta_pct <= 2 * ON_TRACK_TOLERANCE:
         status, msg = "atras", "Um pouco atrás do ritmo necessário; ainda recuperável."
     else:

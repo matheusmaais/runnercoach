@@ -228,3 +228,22 @@ refs:
     approved: true
     approved_date: 2026-05-29
     notes: "Uses the DOI-backed 2016 Journal of Strength and Conditioning Research meta-analysis."
+
+  - science_ref_id: riegel-race-prediction
+    title: "Athletic Records and Human Endurance"
+    authors:
+      - Peter S. Riegel
+    year: 1981
+    source_type: peer_reviewed_study
+    journal_or_publisher: "American Scientist"
+    doi_or_url: "https://www.jstor.org/stable/27850427"
+    population: "Endurance athletes across running distances"
+    finding: "Race time scales with distance by t2 = t1 * (d2/d1)^1.06, enabling cross-distance performance prediction."
+    practical_application: "Project half-marathon pace and training zones from a recent shorter race; a conservative exponent (1.08) suits recreational runners."
+    limits: "An empirical model; individual endurance profiles and training specificity shift the true exponent."
+    tags:
+      - race_calibration
+      - prediction
+    approved: true
+    approved_date: 2026-05-30
+    notes: "Backs the Riegel projection used for pace zones and goal feasibility."
