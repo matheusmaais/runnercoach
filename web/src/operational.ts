@@ -37,6 +37,12 @@ export type OperationalFormState = {
   coachNote: string;
   garminCsvName: string;
   garminActivity: GarminActivitySummary | null;
+  raceDate: string;
+  raceDistanceKm: string;
+  raceTime: string;
+  raceConditions: string;
+  raceMaxHr: string;
+  raceNotes: string;
 };
 
 export type GithubSettings = {
@@ -102,6 +108,12 @@ export function defaultOperationalForm(): OperationalFormState {
     coachNote: "",
     garminCsvName: "",
     garminActivity: null,
+    raceDate: today,
+    raceDistanceKm: "",
+    raceTime: "",
+    raceConditions: "normal",
+    raceMaxHr: "",
+    raceNotes: "",
   };
 }
 
@@ -185,6 +197,41 @@ export function buildIntakePayload(form: OperationalFormState) {
       run_llm: true,
       commit_results: true,
     },
+  };
+}
+
+export function parseRaceTimeSeconds(value: string): number | null {
+  const parts = value.trim().split(":").map((p) => Number(p));
+  if (!parts.length || parts.some((n) => !Number.isFinite(n) || n < 0)) return null;
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return null;
+}
+
+export function validateRaceForm(form: OperationalFormState): string[] {
+  const errors: string[] = [];
+  if (!form.raceDate) errors.push("Data da prova é obrigatória.");
+  const dist = Number(form.raceDistanceKm);
+  if (!Number.isFinite(dist) || dist <= 0) errors.push("Distância da prova deve ser maior que 0.");
+  if (parseRaceTimeSeconds(form.raceTime) == null) errors.push("Tempo da prova inválido (use mm:ss ou h:mm:ss).");
+  if (form.raceMaxHr && !inRange(Number(form.raceMaxHr), 30, 240)) errors.push("FC máxima deve estar entre 30 e 240.");
+  return errors;
+}
+
+export function buildRaceIntakePayload(form: OperationalFormState) {
+  return {
+    schema_version: 1,
+    created_at: new Date().toISOString(),
+    source: "github_pages",
+    race: {
+      date: form.raceDate,
+      distance_km: Number(form.raceDistanceKm),
+      time_seconds: parseRaceTimeSeconds(form.raceTime) ?? 0,
+      conditions: form.raceConditions === "heat" ? "heat" : "normal",
+      max_hr: form.raceMaxHr ? Number(form.raceMaxHr) : null,
+      notes: form.raceNotes || null,
+    },
+    workflow: { run_llm: false, commit_results: true },
   };
 }
 

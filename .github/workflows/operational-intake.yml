@@ -68,6 +68,7 @@ jobs:
           python scripts/process_frontend_intake.py "$INTAKE_PATH" | tee /tmp/intake.env
           {
             echo "garmin_csv_path=$(grep '^garmin_csv_path=' /tmp/intake.env | cut -d= -f2- || true)"
+            echo "race_path=$(grep '^race_path=' /tmp/intake.env | cut -d= -f2- || true)"
             echo "run_llm=$(grep '^run_llm=' /tmp/intake.env | cut -d= -f2- || echo false)"
             echo "commit_results=$(grep '^commit_results=' /tmp/intake.env | cut -d= -f2- || echo true)"
           } >> "$GITHUB_OUTPUT"
@@ -75,11 +76,16 @@ jobs:
       - name: Run coaching pipeline
         run: |
           GARMIN_PATH="${{ steps.intake.outputs.garmin_csv_path }}"
-          if [ -z "$GARMIN_PATH" ]; then
+          RACE_PATH="${{ steps.intake.outputs.race_path }}"
+          if [ -n "$GARMIN_PATH" ]; then
+            python scripts/run_pipeline.py --garmin "$GARMIN_PATH" --after-workout --monthly-report
+          elif [ -n "$RACE_PATH" ]; then
+            echo "Race-only intake: refreshing living plan + frontend (no Garmin needed)."
+            python scripts/build_plan.py
+          else
             echo "Operational intake requires a Garmin CSV upload because raw Garmin files are not versioned."
             exit 2
           fi
-          python scripts/run_pipeline.py --garmin "$GARMIN_PATH" --after-workout --monthly-report
 
       - name: Generate LLM request
         run: python scripts/generate_recommendation.py
@@ -115,7 +121,7 @@ jobs:
         run: |
           git config user.name "runnercoach-bot"
           git config user.email "runnercoach-bot@users.noreply.github.com"
-          git add data/manual/checkins data/manual/frontend_intake data/processed docs reports web/public/data/app-data.json
+          git add data/manual/checkins data/manual/frontend_intake data/plan data/processed docs reports web/public/data/app-data.json
           if git diff --cached --quiet; then
             echo "No generated changes to commit"
           else

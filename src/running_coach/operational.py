@@ -47,6 +47,17 @@ class OperationalWorkflow(BaseModel):
     commit_results: bool = True
 
 
+class RaceIntake(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    date: str
+    distance_km: float = Field(gt=0)
+    time_seconds: int = Field(gt=0)
+    conditions: Literal["normal", "heat"] = "normal"
+    max_hr: int | None = None
+    notes: str | None = None
+
+
 class FrontendIntake(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -55,6 +66,7 @@ class FrontendIntake(BaseModel):
     source: Literal["github_pages"]
     checkin: CheckIn | None = None
     garmin_activity: GarminActivitySummary | None = None
+    race: RaceIntake | None = None
     workflow: OperationalWorkflow = Field(default_factory=OperationalWorkflow)
 
     @model_validator(mode="after")
@@ -74,6 +86,7 @@ class FrontendIntake(BaseModel):
 class ProcessedIntake:
     checkin_path: Path | None
     garmin_csv_path: Path | None
+    race_path: Path | None
     run_llm: bool
     commit_results: bool
 
@@ -93,13 +106,42 @@ def process_frontend_intake(repo_root: Path, intake_path: Path) -> ProcessedInta
         if intake.garmin_activity
         else None
     )
+    race_path = _write_race(root, intake.race) if intake.race else None
 
     return ProcessedIntake(
         checkin_path=checkin_path,
         garmin_csv_path=garmin_csv_path,
+        race_path=race_path,
         run_llm=intake.workflow.run_llm,
         commit_results=intake.workflow.commit_results,
     )
+
+
+def _write_race(repo_root: Path, race: RaceIntake) -> Path:
+    """Append a done race to races.yaml (dedup by race_id = date+distance)."""
+    path = repo_root / "data/plan/races.yaml"
+    data = {}
+    if path.exists():
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    data.setdefault("schema_version", 1)
+    races = data.setdefault("races", [])
+    race_id = f"{int(race.distance_km)}k-{race.date}"
+    entry = {
+        "race_id": race_id,
+        "date": race.date,
+        "distance_km": race.distance_km,
+        "time_seconds": race.time_seconds,
+        "conditions": race.conditions,
+        "status": "done",
+    }
+    if race.max_hr is not None:
+        entry["max_hr"] = race.max_hr
+    if race.notes:
+        entry["notes"] = race.notes
+    races[:] = [r for r in races if r.get("race_id") != race_id] + [entry]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return path
 
 
 def write_frontend_intake(repo_root: Path, payload: dict) -> Path:

@@ -13,6 +13,7 @@ import {
   HeartPulse,
   LineChart as LineChartIcon,
   Rocket,
+  Trophy,
   ShieldAlert,
   TimerReset,
   UploadCloud,
@@ -40,6 +41,8 @@ import {
 } from "./github";
 import {
   buildIntakePayload,
+  buildRaceIntakePayload,
+  validateRaceForm,
   defaultGithubSettings,
   defaultOperationalForm,
   defaultOperationalSteps,
@@ -338,6 +341,9 @@ function OperateView({
   const errors = validateOperationalForm(form);
   const payload = buildIntakePayload(form);
   const path = intakePath(payload);
+  const raceErrors = validateRaceForm(form);
+  const racePayload = buildRaceIntakePayload(form);
+  const racePath = intakePath(racePayload);
 
   useEffect(() => {
     window.localStorage.removeItem("runnercoach.github");
@@ -375,6 +381,18 @@ function OperateView({
       setStatus(`Corrija antes de enviar: ${errors.join(" ")}`);
       return;
     }
+    await runIntake(payload, path, `chore: add frontend intake ${form.date}`);
+  }
+
+  async function submitRace() {
+    if (raceErrors.length) {
+      setStatus(`Corrija a prova antes de enviar: ${raceErrors.join(" ")}`);
+      return;
+    }
+    await runIntake(racePayload, racePath, `chore: add race ${form.raceDate}`);
+  }
+
+  async function runIntake(intakePayload: object, intakeFilePath: string, commitMessage: string) {
     if (!settings.token.trim()) {
       setStatus("Informe um GitHub token com Contents write e Actions write.");
       return;
@@ -382,24 +400,24 @@ function OperateView({
     setBusy(true);
     setWorkflowUrl("");
     setCoachReady(false);
-    setSteps(updateOperationalStep(defaultOperationalSteps(), "commit", "active", `Commitando intake em ${path}.`));
+    setSteps(updateOperationalStep(defaultOperationalSteps(), "commit", "active", `Commitando intake em ${intakeFilePath}.`));
     const startedAfter = new Date(Date.now() - 60_000).toISOString();
     try {
       await commitFileToGithub({
         settings,
-        path,
-        content: JSON.stringify(payload, null, 2) + "\n",
-        message: `chore: add frontend intake ${form.date}`,
+        path: intakeFilePath,
+        content: JSON.stringify(intakePayload, null, 2) + "\n",
+        message: commitMessage,
       });
       setSteps((current) =>
         updateOperationalStep(
-          updateOperationalStep(current, "commit", "done", `Payload commitado em ${path}.`),
+          updateOperationalStep(current, "commit", "done", `Payload commitado em ${intakeFilePath}.`),
           "workflow",
           "active",
           "Dispatch enviado; aguardando run aparecer no GitHub Actions.",
         ),
       );
-      await dispatchOperationalWorkflow(settings, path);
+      await dispatchOperationalWorkflow(settings, intakeFilePath);
 
       const run = await pollOperationalWorkflow(settings, {
         startedAfter,
@@ -548,6 +566,36 @@ function OperateView({
           <label><input type="checkbox" checked={form.gymPreviousDay} onChange={(event) => update("gymPreviousDay", event.target.checked)} /> Academia no dia anterior</label>
           <label><input type="checkbox" checked={form.couldRepeatLastBlock} onChange={(event) => update("couldRepeatLastBlock", event.target.checked)} /> Bruna repetiria último bloco</label>
         </div>
+      </article>
+
+      <article className="operate-panel" aria-label="Adicionar prova">
+        <div className="panel-title"><Trophy /><h3>Adicionar prova (balizador)</h3></div>
+        <p className="helper">
+          Registre uma prova concluída para recalibrar as zonas de ritmo e a projeção da meia.
+          Não precisa de check-in nem CSV — preencha e clique em "Salvar prova".
+        </p>
+        <div className="form-grid three">
+          <TextInput label="Data da prova" type="date" value={form.raceDate} onChange={(value) => update("raceDate", value)} />
+          <TextInput label="Distância (km)" type="number" value={form.raceDistanceKm} onChange={(value) => update("raceDistanceKm", value)} />
+          <TextInput label="Tempo (mm:ss ou h:mm:ss)" value={form.raceTime} onChange={(value) => update("raceTime", value)} />
+          <TextInput label="FC máxima (opcional)" type="number" value={form.raceMaxHr} onChange={(value) => update("raceMaxHr", value)} />
+          <label className="field">
+            <span>Condições</span>
+            <select value={form.raceConditions} onChange={(event) => update("raceConditions", event.target.value)}>
+              <option value="normal">Normal</option>
+              <option value="heat">Calor</option>
+            </select>
+          </label>
+        </div>
+        <TextArea label="Notas (opcional)" value={form.raceNotes} onChange={(value) => update("raceNotes", value)} />
+        {raceErrors.length ? (
+          <ul className="error-list">{raceErrors.map((e) => <li key={e}>{e}</li>)}</ul>
+        ) : (
+          <p className="success-text">Prova pronta para salvar em {racePath}.</p>
+        )}
+        <button className="primary-action" disabled={busy || raceErrors.length > 0} onClick={submitRace} type="button">
+          {busy ? "Enviando..." : "Salvar prova e recalibrar zonas"}
+        </button>
       </article>
 
       <div className="operate-grid">

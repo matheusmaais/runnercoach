@@ -283,3 +283,48 @@ test("Plano shows the week-ahead (Semana) in PT-BR", async ({ page }) => {
   await expect(page.getByText("Seg", { exact: true })).toBeVisible();
   await expect(page.getByText("Dom", { exact: true })).toBeVisible();
 });
+
+test("Operar shows a race entry form that validates input", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Operar" }).click();
+  await expect(page.getByRole("heading", { name: "Adicionar prova (balizador)" })).toBeVisible();
+  // invalid (empty distance/time) keeps the save button disabled
+  await page.getByLabel("Distância (km)").fill("");
+  await page.getByLabel("Tempo (mm:ss ou h:mm:ss)").fill("");
+  await expect(page.getByRole("button", { name: "Salvar prova e recalibrar zonas" })).toBeDisabled();
+  // valid input enables it and shows the target path
+  await page.getByLabel("Distância (km)").fill("5");
+  await page.getByLabel("Tempo (mm:ss ou h:mm:ss)").fill("29:10");
+  await expect(page.getByText(/Prova pronta para salvar em/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Salvar prova e recalibrar zonas" })).toBeEnabled();
+});
+
+test("race-only submit commits and dispatches the workflow without Garmin", async ({ page }) => {
+  let posts = 0;
+  await page.route("https://api.github.com/**", async (route) => {
+    const request = route.request();
+    if (request.url().includes("/runs?")) {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          workflow_runs: [{ id: 99, html_url: "https://github.com/matheusmaais/runnercoach/actions/runs/99", status: "queued", conclusion: null, created_at: new Date().toISOString() }],
+        }),
+      });
+      return;
+    }
+    if (request.method() === "POST" || request.method() === "PUT") {
+      posts += 1;
+      await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ content: { sha: "x" } }) });
+      return;
+    }
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ sha: "mock-sha" }) });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Operar" }).click();
+  await page.getByLabel("Token").fill("ghp_token");
+  await page.getByLabel("Distância (km)").fill("5");
+  await page.getByLabel("Tempo (mm:ss ou h:mm:ss)").fill("29:10");
+  await page.getByRole("button", { name: "Salvar prova e recalibrar zonas" }).click();
+  await expect.poll(() => posts).toBeGreaterThanOrEqual(1);
+});

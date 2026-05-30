@@ -22,6 +22,8 @@ def main() -> None:
         print(f"checkin_path={result.checkin_path}")
     if result.garmin_csv_path:
         print(f"garmin_csv_path={result.garmin_csv_path}")
+    if result.race_path:
+        print(f"race_path={result.race_path}")
     print(f"run_llm={str(result.run_llm).lower()}")
     print(f"commit_results={str(result.commit_results).lower()}")
 
