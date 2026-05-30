@@ -216,7 +216,30 @@ def check_invariants(name, res):
                 "bruna_without_matheus", "replace_with_off", "replace_with_easy"}:
             ok = False; notes.append(f"Aquiles alto mal tratado em S{w.week_number}")
 
+    # 7) non-vacuous: the scenario's intended trigger must actually fire
+    expected = _EXPECTED_TRIGGER.get(name)
+    if expected:
+        action_or_reason = {w.action for w in res.weeks} | {w.reason for w in res.weeks}
+        if expected not in action_or_reason:
+            ok = False; notes.append(f"gatilho esperado '{expected}' nao ocorreu")
+
     return ok, notes
+
+
+# Each safety/edge scenario must actually exercise its trigger (no vacuous pass).
+_EXPECTED_TRIGGER = {
+    "U-invertido": "bruna_pse_ge_9",
+    "abaixo da media": "maintain_next_workout",  # PSE8 is tolerable, must still run
+    "lesao aquiles (bloco)": "matheus_achilles_ge_5",
+    "aquiles e recupera": "matheus_achilles_ge_5",
+    "doenca sustentada": "bruna_pse_ge_9",
+    "red flag pontual": "red_flag_symptom",
+    "prova tune-up": "bruna_pse_ge_9",
+    "lesao no taper": "matheus_achilles_ge_5",
+    "red flag no taper": "red_flag_symptom",
+    "aquiles crescente": "matheus_achilles_ge_3",
+    "doente e red flag": "red_flag_symptom",
+}
 
 
 def main():

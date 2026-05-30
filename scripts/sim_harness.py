@@ -82,7 +82,9 @@ def run_cycle(
 ) -> CycleResult:
     """Drive the real engine week-by-week from start to race_date."""
     blocks = derive_phase_schedule(start, race_date)
-    total_weeks = max(1, (_monday(race_date) - _monday(start)).days // 7)
+    # Include the race week itself (the final partial week up to race day) so the
+    # taper's last week is covered; the race day is not a training session.
+    total_weeks = max(1, (_monday(race_date) - _monday(start)).days // 7) + 1
     volume = generate_volume_plan(BRUNA_HALF, weeks=total_weeks, baseline_km=20.0)
     zones = zones_from_benchmark(benchmark)
 
@@ -133,12 +135,38 @@ def run_cycle(
             pse=fb.pse, skipped=fb.skipped,
         ))
 
-        # feed feedback into history (skip = no running point this week)
-        if not fb.skipped:
+        # Feed the ACTUAL executed load (per the decision) back into history, so
+        # off/easy/reduced weeks genuinely lower future load — not the planned one.
+        executed_km = _executed_km(rec.action.value, long.distance_km or 0.0)
+        ran = not fb.skipped and executed_km > 0
+        if ran:
             history.append(WorkoutHistoryPoint(
-                ref, week.long_km, True, fb.pse,
+                ref, executed_km, True, fb.pse,
+                fb.achilles_morning, fb.achilles_after, fb.poor_sleep, fb.all_out_race))
+        elif not fb.skipped:
+            # off day with no run: record a non-running point so trend/recovery see it
+            history.append(WorkoutHistoryPoint(
+                ref, 0.0, False, fb.pse,
                 fb.achilles_morning, fb.achilles_after, fb.poor_sleep, fb.all_out_race))
     return result
+
+
+# Executed long-run km by decision: off=0, easy/reduce shrink it, defer keeps the
+# long (only quality is deferred), bruna_without_matheus keeps Bruna's full run.
+_EXECUTED_FRACTION = {
+    "replace_with_off": 0.0,
+    "replace_with_cross_training": 0.0,
+    "replace_with_easy": 0.5,
+    "reduce_next_workout": 0.7,
+    "defer_quality": 1.0,
+    "bruna_without_matheus": 1.0,
+    "maintain_next_workout": 1.0,
+    "request_manual_resolution": 0.0,
+}
+
+
+def _executed_km(action: str, planned_long: float) -> float:
+    return round(planned_long * _EXECUTED_FRACTION.get(action, 1.0), 2)
 
 
 def _monday(d: date) -> date:
