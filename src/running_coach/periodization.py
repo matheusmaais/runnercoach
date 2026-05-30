@@ -25,6 +25,7 @@ def _floor2(value: float) -> float:
 LOAD_RATIO_CAP = 1.15
 DELOAD_EVERY = 4          # every 4th week is a deload
 DELOAD_FRACTION = 0.70    # deload volume = 70% of current build peak
+TAPER_LONG_FRACTION = 0.55    # taper long run <= 55% of planned peak long
 LONG_RUN_START_KM = 9.0   # current real ceiling
 
 
@@ -206,6 +207,12 @@ def select_week_sessions(
     quality_enabled = (
         allow_quality and not week.is_deload and phase_quality is not None
     )
+    # Taper safety: during HALF_TAPER the long run must REDUCE into the race,
+    # never sit at peak. Cap it to a taper fraction of the planned long run
+    # regardless of where the build/deload volume cycle happens to be.
+    long_km = week.long_km
+    if phase == Phase.HALF_TAPER:
+        long_km = round(min(long_km, week.long_km * TAPER_LONG_FRACTION), 2)
 
     sessions: list[SessionPlan] = []
     for day in RUN_DAYS:
@@ -215,7 +222,7 @@ def select_week_sessions(
                     SessionPlan(
                         day,
                         SessionType.LONG_PROGRESSIVE,
-                        week.long_km,
+                        long_km,
                         ("seiler-intensity-distribution", "threshold-training-lactate"),
                     )
                 )
@@ -224,7 +231,7 @@ def select_week_sessions(
                     SessionPlan(
                         day,
                         SessionType.LONG_EASY,
-                        week.long_km,
+                        long_km,
                         ("seiler-intensity-distribution",),
                     )
                 )
