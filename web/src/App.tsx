@@ -143,6 +143,22 @@ function Cockpit({ payload }: { payload: FrontendPayload }) {
 
   return (
     <section className="view cockpit" aria-label="Cockpit">
+      <article className="today-card">
+        <p className="eyebrow">O que fazer hoje</p>
+        <h2>{payload.today.headline}</h2>
+        <p className="today-why">{payload.today.why}</p>
+        <div className="badge-row">
+          {payload.today.next_planned && (
+            <span className="badge teal">Próximo: {formatToken(payload.today.next_planned)}</span>
+          )}
+          {payload.today.confidence && (
+            <span className="badge neutral">Confiança {formatToken(payload.today.confidence)}</span>
+          )}
+          {payload.today.science_refs.slice(0, 3).map((ref) => (
+            <span className="badge amber" key={ref}>{formatToken(ref)}</span>
+          ))}
+        </div>
+      </article>
       <div className="mission-grid">
         <div className="mission-copy">
           <p className="eyebrow">Missão ativa</p>

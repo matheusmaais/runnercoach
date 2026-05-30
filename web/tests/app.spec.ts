@@ -269,3 +269,8 @@ test("operational submit failure keeps the Actions URL actionable", async ({ pag
   await expect(page.getByRole("link", { name: "Abrir run no GitHub Actions" })).toHaveAttribute("href", runUrl);
   await expect(page.getByRole("button", { name: "Ir para Coach Room" })).toHaveCount(0);
 });
+
+test("cockpit shows a single PT-BR 'what to do today' directive", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText("O que fazer hoje")).toBeVisible();
+});

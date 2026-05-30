@@ -37,6 +37,7 @@ def build_frontend_payload(repo_root: Path) -> dict[str, Any]:
 
     return {
         "generated_at": request_generated_at,
+        "today": _today_directive(decisions, next_workouts),
         "mission": {
             "name": "Meia Forte Janeiro 2027",
             "target_race_window": "late January 2027",
@@ -220,6 +221,65 @@ def _present_plan(row: dict[str, str]) -> dict[str, Any]:
         "decision_basis": _decision_basis(category),
         "safety_triggers": _safety_triggers(category),
     }
+
+_TODAY_ACTION_PT = {
+    "maintain_next_workout": "Manter o treino planejado",
+    "reduce_next_workout": "Reduzir o proximo treino",
+    "replace_with_easy": "Trocar por corrida leve",
+    "replace_with_off": "Folga / descanso",
+    "replace_with_cross_training": "Trocar por treino alternativo",
+    "defer_quality": "Adiar a qualidade; manter leve",
+    "bruna_without_matheus": "Bruna treina sem o Matheus (Aquiles em alerta)",
+    "request_manual_resolution": "Registrar check-in para liberar recomendacao",
+}
+
+
+def _today_directive(
+    decisions: list[dict[str, str]], next_workouts: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """Single PT-BR 'o que fazer hoje + por que', from the latest engine decision."""
+    latest = _latest_rows(decisions, 1)
+    decision = latest[0] if latest else {}
+    action = decision.get("recommendation_action", "")
+    next_cat = next_workouts[0]["intended_category"] if next_workouts else ""
+    raw_reason = decision.get("reason") or ""
+    why = _reason_to_ptbr(raw_reason)
+    return {
+        "headline": _TODAY_ACTION_PT.get(action, "Aguardando dados para recomendar"),
+        "why": why,
+        "next_planned": next_cat,
+        "confidence": decision.get("confidence", ""),
+        "science_refs": _as_list(decision.get("science_refs")),
+        "date": decision.get("local_date") or decision.get("date", ""),
+    }
+
+
+def _reason_to_ptbr(reason: str) -> str:
+    if not reason:
+        return "Sem evidencia suficiente; registre o check-in."
+    if "check-in" in reason.lower() or "checkin" in reason.lower():
+        return "Falta o check-in manual do treino; registre para liberar a recomendacao."
+    # Engine reason tags joined with '; ' -> PT-BR labels when known.
+    parts = [p.strip() for p in reason.split(";") if p.strip()]
+    labels = [_TODAY_REASON_PT.get(p, p) for p in parts]
+    return "; ".join(labels)
+
+
+_TODAY_REASON_PT = {
+    "weekly_load_spike": "salto de carga semanal acima do seguro",
+    "post_race_recovery": "janela de recuperacao pos-prova",
+    "achilles_trend_rising": "Aquiles em tendencia de piora",
+    "matheus_achilles_ge_5": "Aquiles do Matheus >= 5/10",
+    "matheus_achilles_ge_3": "Aquiles do Matheus >= 3/10",
+    "bruna_pse_ge_9": "PSE da Bruna muito alto",
+    "bruna_strong_symptoms": "sintomas fortes da Bruna",
+    "volleyball_previous_day": "volei no dia anterior",
+    "poor_sleep": "sono ruim",
+    "all_out_race": "esforco maximo recente",
+    "red_flag_symptom": "sintoma de alerta",
+    "within_guardrails": "dentro das margens de seguranca",
+}
+
 
 
 def _present_decision(row: dict[str, str]) -> dict[str, Any]:

@@ -1,5 +1,13 @@
 export type FrontendPayload = {
   generated_at: string;
+  today: {
+    headline: string;
+    why: string;
+    next_planned: string;
+    confidence: string;
+    science_refs: string[];
+    date: string;
+  };
   mission: {
     name: string;
     target_race_window: string;

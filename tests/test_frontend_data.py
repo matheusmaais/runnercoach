@@ -128,3 +128,13 @@ def test_write_frontend_payload_creates_json(tmp_path: Path) -> None:
     assert written == output
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert payload["mission"]["target_race_window"] == "late January 2027"
+
+
+def test_today_block_is_present_and_ptbr(tmp_path):
+    from running_coach.frontend_data import build_frontend_payload
+    from pathlib import Path
+    payload = build_frontend_payload(Path("."))
+    today = payload["today"]
+    assert set(today) >= {"headline", "why", "next_planned", "confidence", "science_refs", "date"}
+    assert today["headline"]  # non-empty PT-BR headline
+    assert "evidence" not in today["why"].lower()  # no leaked EN engine string
